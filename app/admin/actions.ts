@@ -20,3 +20,14 @@ export async function signOut() {
   const supabase = await createClient();
   await supabase.auth.signOut();
 }
+
+// redirectTo comes from the client (window.location.origin) rather than
+// being built here — it has to match wherever this specific request
+// actually landed (admin subdomain, in this file's case), and there's no
+// reliable server-side way to reconstruct that without duplicating
+// middleware.ts/proxy.ts's own subdomain logic here too.
+export async function requestPasswordReset(email: string, redirectTo: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+  return { error: error?.message ?? null };
+}

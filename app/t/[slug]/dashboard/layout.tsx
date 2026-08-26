@@ -15,9 +15,10 @@ export default async function DashboardLayout({
   params,
 }: {
   children: React.ReactNode;
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
-  const supabase = createClient();
+  const { slug } = await params;
+  const supabase = await createClient();
 
   const {
     data: { user },
@@ -30,7 +31,7 @@ export default async function DashboardLayout({
   const { data: tenant } = await supabase
     .from('tenants')
     .select('id, name, primary_color, secondary_color, accent_color, logo_url')
-    .eq('slug', params.slug)
+    .eq('slug', slug)
     .single();
 
   if (!tenant) {

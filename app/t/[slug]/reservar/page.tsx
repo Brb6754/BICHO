@@ -18,8 +18,9 @@ function resolveFontKey(value: unknown): FontKey {
   return typeof value === 'string' && isFontKey(value) ? value : 'inter';
 }
 
-export default async function ReservarPage({ params }: { params: { slug: string } }) {
-  const supabase = createClient();
+export default async function ReservarPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const supabase = await createClient();
 
   // Kept separate from the branding query on purpose: id/name/vertical
   // are core columns that have existed since 001; branding columns are
@@ -29,7 +30,7 @@ export default async function ReservarPage({ params }: { params: { slug: string 
   const { data: tenant } = await supabase
     .from('tenants')
     .select('id, name, vertical')
-    .eq('slug', params.slug)
+    .eq('slug', slug)
     .single();
 
   const { data: branding_raw } = await supabase
@@ -37,7 +38,7 @@ export default async function ReservarPage({ params }: { params: { slug: string 
     .select(
       'primary_color, secondary_color, accent_color, background_color, text_color, font_heading, font_body, logo_url'
     )
-    .eq('slug', params.slug)
+    .eq('slug', slug)
     .maybeSingle();
 
   // Queried separately from branding_raw above, same defensive reason:
@@ -48,7 +49,7 @@ export default async function ReservarPage({ params }: { params: { slug: string 
   const { data: theme_mode_raw } = await supabase
     .from('tenants')
     .select('theme_mode')
-    .eq('slug', params.slug)
+    .eq('slug', slug)
     .maybeSingle();
   const isDark = theme_mode_raw?.theme_mode === 'dark';
 
@@ -76,7 +77,7 @@ export default async function ReservarPage({ params }: { params: { slug: string 
   const bodyKey = resolveFontKey(branding_raw?.font_body);
 
   const bookingData = {
-    slug: params.slug,
+    slug,
     businessName: tenant?.name,
     services: services ?? [],
     resources: resources ?? [],

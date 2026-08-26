@@ -73,10 +73,11 @@ function computeTrend(current: number, previous: number): { label: string; direc
   };
 }
 
-export default async function TenantDetailPage({ params }: { params: { tenantId: string } }) {
+export default async function TenantDetailPage({ params }: { params: Promise<{ tenantId: string }> }) {
+  const { tenantId } = await params;
   const admin = createAdminClient();
 
-  const { data: tenant } = await admin.from('tenants').select('*').eq('id', params.tenantId).single();
+  const { data: tenant } = await admin.from('tenants').select('*').eq('id', tenantId).single();
   if (!tenant) {
     notFound();
   }

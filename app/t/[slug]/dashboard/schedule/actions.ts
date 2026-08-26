@@ -9,7 +9,7 @@ export async function createScheduleSlot(slug: string, formData: FormData) {
   const startsAt = formData.get('starts_at') as string;
   const endsAt = formData.get('ends_at') as string;
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: tenant } = await supabase.from('tenants').select('id').eq('slug', slug).single();
   if (!tenant) return;
 
@@ -45,7 +45,7 @@ export async function createScheduleSlot(slug: string, formData: FormData) {
 }
 
 export async function deleteScheduleSlot(scheduleId: string, slug: string) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: tenant } = await supabase.from('tenants').select('id').eq('slug', slug).single();
   if (!tenant) return;
 

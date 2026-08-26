@@ -23,9 +23,10 @@ const DAYS = [
   { value: 0, label: 'Domingo' },
 ];
 
-export default async function SchedulePage({ params }: { params: { slug: string } }) {
-  const supabase = createClient();
-  const { data: tenant } = await supabase.from('tenants').select('id').eq('slug', params.slug).single();
+export default async function SchedulePage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const supabase = await createClient();
+  const { data: tenant } = await supabase.from('tenants').select('id').eq('slug', slug).single();
 
   const { data: resources } = await supabase
     .from('resources')
@@ -68,7 +69,7 @@ export default async function SchedulePage({ params }: { params: { slug: string 
       ) : (
         <Card className="mt-6">
           <form
-            action={createScheduleSlot.bind(null, params.slug)}
+            action={createScheduleSlot.bind(null, slug)}
             className="flex flex-wrap items-end gap-3"
           >
             <div className="min-w-[160px]">
@@ -116,7 +117,7 @@ export default async function SchedulePage({ params }: { params: { slug: string 
                 </span>
               </span>
               <ConfirmForm
-                action={deleteScheduleSlot.bind(null, s.id, params.slug)}
+                action={deleteScheduleSlot.bind(null, s.id, slug)}
                 confirmTitle="Borrar horario"
                 confirmMessage="¿Seguro que quieres borrar este horario? Esta acción no se puede deshacer."
                 confirmLabel="Borrar"

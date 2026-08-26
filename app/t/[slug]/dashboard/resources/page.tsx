@@ -9,10 +9,11 @@ import { ConfirmForm } from '@/components/ui/ConfirmForm';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Text } from '@/components/ui/Text';
 
-export default async function ResourcesPage({ params }: { params: { slug: string } }) {
-  const supabase = createClient();
+export default async function ResourcesPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const supabase = await createClient();
 
-  const { data: tenant } = await supabase.from('tenants').select('id').eq('slug', params.slug).single();
+  const { data: tenant } = await supabase.from('tenants').select('id').eq('slug', slug).single();
 
   const { data: resources } = await supabase
     .from('resources')
@@ -28,7 +29,7 @@ export default async function ResourcesPage({ params }: { params: { slug: string
       </Text>
 
       <Card className="mt-6">
-        <form action={createResource.bind(null, params.slug)} className="flex flex-wrap items-end gap-3">
+        <form action={createResource.bind(null, slug)} className="flex flex-wrap items-end gap-3">
           <div className="flex-1">
             <Input type="text" name="name" placeholder="Nombre (ej. Silla 1)" required className="w-full" />
           </div>
@@ -45,13 +46,13 @@ export default async function ResourcesPage({ params }: { params: { slug: string
                 {!r.active && <Badge tone="muted">inactivo</Badge>}
               </span>
               <div className="flex gap-2">
-                <form action={toggleResourceActive.bind(null, r.id, !r.active, params.slug)}>
+                <form action={toggleResourceActive.bind(null, r.id, !r.active, slug)}>
                   <Button type="submit" variant="ghost" className="px-4 py-1.5 text-xs">
                     {r.active ? 'Desactivar' : 'Activar'}
                   </Button>
                 </form>
                 <ConfirmForm
-                  action={deleteResource.bind(null, r.id, params.slug)}
+                  action={deleteResource.bind(null, r.id, slug)}
                   confirmTitle="Borrar recurso"
                   confirmMessage={`¿Seguro que quieres borrar "${r.name}"? Esta acción no se puede deshacer.`}
                   confirmLabel="Borrar"

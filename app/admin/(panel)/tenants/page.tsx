@@ -37,10 +37,11 @@ const MONTHLY_PLAN_PRICE_MXN = 499;
 const MOCK_CHURN_PERCENT = 4.2;
 
 export default async function TenantsPage({
-  searchParams,
+  searchParams: searchParamsPromise,
 }: {
-  searchParams: { q?: string; status?: string; vertical?: string; from?: string; to?: string; page?: string };
+  searchParams: Promise<{ q?: string; status?: string; vertical?: string; from?: string; to?: string; page?: string }>;
 }) {
+  const searchParams = await searchParamsPromise;
   const admin = createAdminClient();
 
   const page = Math.max(1, parseInt(searchParams.page ?? '1', 10) || 1);

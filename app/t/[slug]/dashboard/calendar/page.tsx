@@ -17,9 +17,10 @@ type BookingRow = {
   customers: { name: string } | null;
 };
 
-export default async function CalendarPage({ params }: { params: { slug: string } }) {
-  const supabase = createClient();
-  const { data: tenant } = await supabase.from('tenants').select('id').eq('slug', params.slug).single();
+export default async function CalendarPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const supabase = await createClient();
+  const { data: tenant } = await supabase.from('tenants').select('id').eq('slug', slug).single();
 
   const { data: bookingsRaw } = await supabase
     .from('bookings')
@@ -62,7 +63,7 @@ export default async function CalendarPage({ params }: { params: { slug: string 
               </span>
               {b.status === 'confirmed' && (
                 <ConfirmForm
-                  action={cancelBooking.bind(null, b.id, params.slug)}
+                  action={cancelBooking.bind(null, b.id, slug)}
                   confirmTitle="Cancelar cita"
                   confirmMessage="¿Seguro que quieres cancelar esta cita? Se notificará como cancelada y el horario quedará libre de nuevo."
                   confirmLabel="Cancelar cita"

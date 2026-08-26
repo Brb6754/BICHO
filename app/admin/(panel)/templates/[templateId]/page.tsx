@@ -17,12 +17,13 @@ const BOOKING_FIELD_OPTIONS = [
   { value: 'notes', label: 'Notas' },
 ];
 
-export default async function TemplateEditPage({ params }: { params: { templateId: string } }) {
+export default async function TemplateEditPage({ params }: { params: Promise<{ templateId: string }> }) {
+  const { templateId } = await params;
   const admin = createAdminClient();
   const { data: template } = await admin
     .from('templates')
     .select('*')
-    .eq('id', params.templateId)
+    .eq('id', templateId)
     .single();
 
   if (!template) {

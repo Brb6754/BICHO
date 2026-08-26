@@ -14,9 +14,10 @@ type UpcomingBooking = {
   customers: { name: string } | null;
 };
 
-export default async function DashboardOverviewPage({ params }: { params: { slug: string } }) {
-  const supabase = createClient();
-  const { data: tenant } = await supabase.from('tenants').select('id').eq('slug', params.slug).single();
+export default async function DashboardOverviewPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const supabase = await createClient();
+  const { data: tenant } = await supabase.from('tenants').select('id').eq('slug', slug).single();
 
   const [{ count: resourceCount }, { count: serviceCount }, { count: upcomingCount }, { data: upcomingRaw }] =
     await Promise.all([

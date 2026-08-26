@@ -10,10 +10,11 @@ import { ConfirmForm } from '@/components/ui/ConfirmForm';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Text } from '@/components/ui/Text';
 
-export default async function ServicesPage({ params }: { params: { slug: string } }) {
-  const supabase = createClient();
+export default async function ServicesPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const supabase = await createClient();
 
-  const { data: tenant } = await supabase.from('tenants').select('id').eq('slug', params.slug).single();
+  const { data: tenant } = await supabase.from('tenants').select('id').eq('slug', slug).single();
 
   const { data: services } = await supabase
     .from('service_types')
@@ -30,7 +31,7 @@ export default async function ServicesPage({ params }: { params: { slug: string 
 
       <Card className="mt-6">
         <form
-          action={createService.bind(null, params.slug)}
+          action={createService.bind(null, slug)}
           className="flex flex-wrap items-end gap-3"
         >
           <div className="min-w-[180px] flex-1">
@@ -66,13 +67,13 @@ export default async function ServicesPage({ params }: { params: { slug: string 
                 {!s.active && <Badge tone="muted">inactivo</Badge>}
               </span>
               <div className="flex gap-2">
-                <form action={toggleServiceActive.bind(null, s.id, !s.active, params.slug)}>
+                <form action={toggleServiceActive.bind(null, s.id, !s.active, slug)}>
                   <Button type="submit" variant="ghost" className="px-4 py-1.5 text-xs">
                     {s.active ? 'Desactivar' : 'Activar'}
                   </Button>
                 </form>
                 <ConfirmForm
-                  action={deleteService.bind(null, s.id, params.slug)}
+                  action={deleteService.bind(null, s.id, slug)}
                   confirmTitle="Borrar servicio"
                   confirmMessage={`¿Seguro que quieres borrar "${s.name}"? Esta acción no se puede deshacer.`}
                   confirmLabel="Borrar"

@@ -23,7 +23,7 @@ export async function createService(slug: string, formData: FormData) {
     throw new Error('El precio debe ser un número igual o mayor a 0.');
   }
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: tenant } = await supabase.from('tenants').select('id').eq('slug', slug).single();
   if (!tenant) return;
 
@@ -40,7 +40,7 @@ export async function createService(slug: string, formData: FormData) {
 }
 
 export async function toggleServiceActive(serviceId: string, active: boolean, slug: string) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: tenant } = await supabase.from('tenants').select('id').eq('slug', slug).single();
   if (!tenant) return;
 
@@ -55,7 +55,7 @@ export async function toggleServiceActive(serviceId: string, active: boolean, sl
 }
 
 export async function deleteService(serviceId: string, slug: string) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: tenant } = await supabase.from('tenants').select('id').eq('slug', slug).single();
   if (!tenant) return;
 

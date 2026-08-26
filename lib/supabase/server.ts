@@ -4,8 +4,10 @@ import { cookies } from 'next/headers';
 // For use in Server Components, Route Handlers, and Server Actions.
 // Still the anon key — subject to RLS, scoped to the logged-in user's
 // session via cookies. This is what the business dashboard uses.
-export function createClient() {
-  const cookieStore = cookies();
+export async function createClient() {
+  // Next 15+ made cookies() async — every caller of this function now
+  // needs `await createClient()` instead of a plain call.
+  const cookieStore = await cookies();
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

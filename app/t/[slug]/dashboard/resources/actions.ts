@@ -13,7 +13,7 @@ import { createClient } from '@/lib/supabase/server';
 
 export async function createResource(slug: string, formData: FormData) {
   const name = formData.get('name') as string;
-  const supabase = createClient();
+  const supabase = await createClient();
 
   const { data: tenant } = await supabase.from('tenants').select('id').eq('slug', slug).single();
   if (!tenant) return;
@@ -29,7 +29,7 @@ export async function createResource(slug: string, formData: FormData) {
 }
 
 export async function toggleResourceActive(resourceId: string, active: boolean, slug: string) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: tenant } = await supabase.from('tenants').select('id').eq('slug', slug).single();
   if (!tenant) return;
 
@@ -44,7 +44,7 @@ export async function toggleResourceActive(resourceId: string, active: boolean, 
 }
 
 export async function deleteResource(resourceId: string, slug: string) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: tenant } = await supabase.from('tenants').select('id').eq('slug', slug).single();
   if (!tenant) return;
 

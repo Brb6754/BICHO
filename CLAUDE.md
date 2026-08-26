@@ -1830,3 +1830,125 @@ oscuras y coherentes, y pidió que acá pase lo mismo.
   reales pasando por `BlockRenderer`, borrada al terminar): las tres
   tarjetas ahora anclan al mismo morado oscuro del fondo en vez de
   blanco/lavanda, coherente con el dashboard. `tsc --noEmit` limpio.
+
+**Auditoría técnica de producción + plan de corrección (mismo día,
+sesión larga)**: Bruno pidió una auditoría exhaustiva ("¿está listo
+para producción?") y luego "haz todo lo necesario para mandar a
+producción". Se hizo la auditoría completa primero (ver el mensaje de
+esa conversación para el reporte entero — no se repite aquí), y
+después se ejecutó el plan de corrección real, con dos decisiones que
+Bruno tomó explícitamente: actualizar Next.js YA (no dejarlo pendiente)
+y hostear en Vercel.
+
+- **Patrón de error silenciado, arreglado en las 9 Server Actions que
+  quedaban** (`resources`, `services`, `schedule`, `calendar`,
+  `templates` admin) — mismo arreglo que ya se había hecho en
+  `BrandEditor` antes en la sesión: revisar `{ error }` y lanzar en vez
+  de fallar en silencio. `createService` también gana validación real
+  de `duration_minutes`/`price_mxn` (antes `Number()` podía dar `NaN`
+  y reventar contra el `check` de la base sin mensaje claro).
+- **Defensa en profundidad multi-tenant**: cada mutation por ID
+  (`deleteResource`, `cancelBooking`, etc.) ahora también filtra por
+  `tenant_id`, no solo confía en RLS. Y `createScheduleSlot` verifica
+  que `resource_id` realmente pertenezca al tenant antes de insertar —
+  hueco que el propio `db/README.md` ya tenía documentado como
+  "pendiente / no resuelto".
+- **`error.tsx`/`not-found.tsx`/`global-error.tsx`** en la raíz,
+  `/admin/(panel)`, y `/t/[slug]/dashboard` — antes CERO boundaries en
+  toda la app; cualquier excepción no capturada mostraba la página de
+  error genérica de Next sin ninguna posibilidad de recuperación.
+- **`app/api/reservar/route.ts`**: validación real de tipos/longitud/
+  formato de email/fechas (antes solo chequeos de "existe"), un rate
+  limiter en memoria por IP (documentado como stopgap — en Vercel
+  serverless no es 100% confiable entre instancias; lo real es prender
+  Vercel Firewall en el dashboard), y `console.error` en el catch de
+  `create_booking` (antes el error de Postgres se perdía sin dejar
+  rastro).
+- **`safeHref()`** (nuevo, `lib/branding/safeHref.ts`) sanea `ctaLink`
+  /`mapUrl`/`link.url` en `BlockRenderer.tsx` contra `javascript:`/
+  `data:` — un admin (o una cuenta de admin comprometida) podía meter
+  un URI ejecutable en un campo de plantilla que afecta a TODOS los
+  tenants de esa plantilla y a sus visitantes reales.
+- **Cabeceras de seguridad** (`next.config.mjs`): X-Frame-Options,
+  X-Content-Type-Options, Referrer-Policy, Permissions-Policy. Se dejó
+  CSP afuera a propósito — el script inline del theme-init en
+  `app/layout.tsx` necesitaría nonces para no romperse, y no valía el
+  riesgo en esta pasada.
+- **`.env.example`** nuevo — las 4 variables nunca habían estado
+  documentadas en ningún lado del repo salvo `.env.local` (ignorado por
+  git).
+- **Contraseña mínima subida de 6 a 10 caracteres** para crear un dueño
+  de tenant (`createTenantOwner`).
+- **Rendimiento**: `/admin/tenants` cambió de traer la tabla `tenants`
+  completa a memoria para contar en JS a tres `count: 'exact', head:
+  true` separados. `/admin/tenants/[tenantId]` cambió 4 queries
+  secuenciales (cada una esperando a la anterior) a un solo
+  `Promise.all`.
+- **`db/013_input_length_constraints.sql`** (⚠️ pendiente de aplicar
+  manualmente, igual que las anteriores) — límites de longitud en
+  `customers.name/email/phone`, `bookings.notes`, `tenants.description`
+  — nada los limitaba antes, y el flujo público de reserva es
+  alcanzable sin autenticación.
+- **Primer commit de git** — el repo tenía meses de trabajo y CERO
+  commits. Ahora tiene historial real, y un segundo commit con toda la
+  infraestructura de tests/CI (ver abajo), y un tercero/cuarto con el
+  upgrade de Next.js.
+- **Tests automatizados, de cero a algo real**: Vitest instalado.
+  Unitarios para `lib/branding/colors.ts` (incluye un test de
+  regresión específico para el bug de `darkenHex`/`lightenHex` →
+  `toRgbTriplet` encontrado antes en la sesión) y `safeHref`. Dos
+  suites de integración contra la base REAL de Supabase (no mocks):
+  atomicidad de `create_booking` (incluye el caso de dos reservas
+  simultáneas encimadas, y que no quede un `customer` huérfano si la
+  segunda falla) y el límite de RLS visto desde la clave `anon` (sin
+  crear ninguna cuenta — confirma que `customers`/`bookings`
+  /`business_users`/`payments`/`platform_admins` son ilegibles para un
+  visitante anónimo, y que el catálogo público sí es legible). Ambas
+  suites crean su propio tenant de prueba y lo borran al final
+  (cascada desde `tenants`), verificado que no queda nada suelto.
+- **CI de GitHub Actions** (`.github/workflows/ci.yml`): type-check +
+  lint + test en cada push/PR. No despliega nada — eso lo hace la
+  integración de Vercel con GitHub directamente; esto es solo un
+  gate para que un build roto se vea ANTES de llegar a Vercel.
+- **Upgrade de Next.js 14.2.5 → 16.3.3 (+ React 18 → 19, ESLint 8 → 10)**:
+  resolvía ~15 CVEs de severidad alta confirmados por `npm audit`
+  (ahora en 0 vulnerabilidades). El cambio real de fondo: `params`/
+  `searchParams`/`cookies()` pasaron a ser async desde Next 15 — hubo
+  que tocar los 11 archivos que desestructuran `params`/`searchParams`
+  sincrónicamente y los 14 que llaman `createClient()` de
+  `lib/supabase/server.ts` (ahora async). TypeScript NO marcó estos
+  errores en la mayoría de los casos (los tipos de `params` eran
+  anotaciones manuales, no los generados por Next), así que se
+  encontraron corriendo el dev server de verdad contra `/reservar` y
+  viendo el error real en los logs — lección: después de un upgrade de
+  Next.js, `tsc --noEmit` limpio NO es suficiente prueba, hay que
+  probar en el navegador. También se corrió el codemod oficial
+  `middleware-to-proxy` (`middleware.ts` → `proxy.ts`, nueva
+  convención de Next 16).
+- **Verificado de punta a punta después del upgrade**: `npm run build`
+  completo (18 rutas, todas compilan/prerenderizan), los 34 tests en
+  verde, y una reserva REAL creada a través del flujo público completo
+  (servicio → fecha → hora → datos → confirmar → `/api/reservar` →
+  200 OK) contra `test-salon`, luego borrada. Rutas de admin
+  (`/admin/login`, subdominio) verificadas sin poder loguearme (no
+  tengo credenciales) — el build de producción compilando esas rutas
+  sin error es la evidencia disponible para esa parte.
+- **Pendiente de vos, no lo pude hacer yo**:
+  - Correr `db/013_input_length_constraints.sql` (y el `012` si
+    todavía no lo corriste) en el SQL Editor de Supabase.
+  - Crear el repo en GitHub, agregarlo como remoto, y hacer push —
+    no tengo `gh` instalado ni una cuenta para crear uno.
+  - Conectar ese repo a un proyecto de Vercel (deploy automático) y
+    cargar las 4 variables de entorno ahí.
+  - Agregar los 3 secrets de Supabase a GitHub Actions (Settings →
+    Secrets) para que las pruebas de integración corran en CI — sin
+    esto simplemente se saltan (no fallan).
+  - Prender Vercel Firewall (rate limiting) en el dashboard del
+    proyecto una vez desplegado — el limiter en memoria del endpoint
+    público es un stopgap, no el arreglo real en serverless.
+  - Confirmar/probar el plan de backups de Supabase (esto es
+    configuración del dashboard de Supabase, no código).
+  - Todo lo de "post-producción" del plan original (pagos, confirmación
+    por email/WhatsApp, recuperación de contraseña) sigue pendiente,
+    sin tocar en esta pasada — son features nuevas, no arreglos de
+    lanzamiento.

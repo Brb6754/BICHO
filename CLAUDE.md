@@ -1952,3 +1952,41 @@ y hostear en Vercel.
     por email/WhatsApp, recuperación de contraseña) sigue pendiente,
     sin tocar en esta pasada — son features nuevas, no arreglos de
     lanzamiento.
+
+**Deploy a Vercel + recuperación de contraseña (mismo día, después)**:
+
+- **Deploy real**: `vercel login` encontró una sesión ya guardada en la
+  máquina (cuenta `brb6754`, confirmado con Bruno que es la suya).
+  Proyecto creado y desplegado vía CLI directo (sin GitHub todavía) en
+  **https://reservas-saas-sigma.vercel.app**. Las 3 variables de
+  Supabase cargadas en Vercel para production/preview/development
+  (`SUPABASE_SERVICE_ROLE_KEY` como tipo Secret). `NEXT_PUBLIC_ROOT_
+  DOMAIN` apuntado al alias real de producción. Verificado en vivo: la
+  home carga sin errores; `admin.reservas-saas-sigma.vercel.app` NO
+  resuelve (esperado — un dominio compartido `.vercel.app` no permite
+  wildcard de subdominios propios, así que admin/dashboard de tenant
+  no van a andar hasta que haya un dominio real con `*.dominio` en
+  Vercel). Bruno decidió NO comprar dominio todavía.
+- **Recuperación de contraseña** (`/admin/login` y `/t/[slug]/login`):
+  Supabase Auth ya lo soportaba, solo faltaba la UI y el intercambio
+  de código PKCE. Nuevo toggle "¿Olvidaste tu contraseña?" en ambos
+  `LoginForm`, `requestPasswordReset()` (Server Action, mismo patrón
+  que `signIn`/`signOut`), `/auth/callback` (Route Handler — el
+  intercambio de código por sesión tiene que pasar por ahí porque un
+  Server Component no puede setear la cookie de sesión resultante,
+  solo un Route Handler o Server Action puede) y `/reset-password`
+  (página con el formulario de nueva contraseña, llama
+  `auth.updateUser()` desde el cliente browser).
+  - Verificado en vivo: el toggle y el mensaje genérico "si ese correo
+    tiene cuenta..." (mismo mensaje exista o no el correo, para no
+    filtrar qué emails están registrados) en ambos logins; y el
+    mensaje de error correcto al visitar `/reset-password` sin una
+    sesión de recuperación válida ("el enlace ya venció o ya se usó").
+  - **No verificado**: el camino feliz completo (clic real en el
+    email → `/auth/callback` → `/reset-password` → contraseña
+    cambiada). Hacerlo hubiera requerido crear una cuenta de prueba
+    nueva (ya bloqueado una vez esta sesión por el clasificador de
+    permisos) o resetear la contraseña de una cuenta real de Bruno —
+    ninguna de las dos me pareció correcta para hacer sin pedir
+    permiso primero. Si Bruno quiere probar ese tramo, tiene que
+    hacerlo él mismo con su propio correo.

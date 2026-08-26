@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { sendBookingConfirmation } from '@/lib/email/sendBookingConfirmation';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_TEXT_LENGTH = 200;
@@ -84,7 +85,7 @@ export async function POST(request: Request) {
 
   const supabase = createAdminClient();
 
-  const { data: tenant } = await supabase.from('tenants').select('id').eq('slug', slug).single();
+  const { data: tenant } = await supabase.from('tenants').select('id, name').eq('slug', slug).single();
   if (!tenant) {
     return NextResponse.json({ error: 'Negocio no encontrado.' }, { status: 404 });
   }
@@ -99,7 +100,7 @@ export async function POST(request: Request) {
     .single();
   const { data: service } = await supabase
     .from('service_types')
-    .select('id')
+    .select('id, name')
     .eq('id', service_type_id)
     .eq('tenant_id', tenant.id)
     .single();
@@ -147,6 +148,21 @@ export async function POST(request: Request) {
     }
     console.error('create_booking failed', error);
     return NextResponse.json({ error: 'No se pudo agendar la cita.' }, { status: 500 });
+  }
+
+  // Awaited (not fire-and-forget) — Vercel serverless functions can stop
+  // executing once the response is sent, so a truly "background" send
+  // here isn't guaranteed to finish. sendBookingConfirmation never
+  // throws on its own failures, so this can't turn a successful booking
+  // into an error response just because the email had trouble.
+  if (customer_email) {
+    await sendBookingConfirmation({
+      customerEmail: customer_email,
+      customerName: customer_name,
+      businessName: tenant.name,
+      serviceName: service.name,
+      startsAt: starts_at,
+    });
   }
 
   return NextResponse.json({ ok: true, bookingId });

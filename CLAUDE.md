@@ -1990,3 +1990,33 @@ y hostear en Vercel.
     ninguna de las dos me pareció correcta para hacer sin pedir
     permiso primero. Si Bruno quiere probar ese tramo, tiene que
     hacerlo él mismo con su propio correo.
+
+**Confirmación de cita por email vía Resend (mismo día, después)**:
+Bruno eligió Resend para "cosas extra" del plan original (confirmación
+de citas) — sin proveedor propio no era una opción real (Gmail SMTP
+poco confiable para transaccional, el SMTP de Supabase es solo para
+sus propios emails de auth).
+
+- **`lib/email/sendBookingConfirmation.ts`** (nuevo): envía la
+  confirmación (servicio, fecha/hora, nombre del negocio) al
+  `customer_email` de la reserva, si lo dio. Nunca lanza — si
+  `RESEND_API_KEY` no está seteada (todavía no lo está, falta que
+  Bruno pase la key), no hace nada en silencio; si Resend falla, se
+  loguea con `console.error` pero la reserva ya se hizo y no se ve
+  afectada. Verificado con un test unitario que confirma que resuelve
+  sin tirar error sin la key configurada.
+- **`app/api/reservar/route.ts`**: después de un `create_booking`
+  exitoso, si vino `customer_email`, espera (`await`, no
+  "fire-and-forget") el envío — en funciones serverless de Vercel no
+  hay garantía de que algo siga corriendo después de mandar la
+  respuesta, así que no esperar el envío podría perder el email
+  silenciosamente.
+- **Remitente**: `onboarding@resend.dev` (el dominio compartido de
+  Resend) — no hay dominio propio todavía. Sirve para probar, pero es
+  más confiable para la bandeja del dueño de la cuenta que para
+  clientes reales; cuando haya un dominio, verificarlo en el dashboard
+  de Resend y cambiar el remitente a algo como `reservas@tudominio.com`.
+- **Pendiente de vos**: pasar la `RESEND_API_KEY` (de
+  resend.com/api-keys) para que esto realmente empiece a mandar
+  correos — sin ella, las reservas siguen funcionando exactamente
+  igual, solo que sin el email de confirmación.

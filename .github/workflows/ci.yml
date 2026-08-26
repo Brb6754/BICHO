@@ -1,0 +1,37 @@
+name: CI
+
+# Vercel's own GitHub integration handles building and deploying on
+# push — this workflow does NOT deploy anything. Its only job is to be
+# a gate: type errors, lint failures, or a broken test must be visible
+# in the PR/commit checks before Vercel ever builds it for real,
+# instead of only finding out after a bad deploy goes live.
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit tests (integration tests skip automatically without repo secrets)
+        run: npm test
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}

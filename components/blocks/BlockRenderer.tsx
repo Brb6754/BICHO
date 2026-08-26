@@ -13,24 +13,8 @@ import {
 import type { Block, BlockStyle, Padding, MaxWidth } from '@/lib/templates/blocks';
 import { normalizeBlock } from '@/lib/templates/blocks';
 import { PLATFORM_PRIMARY, PLATFORM_ACCENT, tenantGlassBackground, tenantCtaStyle } from '@/lib/branding/colors';
+import { safeHref } from '@/lib/branding/safeHref';
 import BookingFlow from '@/components/booking/BookingFlow';
-
-// Every link below (hero CTA, location map link, social links) is a
-// plain text URL an admin typed into a form — only reachable by
-// platform_admins today, but a template applies to every tenant that
-// uses it and every one of THEIR visitors, so a `javascript:`/`data:`
-// URI slipped in (by mistake, or a compromised admin account) would
-// execute in a real visitor's browser the moment they click it. Only
-// allow schemes that can't run script; anything else falls back to '#'.
-function safeHref(url: string | undefined | null): string {
-  if (!url) return '#';
-  const trimmed = url.trim();
-  if (/^(https?:|mailto:|tel:)/i.test(trimmed)) return trimmed;
-  // A bare "/path" or "#anchor" (no scheme at all) is also fine — only
-  // an explicit dangerous scheme gets rejected.
-  if (!/^[a-z][a-z0-9+.-]*:/i.test(trimmed)) return trimmed;
-  return '#';
-}
 
 type BookingData = {
   slug: string;

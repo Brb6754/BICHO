@@ -22,7 +22,7 @@ function extractSubdomain(host: string): string | null {
   return hostname.slice(0, -(`.${rootHostname}`.length));
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   // Server Components can't set cookies, so refreshing the Supabase
   // session token has to happen here, on every request, before anything
   // downstream tries to read the session.

@@ -85,7 +85,7 @@ export async function POST(request: Request) {
 
   const supabase = createAdminClient();
 
-  const { data: tenant } = await supabase.from('tenants').select('id, name').eq('slug', slug).single();
+  const { data: tenant } = await supabase.from('tenants').select('id, name, accent_color').eq('slug', slug).single();
   if (!tenant) {
     return NextResponse.json({ error: 'Negocio no encontrado.' }, { status: 404 });
   }
@@ -156,12 +156,23 @@ export async function POST(request: Request) {
   // throws on its own failures, so this can't turn a successful booking
   // into an error response just because the email had trouble.
   if (customer_email) {
+    // http for local *.localhost dev (no TLS there), https everywhere
+    // else. Only actually reachable once there's a real domain with
+    // wildcard subdomains configured (see CLAUDE.md) — until then this
+    // link 404s on the shared *.vercel.app domain, same limitation as
+    // /admin and /dashboard.
+    const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? 'localhost:3000';
+    const protocol = rootDomain.startsWith('localhost') ? 'http' : 'https';
+    const manageUrl = `${protocol}://${slug}.${rootDomain}/reservar/cita/${bookingId}`;
+
     await sendBookingConfirmation({
       customerEmail: customer_email,
       customerName: customer_name,
       businessName: tenant.name,
       serviceName: service.name,
       startsAt: starts_at,
+      manageUrl,
+      accentColor: tenant.accent_color ?? undefined,
     });
   }
 

@@ -24,6 +24,7 @@ describe('sendBookingConfirmation', () => {
         businessName: 'Test Salon',
         serviceName: 'Corte',
         startsAt: new Date().toISOString(),
+        manageUrl: 'https://test-salon.example.com/reservar/cita/abc-123',
       })
     ).resolves.toBeUndefined();
   });

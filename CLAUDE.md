@@ -2020,3 +2020,53 @@ sus propios emails de auth).
   resend.com/api-keys) para que esto realmente empiece a mandar
   correos — sin ella, las reservas siguen funcionando exactamente
   igual, solo que sin el email de confirmación.
+
+**Autoservicio del cliente: ver/cambiar/cancelar su cita (mismo día,
+después)**: Bruno pidió que el email tenga un botón "Ver mi cita" con
+los detalles y la opción de cambiarla o cancelarla — el hueco de UX
+que ya habíamos identificado ("qué le falta a esto para ser perfecto
+para el usuario").
+
+- **`app/t/[slug]/reservar/cita/[bookingId]/`** (nuevo): página pública
+  sin login — el UUID de la reserva hace de autenticación, mismo
+  modelo de confianza que ya usa `/api/reservar` para crear. Cada
+  lectura/escritura filtra por `tenant_id` Y `bookingId` juntos, así
+  que un ID de una reserva de otro tenant nunca puede tocar nada acá
+  aunque alguien lo adivinara. Usa `service_role` porque `anon` no
+  tiene ninguna policy de RLS sobre `bookings` (por diseño).
+  - `page.tsx`: muestra servicio, fecha/hora, recurso, y el estado
+    (Confirmada/Cancelada/Completada), con el mismo sistema de marca
+    (`tenantGlassBackground`, modo oscuro) que el resto de la página
+    pública.
+  - `actions.ts`: `cancelPublicBooking` y `reschedulePublicBooking` —
+    ambas exigen `status = 'confirmed'` antes de tocar la fila (no se
+    puede "cancelar" o "cambiar" algo ya cancelado). El reagendado pasa
+    por el mismo constraint de exclusión de Postgres que ya previene
+    doble-booking en toda la app — si el horario nuevo choca con otra
+    cita, Postgres lo rechaza solo (código `23P01`), no hay lógica
+    nueva de validación de disponibilidad que mantener.
+  - `RescheduleForm.tsx`: reusa `AvailabilityCalendar` y el mismo
+    patrón de `get_available_slots` que `BookingFlow.tsx` — nada de
+    código de disponibilidad duplicado o reescrito.
+  - `BookingActions.tsx`: `ConfirmForm` para cancelar (mismo componente
+    que ya usa el dashboard del staff), toggle a `RescheduleForm` para
+    cambiar.
+- **Email**: `sendBookingConfirmation()` gana un botón "Ver mi cita"
+  con el color de acento del tenant, y de paso se agregó
+  `escapeHtml()` sobre todo el texto interpolado (nombre del cliente,
+  nombre del negocio, nombre del servicio) — no había ningún escape
+  antes, aunque el riesgo real era bajo.
+- **Nota importante**: el link del email (`https://{slug}.{ROOT_
+  DOMAIN}/reservar/cita/{id}`) todavía no es alcanzable en producción
+  — mismo problema del dominio ya documentado arriba (sin wildcard
+  DNS, los subdominios de tenant no resuelven en `*.vercel.app`). El
+  botón se genera bien, simplemente no anda hasta que haya un dominio
+  real.
+- Verificado en vivo de punta a punta contra una reserva real de
+  prueba en `test-salon` (creada directo por script, no por la UI, para
+  ir más rápido): entré a `/reservar/cita/{id}`, vi los detalles
+  correctos, cambié la cita a un horario distinto (confirmado en la
+  base que `starts_at` realmente cambió), y después la cancelé
+  (confirmado que el estado pasa a "Cancelada" y desaparecen los
+  botones de acción). Reserva y cliente de prueba borrados al
+  terminar. `tsc --noEmit` limpio, 35 tests en verde.

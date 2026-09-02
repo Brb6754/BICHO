@@ -143,24 +143,27 @@ function BlockItem({
     case 'hero': {
       const hasImage = block.props.backgroundImageUrl.trim().length > 0;
       const hasCustomColor = Boolean(block.style.backgroundColor);
-      // Default look is a light glass panel (matches every other surface
-      // on the page) instead of a solid dark gradient block — a saturated
-      // color slab was the one thing on the page that didn't read as
-      // "glass." An explicit style.backgroundColor from the editor, or a
+      // Default look is a soft-tinted opaque card (matches every other
+      // surface on the page) instead of a solid dark gradient block — a
+      // saturated color slab was the one thing on the page that didn't
+      // match. An explicit style.backgroundColor from the editor, or a
       // background image, still gets dark-overlay + white text like
-      // before — those are deliberate choices, not the default.
+      // before — those are deliberate choices, not the default. (Named
+      // isGlass from when this really was a glass panel — pre-2026
+      // redesign — kept as-is since it still marks "the default tinted-
+      // card look" accurately enough.)
       const isGlass = !hasImage && !hasCustomColor;
       // BlockBox only adds rounded-3xl when style.rounded is true (a
-      // per-block editor toggle, off by default) — but a glass panel
-      // reads as broken with square corners, so force it on for the
-      // glass case regardless of that toggle.
+      // per-block editor toggle, off by default) — but the tinted-card
+      // look reads as broken with square corners, so force it on
+      // regardless of that toggle.
       const heroStyle = isGlass ? { ...block.style, rounded: true } : block.style;
       return (
         <BlockBox
           style={heroStyle}
           defaultBackground={isGlass ? glassBg(branding, 3) : undefined}
           className={`relative overflow-hidden border ${
-            isGlass ? `${branding.isDark ? 'border-border' : 'border-white/60'} shadow-card backdrop-blur-xl` : 'text-white'
+            isGlass ? `border-border shadow-card` : 'text-white'
           } ${block.props.align === 'center' ? 'text-center' : 'text-left'}`}
         >
           <div
@@ -255,7 +258,7 @@ function BlockItem({
               {block.props.items.map((item) => (
                 <li
                   key={item}
-                  className={`flex flex-col items-center gap-2 rounded-2xl border ${branding.isDark ? 'border-border' : 'border-white/60'} p-4 text-center text-sm font-medium text-ink shadow-sm backdrop-blur-xl transition duration-200 hover:-translate-y-0.5`}
+                  className={`flex flex-col items-center gap-2 rounded-2xl border border-border p-4 text-center text-sm font-medium text-ink shadow-sm transition duration-200 hover:-translate-y-0.5`}
                   style={{ background: glassBg(branding, 1) }}
                 >
                   <span
@@ -290,7 +293,7 @@ function BlockItem({
       return (
         <BlockBox style={block.style}>
           <div
-            className={`mx-auto max-w-lg rounded-[28px] border ${branding.isDark ? 'border-border' : 'border-white/60'} px-6 py-8 text-center shadow-card backdrop-blur-xl`}
+            className={`mx-auto max-w-lg rounded-[28px] border border-border px-6 py-8 text-center shadow-card`}
             style={{ background: glassBg(branding, 2) }}
           >
             {block.props.avatarUrl && (
@@ -346,7 +349,7 @@ function BlockItem({
       return (
         <BlockBox style={block.style} className="text-center">
           <div
-            className={`mx-auto max-w-sm rounded-[28px] border ${branding.isDark ? 'border-border' : 'border-white/60'} px-6 py-7 shadow-sm backdrop-blur-xl`}
+            className={`mx-auto max-w-sm rounded-[28px] border border-border px-6 py-7 shadow-sm`}
             style={{ background: glassBg(branding, 2) }}
           >
             <span
@@ -377,7 +380,7 @@ function BlockItem({
       return (
         <BlockBox style={block.style} className="text-center">
           <div
-            className={`mx-auto max-w-sm rounded-[28px] border ${branding.isDark ? 'border-border' : 'border-white/60'} px-6 py-7 shadow-sm backdrop-blur-xl`}
+            className={`mx-auto max-w-sm rounded-[28px] border border-border px-6 py-7 shadow-sm`}
             style={{ background: glassBg(branding, 2) }}
           >
             <span
@@ -409,7 +412,7 @@ function BlockItem({
                 href={safeHref(link.url)}
                 target="_blank"
                 rel="noreferrer"
-                className={`flex items-center gap-2 rounded-full border ${branding.isDark ? 'border-border' : 'border-white/60'} px-4 py-2 text-sm font-medium text-ink shadow-sm backdrop-blur-xl transition duration-200 hover:-translate-y-0.5`}
+                className={`flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm font-medium text-ink shadow-sm transition duration-200 hover:-translate-y-0.5`}
                 style={{ background: glassBg(branding, 1) }}
               >
                 {Icon && <Icon className="h-4 w-4" />}
@@ -457,7 +460,7 @@ function BlockItem({
       return (
         <div className="mx-auto max-w-lg px-6 py-10">
           <div
-            className={`rounded-[32px] border ${branding.isDark ? 'border-border' : 'border-white/60'} p-6 shadow-card backdrop-blur-xl sm:p-8`}
+            className={`rounded-[32px] border border-border p-6 shadow-card sm:p-8`}
             style={{ background: glassBg(branding, 3) }}
           >
             <BookingFlow
@@ -484,7 +487,7 @@ function BookingFlowMockPreview({ branding }: { branding: Branding }) {
   return (
     <div className="mx-auto max-w-lg px-6 py-10">
       <div
-        className="rounded-[32px] border border-white/60 p-6 shadow-card backdrop-blur-xl sm:p-8"
+        className="rounded-[32px] border border-border p-6 shadow-card sm:p-8"
         style={{ background: tenantGlassBackground(branding.primaryColor, branding.accentColor, 3) }}
       >
         <div className="mb-4 flex flex-wrap items-center justify-center gap-1.5">

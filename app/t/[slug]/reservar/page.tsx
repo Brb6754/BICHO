@@ -149,11 +149,11 @@ export default async function ReservarPage({ params }: { params: Promise<{ slug:
         <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden="true">
           <div
             className="absolute -left-[10%] -top-[15%] h-[55vw] w-[55vw] rounded-full"
-            style={{ background: `radial-gradient(circle, ${withAlpha(branding.primaryColor, 0.2)}, transparent 70%)`, filter: 'blur(100px)' }}
+            style={{ background: `radial-gradient(circle, ${withAlpha(branding.primaryColor, 0.1)}, transparent 70%)`, filter: 'blur(100px)' }}
           />
           <div
             className="absolute -bottom-[20%] -right-[10%] h-[60vw] w-[60vw] rounded-full"
-            style={{ background: `radial-gradient(circle, ${withAlpha(branding.accentColor, 0.18)}, transparent 70%)`, filter: 'blur(100px)' }}
+            style={{ background: `radial-gradient(circle, ${withAlpha(branding.accentColor, 0.09)}, transparent 70%)`, filter: 'blur(100px)' }}
           />
         </div>
 
@@ -167,7 +167,7 @@ export default async function ReservarPage({ params }: { params: Promise<{ slug:
             // header + glass booking card, not a bare unstyled page.
             <div className="mx-auto max-w-lg px-6 py-14">
               <div
-                className={`relative overflow-hidden rounded-[32px] border ${isDark ? 'border-border' : 'border-white/60'} px-8 py-10 text-center shadow-card backdrop-blur-xl`}
+                className={`relative overflow-hidden rounded-[32px] border border-border px-8 py-10 text-center shadow-card`}
                 style={{ background: tenantGlassBackground(branding.primaryColor, branding.accentColor, 3, branding.darkBase) }}
               >
                 <div
@@ -193,7 +193,7 @@ export default async function ReservarPage({ params }: { params: Promise<{ slug:
                 <p className="relative mt-2 text-muted">Elige tu servicio y horario en unos segundos.</p>
               </div>
               <div
-                className={`mt-8 rounded-[32px] border ${isDark ? 'border-border' : 'border-white/60'} p-6 shadow-card backdrop-blur-xl sm:p-8`}
+                className={`mt-8 rounded-[32px] border border-border p-6 shadow-card sm:p-8`}
                 style={{ background: tenantGlassBackground(branding.primaryColor, branding.accentColor, 3, branding.darkBase) }}
               >
                 <BookingFlow {...bookingData} accentColor={branding.accentColor} primaryColor={branding.primaryColor} />

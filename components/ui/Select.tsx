@@ -10,7 +10,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
     <select
       ref={ref}
       aria-invalid={error || undefined}
-      className={`rounded-2xl border bg-glass/55 backdrop-blur-md px-4 py-2.5 text-sm text-ink transition-shadow duration-150 focus:outline-none focus:ring-4 ${
+      className={`rounded-2xl border bg-surface px-4 py-2.5 text-sm text-ink transition-shadow duration-150 focus:outline-none focus:ring-4 ${
         error
           ? 'border-error focus:border-error focus:ring-error/15'
           : 'border-border focus:border-primary focus:ring-primary/15'

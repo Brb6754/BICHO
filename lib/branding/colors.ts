@@ -98,34 +98,41 @@ export function withAlpha(hex: string, alpha: number): string {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-// The tenant-branded "glass" background — an opaque base (keeps text
-// legible no matter how light or dark the tenant's own colors are)
-// with a subtle diagonal wash of the tenant's own primary/accent color
-// on top, so surfaces actually look like THIS business's glass, not a
-// neutral one. Two background layers via comma-separated `background`
-// values: the translucent gradient paints on top, the opaque base
-// underneath shows through wherever the gradient is more transparent.
-// `level` mirrors the platform's own .glass-1/2/3 scale — higher levels
-// (modals, the booking card, anything meant to read as "most separated
-// from the background") get a stronger tint and a more opaque base;
-// level 1 (compact secondary elements) stays the most see-through.
-// `darkBase`, when passed (a hex color — see tenantDarkBase() above),
-// replaces the default white base with that color instead — without
-// it, a light glass panel dropped onto a dark-mode page reads as a
-// pale, off-brand card sitting on top of the page instead of feeling
-// like part of it (this was a real bug: the public booking page's dark
-// mode anchored its OWN background to the tenant's darkest color, but
-// every card on it still forced a white base regardless).
+// Blends two colors into one flat, fully opaque color — `weight` is how
+// much of `hex` survives (0 = pure `towardHex`, 1 = pure `hex`). Used
+// below to build a subtle, opaque tenant tint instead of a translucent
+// wash — the redesign away from glassmorphism (2026) moved every card
+// surface off blur+transparency entirely, so blending needs to happen
+// in the color itself, not at render time via alpha.
+function mixHex(hex: string, towardHex: string, weight: number): string {
+  const a = parseHex(hex);
+  const b = parseHex(towardHex);
+  if (!a || !b) return hex;
+  const mixed = a.map((c, i) => Math.round(c * weight + b[i] * (1 - weight)));
+  return `rgb(${mixed[0]}, ${mixed[1]}, ${mixed[2]})`;
+}
+
+// The tenant-branded card background — a flat, fully OPAQUE color: a
+// touch of the tenant's own primary+accent blend mixed into a neutral
+// base, not a translucent wash over glass. Replaces the old
+// glassmorphism version (gradient wash + backdrop-blur) as part of the
+// 2026 redesign away from glass toward the soft-shadow/opaque-card
+// language in Bruno's reference set — nothing on the public booking
+// page is translucent or blurred anymore. `level` mirrors
+// .glass-1/2/3's depth ordering: higher levels (modals, the booking
+// card) get a slightly stronger tint. `darkBase`, when passed (a hex —
+// see tenantDarkBase() above), replaces the default white base so a
+// card in dark mode tints from the tenant's own dark anchor color
+// instead of white.
 export function tenantGlassBackground(
   primaryColor: string,
   accentColor: string,
   level: 1 | 2 | 3 = 2,
   darkBase?: string
 ): string {
-  const baseOpacity = { 1: 0.55, 2: 0.75, 3: 0.88 }[level];
-  const wash = { 1: 0.1, 2: 0.14, 3: 0.18 }[level];
-  const base = darkBase ? withAlpha(darkBase, baseOpacity) : `rgba(255, 255, 255, ${baseOpacity})`;
-  return `linear-gradient(135deg, ${withAlpha(primaryColor, wash)}, ${withAlpha(accentColor, wash * 0.75)}), ${base}`;
+  const tint = { 1: 0.05, 2: 0.07, 3: 0.09 }[level];
+  const blend = mixHex(primaryColor, accentColor, 0.6);
+  return mixHex(blend, darkBase ?? '#FFFFFF', tint);
 }
 
 // Same two-stop gradient + colored glow used for primary CTAs, built
@@ -219,37 +226,21 @@ export function tenantDarkModeCssVars(
   };
 }
 
-// The tenant dashboard's own sidebar gradient. Shaped like the
-// platform's fixed SIDEBAR_GRADIENT (top-to-bottom, 0.42/0.36/0.3
-// alpha) but — unlike that one, which is always the platform's own
-// vivid indigo/violet — this has to work for whatever primary/
-// secondary a tenant actually picked, including a naturally dark,
-// low-luminance brand color (a deep forest green, near-black, etc).
-// A pure alpha-blend of a dark color over the dashboard's own paper
-// background collapses to near-invisible once dark mode makes that
-// backdrop dark too — the tenant's brand panel would visually vanish
-// into the page instead of reading as a floating glass panel. A soft
-// white base underneath (second, comma-separated `background` layer,
-// same two-layer trick as tenantGlassBackground) guarantees the panel
-// stays legible and reads as glass regardless of the tenant's own
-// color darkness or which app theme the viewer has on.
+// The tenant dashboard's own sidebar gradient — a plain, fully OPAQUE
+// two-stop gradient (primary at top, secondary at bottom), same shape
+// as the platform's own fixed SIDEBAR_GRADIENT once that's redesigned
+// alongside this. No more alpha-blending over the page behind it or a
+// translucent white base — part of the 2026 move away from
+// glassmorphism, the sidebar is now a solid brand-colored panel (depth
+// comes from the shadow already on its className, not from blur).
 export function tenantSidebarGradient(primaryColor: string, secondaryColor: string): string {
-  return `linear-gradient(to bottom, ${withAlpha(primaryColor, 0.5)}, ${withAlpha(primaryColor, 0.42)}, ${withAlpha(secondaryColor, 0.38)}), rgba(255, 255, 255, 0.5)`;
+  return `linear-gradient(to bottom, ${primaryColor}, ${secondaryColor})`;
 }
 
 // The readable foreground for text sitting on tenantSidebarGradient().
-// NOT readableFgRgb(primaryColor) directly — that gradient always
-// lightens the tenant's raw color somewhat (the white base layer), so
-// picking white-vs-dark text off primaryColor's own unmixed luminance
-// can pick wrong once the actual composited panel is a medium tone
-// instead of primaryColor's true darkness. Approximates the composited
-// result by blending primaryColor toward white at roughly the gradient
-// layer's own visible weight, then reads luminance off THAT instead.
-export function tenantSidebarFg(primaryColor: string): string {
-  const rgb = parseHex(primaryColor);
-  if (!rgb) return readableFgRgb(primaryColor);
-  const weight = 0.55;
-  const blended = rgb.map((c) => Math.round(c * weight + 255 * (1 - weight)));
-  const blendedHex = `#${blended.map((c) => c.toString(16).padStart(2, '0')).join('')}`;
-  return readableFgRgb(blendedHex);
+// Reads luminance off a 50/50 blend of primary+secondary rather than
+// either color alone — the gradient spans both, and text has to work
+// reasonably well against the whole panel, not just one end of it.
+export function tenantSidebarFg(primaryColor: string, secondaryColor: string): string {
+  return readableFgRgb(mixHex(primaryColor, secondaryColor, 0.5));
 }

@@ -6,14 +6,13 @@ import { usePathname } from 'next/navigation';
 import { Building2, LayoutTemplate, Settings, Sparkles, X } from 'lucide-react';
 import { Text } from '@/components/ui/Text';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { PLATFORM_PRIMARY, PLATFORM_SECONDARY } from '@/lib/branding/colors';
 import SignOutButton from './SignOutButton';
 
-// Written as an inline style, not a Tailwind gradient utility — Tailwind's
-// JIT doesn't generate from-*/via-*/to-* stops for a custom color that
-// also carries an opacity modifier (from-primary/92), even when the
-// exact class string is present in a scanned file; confirmed by
-// inspecting the compiled CSS, not a hunch. Plain hex+alpha sidesteps it.
-const SIDEBAR_GRADIENT = 'linear-gradient(to bottom, rgba(79,70,229,0.42), rgba(79,70,229,0.36), rgba(124,58,237,0.3))';
+// Solid, fully opaque platform gradient — part of the 2026 move away
+// from glassmorphism (translucent + backdrop-blur) toward the flat,
+// soft-shadow card language in Bruno's reference set.
+const SIDEBAR_GRADIENT = `linear-gradient(to bottom, ${PLATFORM_PRIMARY}, ${PLATFORM_SECONDARY})`;
 
 const NAV_ITEMS = [
   { href: '/tenants', label: 'Tenants', icon: Building2 },
@@ -39,7 +38,7 @@ export function Sidebar({ email, open, onClose }: { email: string; open: boolean
 
       <aside
         style={{ background: SIDEBAR_GRADIENT }}
-        className={`fixed inset-y-4 left-4 z-40 flex w-64 shrink-0 flex-col overflow-hidden rounded-[28px] border border-white/15 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_25px_60px_rgba(30,27,75,0.35)] backdrop-blur-3xl transition-transform duration-200 lg:static lg:my-4 lg:ml-4 lg:translate-x-0 ${
+        className={`fixed inset-y-4 left-4 z-40 flex w-64 shrink-0 flex-col overflow-hidden rounded-[28px] border border-white/15 text-white shadow-[0_20px_56px_rgba(30,27,75,0.35)] transition-transform duration-200 lg:static lg:my-4 lg:ml-4 lg:translate-x-0 ${
           open ? 'translate-x-0' : '-translate-x-[120%]'
         }`}
       >

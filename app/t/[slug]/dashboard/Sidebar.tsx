@@ -46,7 +46,7 @@ export function Sidebar({
   // that a hardcoded text-white would go invisible against — this is the
   // triplet readableFgRgb() picks for the sidebar's own background, reused
   // everywhere the sidebar previously assumed "white always reads".
-  const sidebarFg = tenantSidebarFg(primaryColor);
+  const sidebarFg = tenantSidebarFg(primaryColor, secondaryColor);
 
   useEffect(() => {
     setOpen(false);
@@ -76,7 +76,7 @@ export function Sidebar({
           background: tenantSidebarGradient(primaryColor, secondaryColor),
           '--sidebar-fg': sidebarFg,
         } as React.CSSProperties}
-        className={`fixed inset-y-4 left-4 z-40 flex w-64 shrink-0 flex-col overflow-hidden rounded-[28px] border border-[rgb(var(--sidebar-fg)/0.15)] text-[rgb(var(--sidebar-fg))] shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_25px_60px_rgba(30,27,75,0.35)] backdrop-blur-3xl transition-transform duration-200 lg:static lg:my-4 lg:ml-4 lg:translate-x-0 ${
+        className={`fixed inset-y-4 left-4 z-40 flex w-64 shrink-0 flex-col overflow-hidden rounded-[28px] border border-[rgb(var(--sidebar-fg)/0.15)] text-[rgb(var(--sidebar-fg))] shadow-[0_20px_56px_rgba(30,27,75,0.25)] transition-transform duration-200 lg:static lg:my-4 lg:ml-4 lg:translate-x-0 ${
           open ? 'translate-x-0' : '-translate-x-[120%]'
         }`}
       >

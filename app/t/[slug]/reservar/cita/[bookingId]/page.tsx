@@ -78,7 +78,7 @@ export default async function BookingDetailPage({
       <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden="true">
         <div
           className="absolute -left-[10%] -top-[15%] h-[55vw] w-[55vw] rounded-full"
-          style={{ background: `radial-gradient(circle, ${withAlpha(primaryColor, 0.2)}, transparent 70%)`, filter: 'blur(100px)' }}
+          style={{ background: `radial-gradient(circle, ${withAlpha(primaryColor, 0.1)}, transparent 70%)`, filter: 'blur(100px)' }}
         />
       </div>
 
@@ -86,7 +86,7 @@ export default async function BookingDetailPage({
         <h1 className="text-center text-2xl font-bold tracking-tight text-ink">{tenant.name}</h1>
 
         <div
-          className={`mt-8 rounded-[32px] border ${isDark ? 'border-border' : 'border-white/60'} p-6 text-center shadow-card backdrop-blur-xl sm:p-8`}
+          className="mt-8 rounded-[32px] border border-border p-6 text-center shadow-card sm:p-8"
           style={{ background: tenantGlassBackground(primaryColor, accentColor, 3, darkBase) }}
         >
           {!booking ? (

@@ -95,41 +95,41 @@
   color-scheme: light;
 }
 
-/* Glass surfaces — three levels per the design brief (secondary chrome /
-   cards & panels / modals & floating menus). Not just blur+opacity: each
-   level bakes in an inset top highlight (light catching the upper glass
-   edge) and a faint inset stroke, layered in the SAME box-shadow
-   declaration as the outer elevation shadow — box-shadow is a single
-   property, so `@apply shadow-card` afterward would replace the inset
-   highlight instead of adding to it, which is why the whole shadow is
-   hand-written here instead of composed from the shadow-* tokens.
-   Background-color is set directly (not via @apply bg-glass/NN) because
-   Tailwind's JIT can only @apply utilities it detects from files in the
-   `content` glob (app/**, components/**) — an opacity-modified class on
-   a CSS-var color that only ever appears inside this stylesheet is never
-   generated, and the build fails with "class does not exist". */
+/* Card surfaces — three elevation levels (secondary chrome / cards &
+   panels / modals & floating menus), same three class names/call sites
+   as before (Card, Sidebar, Dropdown, Modal, the public booking page's
+   tenantGlassBackground()) so the redesign propagates from here without
+   touching those components. Redesigned away from glassmorphism (no more
+   backdrop-blur or translucent background) toward opaque cards with a
+   soft layered shadow for depth and a thin neutral border for edge
+   definition — Bruno's reference set (SaaS/travel landing pages) uses
+   this "soft shadow" language throughout, zero blur anywhere. Kept the
+   class names' existing depth ordering: 1 is the most restrained, 3 the
+   most separated from the page behind it. --color-glass-base is still
+   the background token (unchanged from the glass system) so the
+   dark-mode tenant-color anchoring in tenantDarkModeCssVars() keeps
+   working exactly as before — only how it's painted here changed, not
+   what color it resolves to. */
 .glass-1 {
-  background-color: rgb(var(--color-glass-base) / 0.4);
+  background-color: rgb(var(--color-glass-base));
+  border: 1px solid rgb(var(--color-border-base) / 0.08);
   box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.35),
-    inset 0 0 0 1px rgb(255 255 255 / 0.06);
-  @apply backdrop-blur-lg border border-white/15 dark:border-white/10;
+    0 1px 2px rgb(30 27 75 / 0.04),
+    0 1px 3px rgb(30 27 75 / 0.06);
 }
 .glass-2 {
-  background-color: rgb(var(--color-glass-base) / 0.55);
+  background-color: rgb(var(--color-glass-base));
+  border: 1px solid rgb(var(--color-border-base) / 0.08);
   box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.4),
-    inset 0 0 0 1px rgb(255 255 255 / 0.08),
-    0 8px 30px rgb(49 46 129 / 0.12);
-  @apply backdrop-blur-xl border border-white/15 dark:border-white/10;
+    0 2px 6px rgb(30 27 75 / 0.05),
+    0 10px 28px rgb(30 27 75 / 0.09);
 }
 .glass-3 {
-  background-color: rgb(var(--color-glass-base) / 0.72);
+  background-color: rgb(var(--color-glass-base));
+  border: 1px solid rgb(var(--color-border-base) / 0.08);
   box-shadow:
-    inset 0 1.5px 0 rgb(255 255 255 / 0.45),
-    inset 0 0 0 1px rgb(255 255 255 / 0.1),
-    0 24px 70px rgb(30 27 75 / 0.28);
-  @apply backdrop-blur-2xl border border-white/20 dark:border-white/10;
+    0 4px 12px rgb(30 27 75 / 0.07),
+    0 20px 56px rgb(30 27 75 / 0.16);
 }
 
 /* Ambient background — the environment the whole UI floats in, not a
@@ -165,14 +165,14 @@
   left: -18%;
   width: 62vw;
   height: 62vw;
-  background: radial-gradient(circle, rgba(79, 70, 229, 0.18), transparent 70%);
+  background: radial-gradient(circle, rgba(79, 70, 229, 0.08), transparent 70%);
 }
 .ambient-glow::after {
   bottom: -30%;
   right: -18%;
   width: 68vw;
   height: 68vw;
-  background: radial-gradient(circle, rgba(124, 58, 237, 0.15), transparent 70%);
+  background: radial-gradient(circle, rgba(124, 58, 237, 0.07), transparent 70%);
 }
 .ambient-glow .ambient-glow-accent {
   position: absolute;
@@ -182,18 +182,18 @@
   height: 42vw;
   border-radius: 9999px;
   filter: blur(105px);
-  background: radial-gradient(circle, rgba(34, 211, 238, 0.1), transparent 72%);
+  background: radial-gradient(circle, rgba(34, 211, 238, 0.05), transparent 72%);
 }
 .dark .ambient-glow::before {
-  background: radial-gradient(circle, rgba(99, 91, 255, 0.85), transparent 70%);
+  background: radial-gradient(circle, rgba(99, 91, 255, 0.35), transparent 70%);
   filter: blur(95px);
 }
 .dark .ambient-glow::after {
-  background: radial-gradient(circle, rgba(147, 51, 234, 0.75), transparent 70%);
+  background: radial-gradient(circle, rgba(147, 51, 234, 0.3), transparent 70%);
   filter: blur(95px);
 }
 .dark .ambient-glow .ambient-glow-accent {
-  background: radial-gradient(circle, rgba(34, 211, 238, 0.5), transparent 72%);
+  background: radial-gradient(circle, rgba(34, 211, 238, 0.2), transparent 72%);
   filter: blur(100px);
 }
 

@@ -80,11 +80,11 @@ export default async function DashboardLayout({
       <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden bg-paper" aria-hidden="true">
         <div
           className="absolute -left-[12%] -top-[20%] h-[62vw] w-[62vw] rounded-full"
-          style={{ background: `radial-gradient(circle, ${withAlpha(primaryColor, 0.22)}, transparent 70%)`, filter: 'blur(90px)' }}
+          style={{ background: `radial-gradient(circle, ${withAlpha(primaryColor, 0.11)}, transparent 70%)`, filter: 'blur(90px)' }}
         />
         <div
           className="absolute -bottom-[25%] -right-[15%] h-[68vw] w-[68vw] rounded-full"
-          style={{ background: `radial-gradient(circle, ${withAlpha(accentColor, 0.16)}, transparent 70%)`, filter: 'blur(90px)' }}
+          style={{ background: `radial-gradient(circle, ${withAlpha(accentColor, 0.08)}, transparent 70%)`, filter: 'blur(90px)' }}
         />
       </div>
       <Sidebar

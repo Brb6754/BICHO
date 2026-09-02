@@ -6,9 +6,10 @@ import { HTMLAttributes, forwardRef } from 'react';
 // reasoning applies to elevation/hoverable below.
 //
 // raised/overlay use the .glass-2/.glass-3 utilities (globals.css) —
-// translucent + blurred, per the design brief's glass-level system.
-// flat stays fully opaque bg-surface: for content nested inside another
-// glass panel, stacking two translucent layers just muddies legibility.
+// opaque cards with a soft layered shadow for depth (2026 redesign
+// moved these off blur+translucency). flat stays a plainer bg-surface
+// with just a border: for content nested inside another card, a second
+// shadow on top just muddies the layering.
 type Elevation = 'flat' | 'raised' | 'overlay';
 
 const ELEVATION_CLASSES: Record<Elevation, string> = {

@@ -69,15 +69,48 @@ describe('withAlpha', () => {
 });
 
 describe('tenantGlassBackground', () => {
-  it('uses a white base by default (light mode)', () => {
+  // 2026 redesign: away from a translucent gradient wash over glass,
+  // toward one flat, fully opaque rgb() color — a subtle tenant tint
+  // mixed into a neutral base. No more rgba()/gradient/backdrop-blur
+  // anywhere in this value.
+  function parseRgb(css: string): [number, number, number] {
+    const match = css.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
+    if (!match) throw new Error(`Expected a plain rgb() string, got: ${css}`);
+    return [Number(match[1]), Number(match[2]), Number(match[3])];
+  }
+
+  it('returns a single opaque rgb() color, not a gradient or rgba()', () => {
     const bg = tenantGlassBackground('#4F46E5', '#22D3EE', 2);
-    expect(bg).toContain('rgba(255, 255, 255, 0.75)');
+    expect(bg).not.toContain('gradient');
+    expect(bg).not.toContain('rgba');
+    expect(() => parseRgb(bg)).not.toThrow();
+  });
+
+  it('defaults to a white base (light mode) — mostly white, with a subtle tint', () => {
+    const [r, g, b] = parseRgb(tenantGlassBackground('#4F46E5', '#22D3EE', 2));
+    // Every channel should be close to 255 (white) since the tint at
+    // level 2 is a light 7% mix — but not exactly white, or the tint
+    // did nothing.
+    expect(r).toBeGreaterThan(220);
+    expect(g).toBeGreaterThan(220);
+    expect(b).toBeGreaterThan(220);
+    expect([r, g, b]).not.toEqual([255, 255, 255]);
   });
 
   it('uses the given dark base instead of white when darkBase is passed', () => {
-    const bg = tenantGlassBackground('#4F46E5', '#22D3EE', 2, '#0E3B2C');
-    expect(bg).not.toContain('255, 255, 255');
-    expect(bg).toContain('rgba(14, 59, 44, 0.75)');
+    const [r, g, b] = parseRgb(tenantGlassBackground('#4F46E5', '#22D3EE', 2, '#0E3B2C'));
+    // Should land close to darkBase's own channels (14, 59, 44), not
+    // anywhere near white.
+    expect(r).toBeLessThan(220);
+    expect(g).toBeLessThan(220);
+    expect(b).toBeLessThan(220);
+  });
+
+  it('higher levels apply a stronger tint (further from the base color)', () => {
+    const level1 = parseRgb(tenantGlassBackground('#0E3B2C', '#8FE24A', 1));
+    const level3 = parseRgb(tenantGlassBackground('#0E3B2C', '#8FE24A', 3));
+    const distanceFromWhite = ([r, g, b]: [number, number, number]) => 255 * 3 - (r + g + b);
+    expect(distanceFromWhite(level3)).toBeGreaterThan(distanceFromWhite(level1));
   });
 });
 

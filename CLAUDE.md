@@ -2070,3 +2070,55 @@ para el usuario").
   (confirmado que el estado pasa a "Cancelada" y desaparecen los
   botones de acción). Reserva y cliente de prueba borrados al
   terminar. `tsc --noEmit` limpio, 35 tests en verde.
+
+**Rediseño: de glassmorphism a tarjetas opacas + sombra suave (mismo
+día, después)**: Bruno no estaba conforme con el estilo visual (no los
+colores por tenant, esos quedan igual — el blur/glass en sí). Pidió
+referencias, mandó tres landing pages (SaaS, viajes, productividad)
+con un patrón común clarísimo: tarjetas opacas, sombra suave en capas
+para dar profundidad, botones pastilla, el color como acento puntual
+en vez de baño ambiental. Se usó la skill `brainstorming` para esto —
+clasificado como arquitectónico (toca el sistema de diseño completo,
+y ya hubo varios cambios de dirección sobre esto mismo en la sesión),
+2 approaches propuestos (piloto en dashboard primero vs. todo de una),
+Bruno eligió todo de una.
+
+- **`globals.css`**: `.glass-1/2/3` redefinidas — de translúcido+blur a
+  opaco (`--color-glass-base`, que ya era theme/tenant-aware) + sombra
+  en capas + borde fino neutro. Como Card/Dropdown/Table/Modal ya
+  consumían estas tres clases por nombre, el cambio se propaga solo.
+  `.ambient-glow` con la opacidad de los blobs a la mitad aprox (se
+  mantiene, más sutil, como pidió Bruno).
+- **`lib/branding/colors.ts`**: `tenantGlassBackground()` ahora mezcla
+  un tinte sutil y plano del tenant en una base opaca (nuevo helper
+  `mixHex`) en vez de un degradado translúcido — misma firma, ningún
+  call site tuvo que cambiar su forma de llamarla. `tenantSidebarGradient()`
+  pasa a ser un degradado opaco de dos paradas, sin translucidez.
+  `tenantSidebarFg()` ahora recibe primary+secondary (antes solo
+  primary) — sin la capa blanca de base ya no hacía falta compensar
+  aclarando el color antes de medir luminancia.
+- Los dos `Sidebar.tsx` (admin y tenant), los 7 usos de glass en
+  `BlockRenderer.tsx`, y las dos páginas públicas de reserva perdieron
+  `backdrop-blur`/`border-white/60` y sus blobs de ambiente también
+  bajaron de opacidad. `Input`/`Select` pasaron de `bg-glass/55` +
+  blur a `bg-surface` opaco.
+- **Bug ambiental descubierto en el camino (no relacionado al
+  rediseño)**: al verificar, `nslookup` reveló que
+  `xdxjiqnvpfiujosmtxlf.supabase.co` (y `api.supabase.co`) no
+  resuelven DNS en esta máquina ahora mismo, aunque `supabase.co` y el
+  resto de internet sí — un problema de red local puntual, no del
+  proyecto ni de este cambio. Esto tumbó las pruebas de integración
+  reales (7 fallos, todos timeout) y bloqueó probar contra datos
+  reales en el navegador. Se armó una ruta de prueba temporal con
+  datos 100% estáticos (sin ninguna llamada a Supabase) para poder
+  verificar el cambio visual igual — capturas de Card/Button/Badge
+  /Input, el hero+features de BlockRenderer en claro Y oscuro, y el
+  Sidebar del tenant abierto en mobile: todo opaco, con sombra, sin
+  blur. Si esto se repite, revisar la conexión de red antes que el
+  código.
+- `tsc --noEmit` limpio. 27/34 tests en verde (los 7 que fallan son
+  las pruebas de integración reales contra Supabase, bloqueadas por lo
+  de arriba — no una regresión de este cambio). 2 tests unitarios de
+  `tenantGlassBackground` actualizados para el nuevo formato de salida
+  (antes esperaban `rgba(...)`/gradiente, ahora es un solo `rgb(...)`
+  opaco).

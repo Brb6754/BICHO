@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { sendBookingConfirmation } from '@/lib/email/sendBookingConfirmation';
+import { tenantManageBookingUrl } from '@/lib/urls';
 
 // Both actions here are reachable with NO login — the booking's own
 // UUID (unguessable, 128 bits) is the only thing standing in for auth,
@@ -79,15 +80,13 @@ export async function reschedulePublicBooking(
       .select('name')
       .eq('id', booking!.service_type_id)
       .single();
-    const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? 'localhost:3000';
-    const protocol = rootDomain.startsWith('localhost') ? 'http' : 'https';
     await sendBookingConfirmation({
       customerEmail: customer.email,
       customerName: customer.name,
       businessName: tenant.name,
       serviceName: service?.name ?? '',
       startsAt: newStartsAt,
-      manageUrl: `${protocol}://${slug}.${rootDomain}/reservar/cita/${bookingId}`,
+      manageUrl: tenantManageBookingUrl(slug, bookingId),
       accentColor: tenant.accent_color ?? undefined,
       kind: 'rescheduled',
     });

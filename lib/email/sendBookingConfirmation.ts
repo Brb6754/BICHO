@@ -50,10 +50,12 @@ export async function sendBookingConfirmation({
   startsAt: string;
   // Link to the public "Ver mi cita" page (app/t/[slug]/reservar/cita/
   // [bookingId]) — the booking's own UUID stands in for auth there, so
-  // this link alone is enough to view/reschedule/cancel. Won't actually
-  // be reachable until there's a real domain with wildcard subdomains
-  // (see CLAUDE.md) — the button still renders, it just 404s on
-  // *.vercel.app until then.
+  // this link alone is enough to view/reschedule/cancel. Built by
+  // tenantManageBookingUrl() (lib/urls.ts) — a path-based URL on the
+  // root domain, not a tenant subdomain, specifically so this actually
+  // resolves both in local dev and on the shared *.vercel.app domain
+  // (no custom domain purchased yet — see CLAUDE.md). Don't hand-build
+  // a manageUrl any other way here.
   manageUrl: string;
   // Falls back to a neutral color so this still renders fine for a
   // tenant that hasn't set a custom accent yet.

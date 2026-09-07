@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { sendBookingConfirmation } from '@/lib/email/sendBookingConfirmation';
+import { tenantManageBookingUrl } from '@/lib/urls';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_TEXT_LENGTH = 200;
@@ -156,14 +157,7 @@ export async function POST(request: Request) {
   // throws on its own failures, so this can't turn a successful booking
   // into an error response just because the email had trouble.
   if (customer_email) {
-    // http for local *.localhost dev (no TLS there), https everywhere
-    // else. Only actually reachable once there's a real domain with
-    // wildcard subdomains configured (see CLAUDE.md) — until then this
-    // link 404s on the shared *.vercel.app domain, same limitation as
-    // /admin and /dashboard.
-    const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? 'localhost:3000';
-    const protocol = rootDomain.startsWith('localhost') ? 'http' : 'https';
-    const manageUrl = `${protocol}://${slug}.${rootDomain}/reservar/cita/${bookingId}`;
+    const manageUrl = tenantManageBookingUrl(slug, bookingId);
 
     await sendBookingConfirmation({
       customerEmail: customer_email,

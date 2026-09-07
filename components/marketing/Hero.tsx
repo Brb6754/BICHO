@@ -17,10 +17,14 @@ import { CalendarMock, ConfirmationMock, DotGrid } from './ProductMocks';
 export function Hero() {
   return (
     <section id="top" className="relative overflow-hidden bg-[#0D2B1B] px-6 pb-28 pt-28 sm:pt-32">
+      {/* Flat notch at the very top (0 to 22%) keeps this clear of the
+          tagline/headline text — the shape used to reach the section's
+          top edge at nearly its widest point, putting lime-on-lime
+          text behind the (also lime) tagline. */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -left-[15%] -top-[20%] h-[60vw] w-[55vw] opacity-90"
-        style={{ background: '#D4F23A', clipPath: 'polygon(0 0, 62% 0, 18% 100%, 0 100%)' }}
+        className="pointer-events-none absolute -left-[15%] top-0 h-[60vw] w-[55vw] opacity-90"
+        style={{ background: '#D4F23A', clipPath: 'polygon(0 34%, 55% 34%, 18% 100%, 0 100%)' }}
       />
       <div
         aria-hidden="true"

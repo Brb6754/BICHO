@@ -156,11 +156,27 @@ describe('tenantDarkBase / tenantDarkModeCssVars — "darkest, except pure black
     expect(vars['--tenant-dark-paper']).not.toBe(toRgbTriplet('#000000'));
   });
 
-  it('falls back to black if literally every assigned color is near-black', () => {
+  it('never renders as black, even if literally every assigned color is black', () => {
+    // Real ask this session: a tenant's dark mode must never show a
+    // black background, and must only ever be built from colors the
+    // tenant actually entered (no platform-default color standing in).
+    // With every input at or near #000000 there's no non-black color
+    // left to prefer, so floorDarkness() must lift the chosen base
+    // itself rather than pass through true black.
     const vars = tenantDarkModeCssVars('#000000', '#010101', '#000000');
-    // No non-black color exists to prefer — must not crash, and must
-    // still return a value assembled from one of the given colors.
-    expect(vars['--tenant-dark-paper']).toBeTruthy();
+    const [r, g, b] = vars['--tenant-dark-paper'].split(' ').map(Number);
+    expect(Math.max(r, g, b)).toBeGreaterThanOrEqual(24);
+  });
+
+  it('floors a genuinely dark (but not pure black) tenant color too', () => {
+    // The more common real case: not literal #000000, just a very dark
+    // color a tenant actually picked (e.g. a near-black "premium" navy)
+    // — darkestOf() has no reason to skip it (it has real hue), but
+    // left completely unmodified it would still render as black on
+    // screen. floorDarkness() must lift it regardless.
+    const vars = tenantDarkModeCssVars('#EAD4AE', '#141008', '#445407');
+    const [r, g, b] = vars['--tenant-dark-paper'].split(' ').map(Number);
+    expect(Math.max(r, g, b)).toBeGreaterThanOrEqual(24);
   });
 
   it('each step lightens progressively — paper < surface < elevated < glass', () => {

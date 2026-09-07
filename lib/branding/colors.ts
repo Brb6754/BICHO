@@ -186,6 +186,26 @@ function darkestOf(colors: string[]): string {
   return pool.reduce((darkest, c) => (relativeLuminance(c) < relativeLuminance(darkest) ? c : darkest));
 }
 
+// The lowest we'll ever let a tenant's dark-mode base color go — dark
+// mode's whole background/card stack is built entirely from the
+// tenant's own primary/secondary/accent (never a platform default),
+// but nothing stops a tenant from actually picking near-black or pure
+// #000000 as one (or all) of those. Anchoring dark mode to that
+// unmodified would render as a literally black page, which reads as
+// broken/unstyled rather than "this tenant's own dark theme." Floors
+// the color's brightest channel here instead — an additive lighten
+// (same technique as lightenHex), so a dark navy stays a dark navy and
+// a dark green stays a dark green, just never black. 24 keeps it
+// solidly "dark mode" dark (comparable to common dark-UI paper colors
+// like #121212) while guaranteeing it never reads as pure black.
+const MIN_DARK_CHANNEL = 24;
+function floorDarkness(hex: string): string {
+  const rgb = parseHex(hex);
+  if (!rgb) return hex;
+  const maxChannel = Math.max(...rgb);
+  return maxChannel >= MIN_DARK_CHANNEL ? hex : lightenHex(hex, MIN_DARK_CHANNEL - maxChannel);
+}
+
 // The tenant's own dark-mode "elevated" tone as a hex color — same
 // darkestOf() + lightenHex(24) as tenantDarkModeCssVars' own
 // --tenant-dark-elevated, exposed separately (as hex, not a triplet)
@@ -193,7 +213,7 @@ function darkestOf(colors: string[]): string {
 // below — can use the exact same anchor color instead of duplicating
 // this logic or drifting out of sync with it.
 export function tenantDarkBase(primaryColor: string, secondaryColor: string, accentColor: string): string {
-  return lightenHex(darkestOf([primaryColor, secondaryColor, accentColor]), 24);
+  return lightenHex(floorDarkness(darkestOf([primaryColor, secondaryColor, accentColor])), 24);
 }
 
 // Overrides for --color-paper/-surface/-elevated/-glass-base, but
@@ -217,7 +237,7 @@ export function tenantDarkModeCssVars(
   secondaryColor: string,
   accentColor: string
 ): Record<string, string> {
-  const base = darkestOf([primaryColor, secondaryColor, accentColor]);
+  const base = floorDarkness(darkestOf([primaryColor, secondaryColor, accentColor]));
   return {
     '--tenant-dark-paper': toRgbTriplet(base),
     '--tenant-dark-surface': toRgbTriplet(lightenHex(base, 14)),

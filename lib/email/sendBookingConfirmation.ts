@@ -41,6 +41,7 @@ export async function sendBookingConfirmation({
   startsAt,
   manageUrl,
   accentColor,
+  kind = 'confirmed',
 }: {
   customerEmail: string;
   customerName: string;
@@ -57,6 +58,12 @@ export async function sendBookingConfirmation({
   // Falls back to a neutral color so this still renders fine for a
   // tenant that hasn't set a custom accent yet.
   accentColor?: string;
+  // 'rescheduled' swaps the subject/heading copy for the reschedule
+  // flow (app/t/[slug]/reservar/cita/[bookingId]/actions.ts) — reusing
+  // "¡Cita confirmada!" there would read like a brand new booking
+  // instead of an updated time for an existing one. Everything else
+  // (styling, the "Ver mi cita" button, escaping) stays identical.
+  kind?: 'confirmed' | 'rescheduled';
 }): Promise<void> {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
@@ -70,14 +77,19 @@ export async function sendBookingConfirmation({
     const resend = new Resend(apiKey);
     const when = formatDateTime(startsAt);
     const buttonColor = accentColor ?? '#4F46E5';
+    const heading = kind === 'rescheduled' ? 'Tu cita se reprogramó' : '¡Cita confirmada!';
+    const intro =
+      kind === 'rescheduled'
+        ? `Hola ${escapeHtml(customerName)}, tu cita en <strong>${escapeHtml(businessName)}</strong> se movió a un nuevo horario.`
+        : `Hola ${escapeHtml(customerName)}, tu cita en <strong>${escapeHtml(businessName)}</strong> quedó agendada.`;
     await resend.emails.send({
       from: FROM_ADDRESS,
       to: customerEmail,
-      subject: `Cita confirmada — ${businessName}`,
+      subject: `${kind === 'rescheduled' ? 'Cita reprogramada' : 'Cita confirmada'} — ${businessName}`,
       html: `
         <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
-          <h2 style="margin-bottom: 4px;">¡Cita confirmada!</h2>
-          <p style="color: #555;">Hola ${escapeHtml(customerName)}, tu cita en <strong>${escapeHtml(businessName)}</strong> quedó agendada.</p>
+          <h2 style="margin-bottom: 4px;">${heading}</h2>
+          <p style="color: #555;">${intro}</p>
           <table style="width: 100%; margin-top: 16px; border-collapse: collapse;">
             <tr><td style="padding: 6px 0; color: #888;">Servicio</td><td style="padding: 6px 0; text-align: right;"><strong>${escapeHtml(serviceName)}</strong></td></tr>
             <tr><td style="padding: 6px 0; color: #888;">Fecha y hora</td><td style="padding: 6px 0; text-align: right;"><strong>${when}</strong></td></tr>

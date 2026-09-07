@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { sendBookingConfirmation } from '@/lib/email/sendBookingConfirmation';
 
 // Both actions here are reachable with NO login — the booking's own
 // UUID (unguessable, 128 bits) is the only thing standing in for auth,
@@ -37,7 +38,11 @@ export async function reschedulePublicBooking(
   newEndsAt: string
 ): Promise<{ error: string | null }> {
   const admin = createAdminClient();
-  const { data: tenant } = await admin.from('tenants').select('id').eq('slug', slug).single();
+  const { data: tenant } = await admin
+    .from('tenants')
+    .select('id, name, accent_color')
+    .eq('slug', slug)
+    .single();
   if (!tenant) return { error: 'Negocio no encontrado.' };
 
   const { error } = await admin
@@ -55,6 +60,37 @@ export async function reschedulePublicBooking(
       return { error: 'Ese horario ya no está disponible, elige otro.' };
     }
     return { error: 'No se pudo cambiar la cita.' };
+  }
+
+  // Best-effort — a customer noticed this was missing (the original
+  // /api/reservar confirmation email exists, but rescheduling silently
+  // didn't send an updated one). Never blocks the reschedule itself:
+  // it already succeeded above by the time this runs, and
+  // sendBookingConfirmation swallows its own failures anyway.
+  const { data: booking } = await admin
+    .from('bookings')
+    .select('customer_id, service_type_id, customers(name, email)')
+    .eq('id', bookingId)
+    .single();
+  const customer = booking?.customers as unknown as { name: string; email: string | null } | null;
+  if (customer?.email) {
+    const { data: service } = await admin
+      .from('service_types')
+      .select('name')
+      .eq('id', booking!.service_type_id)
+      .single();
+    const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? 'localhost:3000';
+    const protocol = rootDomain.startsWith('localhost') ? 'http' : 'https';
+    await sendBookingConfirmation({
+      customerEmail: customer.email,
+      customerName: customer.name,
+      businessName: tenant.name,
+      serviceName: service?.name ?? '',
+      startsAt: newStartsAt,
+      manageUrl: `${protocol}://${slug}.${rootDomain}/reservar/cita/${bookingId}`,
+      accentColor: tenant.accent_color ?? undefined,
+      kind: 'rescheduled',
+    });
   }
 
   revalidatePath(`/t/${slug}/reservar/cita/${bookingId}`);

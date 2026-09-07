@@ -52,9 +52,9 @@ export function PricingSection() {
           {TIERS.map((tier, i) => (
             <Reveal key={tier.name} delay={i * 90} className="h-full">
               <div
-                className={`flex h-full flex-col rounded-2xl border p-8 transition duration-300 hover:-translate-y-1 ${
+                className={`flex h-full flex-col rounded-2xl border p-8 transition-colors duration-300 ${
                   tier.featured
-                    ? 'border-[#D4F23A]/50 bg-[#123321] hover:shadow-lg'
+                    ? 'border-[#D4F23A]/50 bg-[#123321]'
                     : 'border-[#1E3A28] bg-transparent hover:border-[#D4F23A]/30'
                 }`}
               >

@@ -1,10 +1,5 @@
 import { BichoLogo, BichoTagline } from './BichoLogo';
 
-// Deliberately no legal-page links (Aviso de Privacidad / T&Cs) — those
-// pages don't exist yet in this codebase (CLAUDE.md lists them as a
-// pending, unbuilt item), and a footer link to a route that 404s is
-// worse than no link at all. Only anchors to sections that really exist
-// on this same page, plus a real mailto contact.
 export function MarketingFooter() {
   return (
     <footer className="border-t border-[#1E3A28] bg-[#0D2B1B] px-6 py-14">
@@ -30,9 +25,17 @@ export function MarketingFooter() {
         </div>
       </div>
 
-      <p className="mx-auto mt-12 max-w-6xl text-xs text-[#9CA99A]/70">
-        © {new Date().getFullYear()} bicho. Software &amp; AI Solutions.
-      </p>
+      <div className="mx-auto mt-12 flex max-w-6xl flex-col gap-3 border-t border-[#1E3A28] pt-6 text-xs text-[#9CA99A]/70 sm:flex-row sm:items-center sm:justify-between">
+        <p>© {new Date().getFullYear()} bicho. Software &amp; AI Solutions.</p>
+        <div className="flex gap-6">
+          <a href="/privacidad" className="hover:text-white">
+            Aviso de privacidad
+          </a>
+          <a href="/terminos" className="hover:text-white">
+            Términos
+          </a>
+        </div>
+      </div>
     </footer>
   );
 }

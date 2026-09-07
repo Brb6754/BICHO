@@ -1,4 +1,4 @@
-import { ArrowRight, CalendarCheck, MailCheck } from 'lucide-react';
+import { CalendarCheck, MailCheck } from 'lucide-react';
 import { BichoTagline } from './BichoLogo';
 import { CalendarMock, ConfirmationMock, DotGrid } from './ProductMocks';
 
@@ -92,10 +92,9 @@ export function Hero() {
           >
             <a
               href="mailto:nonameynk@gmail.com?subject=Quiero%20una%20demo%20de%20bicho"
-              className="inline-flex items-center gap-2 rounded-full bg-[#D4F23A] px-6 py-3 text-sm font-semibold text-black transition hover:brightness-95"
+              className="inline-flex items-center justify-center rounded-full bg-[#D4F23A] px-6 py-3 text-sm font-semibold text-black transition hover:brightness-95"
             >
               Agenda una demo
-              <ArrowRight className="h-4 w-4" />
             </a>
             <a
               href="#funciones"

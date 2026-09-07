@@ -40,10 +40,7 @@ export function FeaturesSection() {
     <section id="funciones" className="bg-[#F3F4EC] px-6 py-24">
       <div className="mx-auto max-w-6xl">
         <Reveal className="max-w-2xl text-center sm:mx-auto">
-          <span className="text-xs font-semibold uppercase tracking-[0.25em] text-[#7A9A3E]">
-            Funciones
-          </span>
-          <h2 className="mt-3 text-3xl font-bold leading-tight text-[#0B1A10] sm:text-4xl">
+          <h2 className="text-3xl font-bold leading-tight text-[#0B1A10] sm:text-4xl">
             Todo lo que tu negocio necesita para dejar de agendar a mano.
           </h2>
         </Reveal>
@@ -51,7 +48,7 @@ export function FeaturesSection() {
         <div className="mt-14 grid grid-cols-1 gap-6 md:grid-cols-3">
           {FEATURES.map(({ title, description, Mock, Icon }, i) => (
             <Reveal key={title} delay={i * 100}>
-              <div className="h-full rounded-3xl bg-[#E8F0E0] p-5 transition duration-300 hover:-translate-y-1 hover:shadow-lg">
+              <div className="h-full rounded-3xl bg-[#E8F0E0] p-5 transition-shadow duration-300 hover:shadow-lg">
                 <div className="relative h-44 overflow-hidden rounded-2xl">
                   <Mock />
                   <span className="absolute -left-3 -top-3 flex h-11 w-11 items-center justify-center rounded-full bg-[#0D2B1B] shadow-md">

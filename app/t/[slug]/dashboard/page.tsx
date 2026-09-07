@@ -49,7 +49,7 @@ export default async function DashboardOverviewPage({ params }: { params: Promis
       </Text>
 
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <MetricCard label="Próximas citas" value={String(upcomingCount ?? 0)} icon={CalendarDays} />
+        <MetricCard label="Próximas citas" value={String(upcomingCount ?? 0)} icon={CalendarDays} emphasis />
         <MetricCard label="Recursos activos" value={String(resourceCount ?? 0)} icon={Armchair} />
         <MetricCard label="Servicios en catálogo" value={String(serviceCount ?? 0)} icon={Tag} />
       </div>

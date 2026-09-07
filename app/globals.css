@@ -16,6 +16,16 @@
   --color-border-base: 49 46 129;
   --color-glass-base: 255 255 255;
 
+  /* Fixed, theme-independent bold surface (2026 reference-driven
+     redesign) — a near-black forest tone (#0F1712) for the ONE
+     dramatic section per page (a hero, a stats band), never the whole
+     page. Deliberately NOT redeclared under .dark/.force-light below —
+     it stays the same regardless of the light/dark toggle, since it's
+     a graphic choice, not a "dark mode" state. See tailwind.config.ts's
+     `canvas` color and #F7F5EF as its readable foreground. */
+  --color-canvas: 15 23 18;
+  --color-canvas-fg: 247 245 239;
+
   /* Brand tokens — platform defaults. Deliberately identical in :root
      and .dark (unlike the surface tokens above): primary/secondary/
      accent are a brand identity, not a light/dark surface, so they
@@ -153,48 +163,50 @@
   pointer-events: none;
   background-color: rgb(var(--color-paper));
 }
+/* Diagonal solid-color blocks (2026 reference redesign) — replaces the
+   earlier blurred radial-gradient blobs. The references' own
+   background treatment is flat angular color, never a soft glow, so
+   these are plain rgba() fills clipped to an angled quadrilateral,
+   zero blur anywhere. Kept as background-only decoration (low alpha,
+   z-index 0, pointer-events none) — never competes with real content. */
 .ambient-glow::before,
 .ambient-glow::after {
   content: '';
   position: absolute;
-  border-radius: 9999px;
-  filter: blur(100px);
 }
 .ambient-glow::before {
-  top: -25%;
-  left: -18%;
-  width: 62vw;
-  height: 62vw;
-  background: radial-gradient(circle, rgba(79, 70, 229, 0.08), transparent 70%);
+  top: -22%;
+  left: -30%;
+  width: 90vw;
+  height: 75vw;
+  clip-path: polygon(0 0, 55% 0, 22% 100%, 0 100%);
+  background: rgba(79, 70, 229, 0.07);
 }
 .ambient-glow::after {
-  bottom: -30%;
-  right: -18%;
-  width: 68vw;
-  height: 68vw;
-  background: radial-gradient(circle, rgba(124, 58, 237, 0.07), transparent 70%);
+  bottom: -28%;
+  right: -25%;
+  width: 85vw;
+  height: 70vw;
+  clip-path: polygon(100% 0, 100% 100%, 40% 100%, 68% 0);
+  background: rgba(124, 58, 237, 0.06);
 }
 .ambient-glow .ambient-glow-accent {
   position: absolute;
-  top: -5%;
-  left: 8%;
-  width: 42vw;
-  height: 42vw;
-  border-radius: 9999px;
-  filter: blur(105px);
-  background: radial-gradient(circle, rgba(34, 211, 238, 0.05), transparent 72%);
+  top: 6%;
+  right: 2%;
+  width: 32vw;
+  height: 48vw;
+  clip-path: polygon(100% 0, 100% 100%, 0 100%, 38% 0);
+  background: rgba(34, 211, 238, 0.05);
 }
 .dark .ambient-glow::before {
-  background: radial-gradient(circle, rgba(99, 91, 255, 0.35), transparent 70%);
-  filter: blur(95px);
+  background: rgba(99, 91, 255, 0.22);
 }
 .dark .ambient-glow::after {
-  background: radial-gradient(circle, rgba(147, 51, 234, 0.3), transparent 70%);
-  filter: blur(95px);
+  background: rgba(147, 51, 234, 0.18);
 }
 .dark .ambient-glow .ambient-glow-accent {
-  background: radial-gradient(circle, rgba(34, 211, 238, 0.2), transparent 72%);
-  filter: blur(100px);
+  background: rgba(34, 211, 238, 0.12);
 }
 
 /* react-day-picker: small dot under days that have real availability.

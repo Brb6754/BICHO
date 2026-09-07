@@ -148,12 +148,12 @@ export default async function ReservarPage({ params }: { params: Promise<{ slug:
             Fixed so it doesn't scroll away; content sits above it. */}
         <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden="true">
           <div
-            className="absolute -left-[10%] -top-[15%] h-[55vw] w-[55vw] rounded-full"
-            style={{ background: `radial-gradient(circle, ${withAlpha(branding.primaryColor, 0.1)}, transparent 70%)`, filter: 'blur(100px)' }}
+            className="absolute -left-[18%] -top-[14%] h-[68vw] w-[80vw]"
+            style={{ background: withAlpha(branding.primaryColor, 0.08), clipPath: 'polygon(0 0, 55% 0, 22% 100%, 0 100%)' }}
           />
           <div
-            className="absolute -bottom-[20%] -right-[10%] h-[60vw] w-[60vw] rounded-full"
-            style={{ background: `radial-gradient(circle, ${withAlpha(branding.accentColor, 0.09)}, transparent 70%)`, filter: 'blur(100px)' }}
+            className="absolute -bottom-[18%] -right-[14%] h-[62vw] w-[75vw]"
+            style={{ background: withAlpha(branding.accentColor, 0.07), clipPath: 'polygon(100% 0, 100% 100%, 40% 100%, 68% 0)' }}
           />
         </div>
 
@@ -172,8 +172,8 @@ export default async function ReservarPage({ params }: { params: Promise<{ slug:
               >
                 <div
                   aria-hidden="true"
-                  className="pointer-events-none absolute -right-10 -top-16 h-56 w-56 rounded-full opacity-30 blur-3xl"
-                  style={{ backgroundColor: branding.accentColor }}
+                  className="pointer-events-none absolute -right-10 -top-16 h-40 w-40 opacity-20"
+                  style={{ backgroundColor: branding.accentColor, clipPath: 'polygon(100% 0, 100% 100%, 0 100%, 45% 0)' }}
                 />
                 {branding.logoUrl && (
                   <span className="relative mx-auto mb-4 inline-block max-w-[240px]">

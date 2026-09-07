@@ -111,6 +111,7 @@ export default async function TenantsPage({
           value={`$${mrr.toLocaleString('es-MX')} MXN`}
           hint="Estimado: activos × plan"
           icon={DollarSign}
+          emphasis
         />
         <MetricCard
           label="Churn del mes"

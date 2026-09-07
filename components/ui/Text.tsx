@@ -6,9 +6,13 @@ export type TextVariant = 'display' | 'h1' | 'h2' | 'h3' | 'body' | 'small' | 'c
 // using the type scale doesn't depend on remembering which weight goes
 // with which size everywhere it's used.
 const VARIANT_CLASSES: Record<TextVariant, string> = {
-  display: 'text-display font-semibold text-ink',
-  h1: 'text-h1 font-semibold text-ink',
-  h2: 'text-h2 font-semibold text-ink',
+  // display/h1/h2 bumped to font-bold this pass (2026 reference
+  // redesign) — the bigger clamp() sizes in tailwind.config.ts need the
+  // heavier weight to read as confident rather than just "large text".
+  // h3 stays semibold on purpose: not every heading level should shout.
+  display: 'text-display font-bold text-ink',
+  h1: 'text-h1 font-bold text-ink',
+  h2: 'text-h2 font-bold text-ink',
   h3: 'text-h3 font-semibold text-ink',
   body: 'text-body text-ink',
   small: 'text-small text-muted',

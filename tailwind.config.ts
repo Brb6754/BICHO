@@ -50,6 +50,18 @@ const config: Config = {
           soft: 'rgb(var(--color-accent-soft) / <alpha-value>)',
         },
         glass: 'rgb(var(--color-glass-base) / <alpha-value>)',
+        // Fixed, theme-independent bold surface (2026 reference-driven
+        // redesign) — a deliberate near-black forest tone used for ONE
+        // dramatic section per page (a hero, a stats band), never the
+        // whole page. Unlike paper/surface below, this does NOT flip
+        // with the light/dark toggle: it's a bold graphic choice, not a
+        // "dark mode" state. See --color-canvas in globals.css — only
+        // declared in :root, never overridden in .dark, so it stays
+        // constant regardless of the toggle.
+        canvas: {
+          DEFAULT: 'rgb(var(--color-canvas) / <alpha-value>)',
+          fg: 'rgb(var(--color-canvas-fg) / <alpha-value>)',
+        },
         paper: 'rgb(var(--color-paper) / <alpha-value>)', // page background
         surface: 'rgb(var(--color-surface) / <alpha-value>)', // card/base surface
         elevated: 'rgb(var(--color-elevated) / <alpha-value>)', // modal/overlay surface — one step up from surface
@@ -72,9 +84,14 @@ const config: Config = {
       // carry it) — components/ui/Text.tsx pairs each level with its
       // intended weight so usage doesn't depend on remembering it.
       fontSize: {
-        display: ['3.25rem', { lineHeight: '1.1', letterSpacing: '-0.02em' }],
-        h1: ['2.25rem', { lineHeight: '1.15', letterSpacing: '-0.015em' }],
-        h2: ['1.5rem', { lineHeight: '1.25', letterSpacing: '-0.01em' }],
+        // display/h1/h2 pushed bigger + tighter this pass (2026
+        // reference redesign wants real typographic confidence, not
+        // just a slightly-larger body size) — h3 and below untouched on
+        // purpose, so the scale still has real contrast between "this
+        // is the headline" and "this is a section title".
+        display: ['clamp(2.75rem, 6vw, 4.25rem)', { lineHeight: '1.05', letterSpacing: '-0.03em' }],
+        h1: ['clamp(1.875rem, 4vw, 2.75rem)', { lineHeight: '1.1', letterSpacing: '-0.02em' }],
+        h2: ['1.625rem', { lineHeight: '1.2', letterSpacing: '-0.015em' }],
         h3: ['1.125rem', { lineHeight: '1.3' }],
         body: ['0.9375rem', { lineHeight: '1.6' }],
         small: ['0.8125rem', { lineHeight: '1.5' }],

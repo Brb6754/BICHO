@@ -180,12 +180,14 @@ function BlockItem({
                 : undefined
             }
           >
-            {/* Soft ambient glow in the accent color — decorative, purely
-                visual depth, doesn't affect layout or content flow. */}
+            {/* Angular accent block in the tenant's accent color (2026
+                reference redesign: flat diagonal color, not a blurred
+                glow) — decorative, purely visual depth, doesn't affect
+                layout or content flow. */}
             <div
               aria-hidden="true"
-              className="pointer-events-none absolute -right-10 -top-16 h-56 w-56 rounded-full opacity-30 blur-3xl"
-              style={{ backgroundColor: branding.accentColor }}
+              className="pointer-events-none absolute -right-10 -top-16 h-40 w-40 opacity-20"
+              style={{ backgroundColor: branding.accentColor, clipPath: 'polygon(100% 0, 100% 100%, 0 100%, 45% 0)' }}
             />
             <div className="relative">
               {branding.logoUrl && (

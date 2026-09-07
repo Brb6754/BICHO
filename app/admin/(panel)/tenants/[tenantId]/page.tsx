@@ -140,6 +140,7 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ t
           value={String(bookingsThisWeek)}
           icon={CalendarDays}
           trend={computeTrend(bookingsThisWeek, bookingsLastWeek)}
+          emphasis
         />
         <MetricCard
           label="Citas este mes"

@@ -77,8 +77,8 @@ export default async function BookingDetailPage({
     >
       <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden="true">
         <div
-          className="absolute -left-[10%] -top-[15%] h-[55vw] w-[55vw] rounded-full"
-          style={{ background: `radial-gradient(circle, ${withAlpha(primaryColor, 0.1)}, transparent 70%)`, filter: 'blur(100px)' }}
+          className="absolute -left-[18%] -top-[14%] h-[68vw] w-[80vw]"
+          style={{ background: withAlpha(primaryColor, 0.08), clipPath: 'polygon(0 0, 55% 0, 22% 100%, 0 100%)' }}
         />
       </div>
 

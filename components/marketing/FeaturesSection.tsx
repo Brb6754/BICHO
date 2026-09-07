@@ -1,6 +1,6 @@
 import { ArrowUpRight, Palette, CalendarClock, LayoutDashboard } from 'lucide-react';
 import { BookingPageMock, CalendarMock, DashboardMock } from './ProductMocks';
-import { Reveal } from '@/components/ui/Reveal';
+import { Reveal } from './Reveal';
 
 // 2026 reference redesign: photo-style cards (mockups of the real
 // product standing in for stock photography — see ProductMocks.tsx)

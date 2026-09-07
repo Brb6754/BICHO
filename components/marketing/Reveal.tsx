@@ -2,18 +2,18 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-// Scroll-triggered version of the page-load fade-up (globals.css's
-// .animate-fade-in, used at mount by things like the marketing Hero) —
-// starts invisible, then plays that same keyframe once an
-// IntersectionObserver says the element has actually entered the
-// viewport. Shared across the marketing site and the tenant-facing
-// dashboard/booking pages: it carries zero color assumptions (pure
-// opacity/transform), so it's exactly as safe inside a tenant's own
-// branded pages as it is on the platform's own marketing page.
+// Scroll-triggered version of the same fade-up used on page load (Hero,
+// globals.css's .animate-fade-in) — inspired by numia.co (Bruno liked
+// its section-by-section reveals as you scroll). Starts invisible,
+// then plays the existing keyframe once an IntersectionObserver says
+// it's actually entered the viewport, instead of firing at mount like
+// Hero's version does. Reuses .animate-fade-in as-is (same easing,
+// same reduced-motion handling in globals.css) rather than defining a
+// second animation — one scroll-reveal language for the whole page.
 //
-// `delay` (ms) staggers a group of siblings — pass increasing values
-// (0, 80, 160...) for things that should reveal in sequence rather
-// than all at once.
+// `delay` (ms) staggers a group of siblings the same way Hero staggers
+// its own elements — pass increasing values (0, 80, 160...) for things
+// that should reveal in sequence rather than all at once.
 export function Reveal({
   children,
   className = '',

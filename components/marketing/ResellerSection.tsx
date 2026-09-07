@@ -1,4 +1,4 @@
-import { Reveal } from '@/components/ui/Reveal';
+import { Reveal } from './Reveal';
 
 // Distribution/trust section grounded in the real go-to-market model
 // (an independent sales rep network), not a fabricated logo wall or

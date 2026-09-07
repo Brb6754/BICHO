@@ -1,5 +1,5 @@
 import { Clock, Palette, MailX } from 'lucide-react';
-import { Reveal } from '@/components/ui/Reveal';
+import { Reveal } from './Reveal';
 
 // The reference's stat band shows fake usage numbers ("120+ clientes",
 // "2.5M+ leads") — bicho has no real customers yet, so copying that

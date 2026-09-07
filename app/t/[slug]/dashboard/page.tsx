@@ -5,7 +5,6 @@ import { MetricCard } from '@/components/admin/MetricCard';
 import { Card } from '@/components/ui/Card';
 import { Text } from '@/components/ui/Text';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { Reveal } from '@/components/ui/Reveal';
 
 type UpcomingBooking = {
   id: string;
@@ -50,15 +49,9 @@ export default async function DashboardOverviewPage({ params }: { params: Promis
       </Text>
 
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Reveal>
-          <MetricCard label="Próximas citas" value={String(upcomingCount ?? 0)} icon={CalendarDays} emphasis />
-        </Reveal>
-        <Reveal delay={80}>
-          <MetricCard label="Recursos activos" value={String(resourceCount ?? 0)} icon={Armchair} />
-        </Reveal>
-        <Reveal delay={160}>
-          <MetricCard label="Servicios en catálogo" value={String(serviceCount ?? 0)} icon={Tag} />
-        </Reveal>
+        <MetricCard label="Próximas citas" value={String(upcomingCount ?? 0)} icon={CalendarDays} emphasis />
+        <MetricCard label="Recursos activos" value={String(resourceCount ?? 0)} icon={Armchair} />
+        <MetricCard label="Servicios en catálogo" value={String(serviceCount ?? 0)} icon={Tag} />
       </div>
 
       <div className="mt-6 flex items-center justify-between">
@@ -74,20 +67,18 @@ export default async function DashboardOverviewPage({ params }: { params: Promis
 
       {upcoming && upcoming.length > 0 ? (
         <ul className="mt-3 flex flex-col gap-3">
-          {upcoming.map((b, i) => (
+          {upcoming.map((b) => (
             <li key={b.id}>
-              <Reveal delay={i * 60}>
-                <Card padded={false} className="flex items-center justify-between px-6 py-4">
-                  <span className="text-ink">
-                    <span className="font-medium">
-                      {new Date(b.starts_at).toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' })}
-                    </span>{' '}
-                    <span className="text-muted">
-                      — {b.resources?.name} — {b.service_types?.name} — {b.customers?.name}
-                    </span>
+              <Card padded={false} className="flex items-center justify-between px-6 py-4">
+                <span className="text-ink">
+                  <span className="font-medium">
+                    {new Date(b.starts_at).toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' })}
+                  </span>{' '}
+                  <span className="text-muted">
+                    — {b.resources?.name} — {b.service_types?.name} — {b.customers?.name}
                   </span>
-                </Card>
-              </Reveal>
+                </span>
+              </Card>
             </li>
           ))}
         </ul>

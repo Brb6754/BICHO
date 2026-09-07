@@ -1,5 +1,5 @@
 import { BichoLogo } from './BichoLogo';
-import { Reveal } from '@/components/ui/Reveal';
+import { Reveal } from './Reveal';
 
 export function FinalCta() {
   return (

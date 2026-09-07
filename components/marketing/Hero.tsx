@@ -28,12 +28,22 @@ export function HeroBackdrop() {
         className="pointer-events-none absolute -left-[20px] top-0 h-[150px] w-[340px] opacity-90"
         style={{ background: '#D4F23A', clipPath: 'polygon(0 0, 75% 0, 20% 100%, 0 100%)' }}
       />
-      {/* Pulled down/shrunk enough to stay clear of the top edge
-          entirely (the reference has no lime bleeding into the
-          top-right corner, only the bottom-right). */}
+      {/* Fixed px size, positioned flush against this wrapper's own
+          bottom-right corner (bottom-0/right, not a percentage-based
+          negative offset) — the previous version used `bottom: -45%`
+          to bleed past its container on purpose, but that math means
+          the box's bottom edge is ALWAYS 45% of the container's own
+          height past the container's edge, however tall the container
+          is; the wrapper's overflow-hidden then cropped it mid-taper
+          instead of at its intended point, leaving a flat, unfinished-
+          looking cut instead of the clean diagonal corner. Same
+          polygon ratios as before, just applied to a box that's
+          entirely self-contained (its own tapered point is always
+          fully inside its box), so it renders complete regardless of
+          how tall the hero ends up being. */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -bottom-[45%] -right-[12%] h-[55vw] w-[50vw] opacity-90"
+        className="pointer-events-none absolute bottom-0 -right-[16px] h-[280px] w-[240px] opacity-90"
         style={{ background: '#D4F23A', clipPath: 'polygon(100% 0, 100% 100%, 35% 100%, 70% 0)' }}
       />
     </>

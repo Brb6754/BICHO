@@ -71,7 +71,7 @@ export function Hero() {
           <BichoTagline className="animate-fade-in text-[11px] sm:text-xs" />
 
           <h1
-            className="animate-fade-in mt-5 max-w-xl text-4xl font-bold leading-[1.08] tracking-tight text-white sm:text-5xl"
+            className="animate-fade-in mt-5 max-w-xl font-[family-name:var(--font-display)] text-4xl font-bold leading-[1.1] text-white sm:text-5xl"
             style={{ animationDelay: '80ms' }}
           >
             Deja de agendar citas por WhatsApp.

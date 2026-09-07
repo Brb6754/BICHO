@@ -17,7 +17,7 @@ export default function NotFound() {
       />
       <BichoLogo className="h-10" />
       <div>
-        <p className="text-5xl font-bold text-white">404</p>
+        <p className="font-[family-name:var(--font-display)] text-6xl font-bold text-white">404</p>
         <p className="mt-3 text-lg font-semibold text-white">Esta página no existe.</p>
         <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-[#9CA99A]">
           Revisa el link, o volvé al inicio y buscá lo que necesitás desde ahí.

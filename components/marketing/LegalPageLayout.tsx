@@ -21,7 +21,7 @@ export function LegalPageLayout({
       <MarketingNav />
       <main className="bg-[#F3F4EC] px-6 py-20 text-[#0B1A10]">
         <div className="mx-auto max-w-2xl">
-          <h1 className="text-3xl font-bold leading-tight sm:text-4xl">{title}</h1>
+          <h1 className="font-[family-name:var(--font-display)] text-3xl font-bold leading-tight sm:text-4xl">{title}</h1>
           <p className="mt-2 text-sm text-[#5B6B5A]">Última actualización: {updated}</p>
           <div className="prose-legal mt-10 flex flex-col gap-6 text-[15px] leading-relaxed text-[#1F2A1C]">
             {children}

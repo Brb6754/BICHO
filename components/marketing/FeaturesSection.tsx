@@ -40,7 +40,7 @@ export function FeaturesSection() {
     <section id="funciones" className="bg-[#F3F4EC] px-6 py-24">
       <div className="mx-auto max-w-6xl">
         <Reveal className="max-w-2xl text-center sm:mx-auto">
-          <h2 className="text-3xl font-bold leading-tight text-[#0B1A10] sm:text-4xl">
+          <h2 className="font-[family-name:var(--font-display)] text-3xl font-bold leading-tight text-[#0B1A10] sm:text-4xl">
             Todo lo que tu negocio necesita para dejar de agendar a mano.
           </h2>
         </Reveal>

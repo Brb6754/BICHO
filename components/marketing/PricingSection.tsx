@@ -39,7 +39,7 @@ export function PricingSection() {
     <section id="precios" className="bg-[#0D2B1B] px-6 py-24">
       <div className="mx-auto max-w-6xl">
         <Reveal className="max-w-2xl">
-          <h2 className="text-3xl font-bold leading-tight text-white sm:text-4xl">
+          <h2 className="font-[family-name:var(--font-display)] text-3xl font-bold leading-tight text-white sm:text-4xl">
             Un plan para cada tamaño de negocio.
           </h2>
           <p className="mt-4 text-base leading-relaxed text-[#9CA99A] sm:text-lg">

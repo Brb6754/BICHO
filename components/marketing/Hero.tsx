@@ -15,10 +15,18 @@ import { CalendarMock, ConfirmationMock, DotGrid } from './ProductMocks';
 export function HeroBackdrop() {
   return (
     <>
+      {/* Fixed px size, not vw-relative — measured against the real
+          hero text (tagline starts at y=174-190px depending on
+          breakpoint, same everywhere since Hero's own top padding is a
+          fixed rem value, not fluid) so this stays entirely above it
+          at every viewport width instead of scaling up into the text
+          column. The previous vw-sized version grew wide/tall enough
+          to sit behind the tagline, headline AND paragraph at once —
+          Bruno flagged all three as unreadable. */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -left-[15%] top-0 h-[60vw] w-[55vw] opacity-90"
-        style={{ background: '#D4F23A', clipPath: 'polygon(0 0, 62% 0, 18% 100%, 0 100%)' }}
+        className="pointer-events-none absolute -left-[20px] top-0 h-[150px] w-[340px] opacity-90"
+        style={{ background: '#D4F23A', clipPath: 'polygon(0 0, 75% 0, 20% 100%, 0 100%)' }}
       />
       {/* Pulled down/shrunk enough to stay clear of the top edge
           entirely (the reference has no lime bleeding into the
@@ -50,10 +58,7 @@ export function Hero() {
     <section id="top" className="relative px-6 pb-28 pt-28 sm:pt-32">
       <div className="relative mx-auto grid max-w-6xl items-center gap-16 lg:grid-cols-2">
         <div>
-          {/* The diagonal lime shape behind this can reach right up to
-              here — a thin dark stroke keeps the (also lime) tagline
-              readable against it without reshaping the background. */}
-          <BichoTagline className="animate-fade-in text-[11px] sm:text-xs [-webkit-text-stroke:1.5px_rgba(11,26,16,0.85)]" />
+          <BichoTagline className="animate-fade-in text-[11px] sm:text-xs" />
 
           <h1
             className="animate-fade-in mt-5 max-w-xl text-4xl font-bold leading-[1.08] tracking-tight text-white sm:text-5xl"

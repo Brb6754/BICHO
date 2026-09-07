@@ -17,14 +17,10 @@ import { CalendarMock, ConfirmationMock, DotGrid } from './ProductMocks';
 export function Hero() {
   return (
     <section id="top" className="relative overflow-hidden bg-[#0D2B1B] px-6 pb-28 pt-28 sm:pt-32">
-      {/* Flat notch at the very top (0 to 22%) keeps this clear of the
-          tagline/headline text — the shape used to reach the section's
-          top edge at nearly its widest point, putting lime-on-lime
-          text behind the (also lime) tagline. */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -left-[15%] top-0 h-[60vw] w-[55vw] opacity-90"
-        style={{ background: '#D4F23A', clipPath: 'polygon(0 34%, 55% 34%, 18% 100%, 0 100%)' }}
+        className="pointer-events-none absolute -left-[15%] -top-[20%] h-[60vw] w-[55vw] opacity-90"
+        style={{ background: '#D4F23A', clipPath: 'polygon(0 0, 62% 0, 18% 100%, 0 100%)' }}
       />
       <div
         aria-hidden="true"
@@ -34,7 +30,10 @@ export function Hero() {
 
       <div className="relative mx-auto grid max-w-6xl items-center gap-16 lg:grid-cols-2">
         <div>
-          <BichoTagline className="animate-fade-in text-[11px] sm:text-xs" />
+          {/* The diagonal lime shape behind this can reach right up to
+              here — a thin dark stroke keeps the (also lime) tagline
+              readable against it without reshaping the background. */}
+          <BichoTagline className="animate-fade-in text-[11px] sm:text-xs [-webkit-text-stroke:1.5px_rgba(11,26,16,0.85)]" />
 
           <h1
             className="animate-fade-in mt-5 max-w-xl text-4xl font-bold leading-[1.08] tracking-tight text-white sm:text-5xl"

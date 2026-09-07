@@ -1,26 +1,34 @@
+import { Scissors, Sparkles, Stethoscope, Dumbbell } from 'lucide-react';
+
 const SCENARIOS = [
   {
     vertical: 'Peluquerías y barberías',
     scenario: 'Dos clientes agendados a la misma hora, y uno se va molesto.',
+    Icon: Scissors,
   },
   {
     vertical: 'Spas y salones',
     scenario: 'El recordatorio nunca llega y el cliente simplemente no aparece.',
+    Icon: Sparkles,
   },
   {
     vertical: 'Consultorios',
     scenario: 'El doctor contesta mensajes de pacientes hasta las 11 de la noche.',
+    Icon: Stethoscope,
   },
   {
     vertical: 'Gimnasios',
     scenario: 'El lugar en la clase es de quien conteste el WhatsApp primero.',
+    Icon: Dumbbell,
   },
 ];
 
-// A divided list, not a card grid — the vertical name is a real
-// structural label (the content genuinely is organized by business
-// type), not a decorative eyebrow. Left-aligned, editorial, deliberately
-// plainer than the features section below it so the two don't compete.
+// 2x2 grid of raised cards (was a plain divided list — Bruno wanted
+// this section more eye-catching). Same icons TrustSection uses for
+// these verticals, for visual consistency between the two. The
+// scenario text is the loud part (large, bold, quote-shaped) since
+// that's the actual pain point — the vertical name is now a small
+// label underneath instead of leading.
 export function ProblemSection() {
   return (
     <section className="bg-[#0D2B1B] px-6 py-24">
@@ -36,14 +44,25 @@ export function ProblemSection() {
           </p>
         </div>
 
-        <div className="mt-14 divide-y divide-[#1E3A28] border-t border-[#1E3A28]">
-          {SCENARIOS.map((row) => (
+        <div className="mt-14 grid grid-cols-1 gap-5 sm:grid-cols-2">
+          {SCENARIOS.map(({ vertical, scenario, Icon }) => (
             <div
-              key={row.vertical}
-              className="grid grid-cols-1 gap-2 py-6 sm:grid-cols-[220px_1fr] sm:gap-8 sm:py-7"
+              key={vertical}
+              className="relative overflow-hidden rounded-3xl bg-[#123321] p-8"
             >
-              <span className="text-sm font-semibold text-white">{row.vertical}</span>
-              <span className="text-base text-[#9CA99A]">{row.scenario}</span>
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full bg-[#D4F23A]/10"
+              />
+              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[#D4F23A]">
+                <Icon className="h-6 w-6 text-black" strokeWidth={1.75} />
+              </span>
+              <p className="relative mt-6 text-xl font-semibold leading-snug text-white">
+                {scenario}
+              </p>
+              <p className="mt-4 text-sm font-medium uppercase tracking-[0.15em] text-[#D4F23A]">
+                {vertical}
+              </p>
             </div>
           ))}
         </div>

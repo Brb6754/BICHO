@@ -15,6 +15,7 @@ import { normalizeBlock } from '@/lib/templates/blocks';
 import { PLATFORM_PRIMARY, PLATFORM_ACCENT, tenantGlassBackground, tenantCtaStyle } from '@/lib/branding/colors';
 import { safeHref } from '@/lib/branding/safeHref';
 import BookingFlow from '@/components/booking/BookingFlow';
+import { Reveal } from '@/components/ui/Reveal';
 
 type BookingData = {
   slug: string;
@@ -89,9 +90,18 @@ export function BlockRenderer({
 }) {
   return (
     <>
-      {blocks.map((rawBlock) => {
+      {blocks.map((rawBlock, i) => {
         const block = normalizeBlock(rawBlock);
-        return <BlockItem key={block.id} block={block} bookingData={bookingData} branding={branding} />;
+        const item = <BlockItem key={block.id} block={block} bookingData={bookingData} branding={branding} />;
+        // The first block (almost always the hero) renders immediately,
+        // no fade-in — it's what a visitor sees first, and even a brief
+        // flash of invisible content there would be a bad first
+        // impression. Every block after that scrolls into view rather
+        // than being visible on load anyway, so revealing it as it
+        // enters (same technique as the marketing page's sections)
+        // only adds motion where a visitor is already scrolling to
+        // look, never delays something they'd otherwise see instantly.
+        return i === 0 ? item : <Reveal key={block.id}>{item}</Reveal>;
       })}
     </>
   );

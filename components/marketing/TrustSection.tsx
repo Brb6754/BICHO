@@ -1,5 +1,5 @@
 import { Scissors, Sparkles, Stethoscope, Dumbbell } from 'lucide-react';
-import { Reveal } from './Reveal';
+import { Reveal } from '@/components/ui/Reveal';
 
 // The reference's spot for a client-logo wall — bicho doesn't have real
 // client logos to show yet, and a fabricated trust row would be a

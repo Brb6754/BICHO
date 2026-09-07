@@ -1,5 +1,5 @@
 import { Scissors, Sparkles, Stethoscope, Dumbbell } from 'lucide-react';
-import { Reveal } from './Reveal';
+import { Reveal } from '@/components/ui/Reveal';
 
 const SCENARIOS = [
   {

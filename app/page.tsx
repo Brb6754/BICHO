@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { MarketingNav } from '@/components/marketing/MarketingNav';
-import { Hero } from '@/components/marketing/Hero';
+import { Hero, HeroBackdrop } from '@/components/marketing/Hero';
 import { ProblemSection } from '@/components/marketing/ProblemSection';
 import { TrustSection } from '@/components/marketing/TrustSection';
 import { FeaturesSection } from '@/components/marketing/FeaturesSection';
@@ -23,18 +23,10 @@ export const metadata: Metadata = {
 // respectively and never reach this file.
 //
 // Each section still owns its own dark-forest/cream bg (see tokens.ts;
-// the page alternates between them) — but this wrapper ALSO needs its
+// the page alternates between them) — but the outer div ALSO needs its
 // own explicit dark bg, not just "no bg": the shared <body> (layout.tsx)
 // carries the app-wide `bg-paper` token, which is near-black in dark
-// mode. MarketingNav's floating pill is `sticky top-4`, and a sticky
-// element's very first frame renders clamped to that offset while its
-// reserved flow space still starts at 0 — the visual gap that leaves
-// at the very top of the page falls through to whatever's behind this
-// div, so without an explicit bg here that gap shows body's near-black
-// instead of Hero's forest green (this was the "black line at the top
-// of the page" bug). Everywhere else on the page this bg is fully
-// covered by each section's own opaque background, so it only matters
-// for that one sliver.
+// mode, and would otherwise show through around/behind the nav.
 //
 // Deliberately not using the shared bg-paper/text-ink tokens for this,
 // though — those are CSS-var-backed and theme-toggle-aware (see
@@ -46,7 +38,20 @@ export default function MarketingHomePage() {
     <div className="bg-[#0D2B1B] text-white">
       <MarketingNav />
       <main>
-        <Hero />
+        {/* This wrapper is pulled up by MarketingNav's own flow height
+            (negative margin) and pads itself back down by the same
+            amount, so HeroBackdrop's shapes — positioned from this
+            wrapper's own top edge — can bleed all the way to the
+            page's true top corner, behind the nav, instead of being
+            clipped at Hero's own section (which starts BELOW the nav
+            in flow, so a shape confined to it could never reach past
+            that point). The negative-margin amount is coupled to
+            MarketingNav's real rendered height (padding + pill) —
+            re-check it visually if that component's sizing changes. */}
+        <div className="relative -mt-[64px] overflow-hidden pt-[64px]">
+          <HeroBackdrop />
+          <Hero />
+        </div>
         <ProblemSection />
         <TrustSection />
         <FeaturesSection />

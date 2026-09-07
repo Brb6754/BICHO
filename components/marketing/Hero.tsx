@@ -2,6 +2,36 @@ import { ArrowRight, CalendarCheck, MailCheck } from 'lucide-react';
 import { BichoTagline } from './BichoLogo';
 import { CalendarMock, ConfirmationMock, DotGrid } from './ProductMocks';
 
+// The two diagonal lime shapes behind the hero — pulled into their own
+// component and rendered by app/page.tsx OUTSIDE both MarketingNav and
+// this section (see the wrapper there), not inside Hero's own
+// `<section>`: the nav takes real flow height above the section, so a
+// shape confined to the section (clipped by ITS OWN overflow-hidden)
+// could never reach the section's own top edge, since the section
+// itself starts below the nav. The reference bleeds this diagonal
+// behind the nav all the way to the literal top corner of the page —
+// matching that needs a wrapper that starts at the page's own top,
+// spanning both the nav and the hero.
+export function HeroBackdrop() {
+  return (
+    <>
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -left-[15%] top-0 h-[60vw] w-[55vw] opacity-90"
+        style={{ background: '#D4F23A', clipPath: 'polygon(0 0, 62% 0, 18% 100%, 0 100%)' }}
+      />
+      {/* Pulled down/shrunk enough to stay clear of the top edge
+          entirely (the reference has no lime bleeding into the
+          top-right corner, only the bottom-right). */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -bottom-[45%] -right-[12%] h-[55vw] w-[50vw] opacity-90"
+        style={{ background: '#D4F23A', clipPath: 'polygon(100% 0, 100% 100%, 35% 100%, 70% 0)' }}
+      />
+    </>
+  );
+}
+
 // The one orchestrated motion moment on the page (per the frontend-design
 // skill: one page-load sequence beats fade-ups scattered on every
 // section). Plain CSS, reuses the app's existing .animate-fade-in
@@ -9,25 +39,15 @@ import { CalendarMock, ConfirmationMock, DotGrid } from './ProductMocks';
 // color, so it's safe to reuse without touching the shared file. Each
 // element's `animationDelay` staggers the reveal without any JS.
 //
-// 2026 reference redesign: deep forest-green canvas (was flat black) +
-// two large diagonal lime shapes bleeding off the top-left/bottom-right
-// corners, plus two floating "photo" cards on the right — mockups of
+// 2026 reference redesign: deep forest-green canvas (was flat black,
+// now painted by the wrapper in app/page.tsx alongside HeroBackdrop
+// above — this section itself stays transparent so that bg/backdrop
+// show through) + two floating "photo" cards on the right — mockups of
 // the real product (see ProductMocks.tsx) standing in for the
 // reference's stock photography, tilted and overlapping the same way.
 export function Hero() {
   return (
-    <section id="top" className="relative overflow-hidden bg-[#0D2B1B] px-6 pb-28 pt-28 sm:pt-32">
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -left-[15%] -top-[20%] h-[60vw] w-[55vw] opacity-90"
-        style={{ background: '#D4F23A', clipPath: 'polygon(0 0, 62% 0, 18% 100%, 0 100%)' }}
-      />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -bottom-[35%] -right-[12%] h-[65vw] w-[50vw] opacity-90"
-        style={{ background: '#D4F23A', clipPath: 'polygon(100% 0, 100% 100%, 35% 100%, 70% 0)' }}
-      />
-
+    <section id="top" className="relative px-6 pb-28 pt-28 sm:pt-32">
       <div className="relative mx-auto grid max-w-6xl items-center gap-16 lg:grid-cols-2">
         <div>
           {/* The diagonal lime shape behind this can reach right up to

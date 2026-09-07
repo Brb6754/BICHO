@@ -34,13 +34,13 @@ const TIERS = [
 // numbers pulled from anywhere.
 export function PricingSection() {
   return (
-    <section id="precios" className="bg-[#000000] px-6 py-24">
+    <section id="precios" className="bg-[#0D2B1B] px-6 py-24">
       <div className="mx-auto max-w-6xl">
         <div className="max-w-2xl">
           <h2 className="text-3xl font-bold leading-tight text-white sm:text-4xl">
             Un plan para cada tamaño de negocio.
           </h2>
-          <p className="mt-4 text-base leading-relaxed text-[#8C8C8C] sm:text-lg">
+          <p className="mt-4 text-base leading-relaxed text-[#9CA99A] sm:text-lg">
             Precios estimados en pesos mexicanos, por mes. Sin tarjeta para
             probar.
           </p>
@@ -52,8 +52,8 @@ export function PricingSection() {
               key={tier.name}
               className={`flex flex-col rounded-2xl border p-8 ${
                 tier.featured
-                  ? 'border-[#D4F23A]/50 bg-[#0E0E0E]'
-                  : 'border-[#1F1F1F] bg-transparent'
+                  ? 'border-[#D4F23A]/50 bg-[#123321]'
+                  : 'border-[#1E3A28] bg-transparent'
               }`}
             >
               {tier.featured && (
@@ -62,15 +62,15 @@ export function PricingSection() {
                 </span>
               )}
               <h3 className="text-lg font-semibold text-white">{tier.name}</h3>
-              <p className="mt-1 text-sm text-[#8C8C8C]">{tier.tagline}</p>
+              <p className="mt-1 text-sm text-[#9CA99A]">{tier.tagline}</p>
               <p className="mt-6 text-4xl font-bold text-white">
                 {tier.price}
-                <span className="text-base font-normal text-[#8C8C8C]"> MXN/mes</span>
+                <span className="text-base font-normal text-[#9CA99A]"> MXN/mes</span>
               </p>
 
               <ul className="mt-8 flex-1 space-y-3">
                 {tier.features.map((feature) => (
-                  <li key={feature} className="flex gap-3 text-sm text-[#8C8C8C]">
+                  <li key={feature} className="flex gap-3 text-sm text-[#9CA99A]">
                     <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-sm bg-[#D4F23A]" aria-hidden />
                     {feature}
                   </li>

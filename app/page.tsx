@@ -2,7 +2,9 @@ import type { Metadata } from 'next';
 import { MarketingNav } from '@/components/marketing/MarketingNav';
 import { Hero } from '@/components/marketing/Hero';
 import { ProblemSection } from '@/components/marketing/ProblemSection';
+import { TrustSection } from '@/components/marketing/TrustSection';
 import { FeaturesSection } from '@/components/marketing/FeaturesSection';
+import { StatsBar } from '@/components/marketing/StatsBar';
 import { ResellerSection } from '@/components/marketing/ResellerSection';
 import { PricingSection } from '@/components/marketing/PricingSection';
 import { FinalCta } from '@/components/marketing/FinalCta';
@@ -20,20 +22,25 @@ export const metadata: Metadata = {
 // landing here. `admin.*` and `{slug}.*` rewrite to /admin and /t/[slug]
 // respectively and never reach this file.
 //
-// Pure black canvas + white text is set explicitly on the wrapper below
-// instead of relying on the shared bg-paper/text-ink tokens: those are
-// CSS-var-backed and theme-toggle-aware (see globals.css), which is
-// exactly right for the admin/tenant apps but wrong here — bicho's
-// black/lime identity doesn't have a light-mode variant and shouldn't
-// flip with a visitor's leftover dashboard theme preference.
+// The page background is set per-section (each section owns its own
+// dark-forest/cream bg — see tokens.ts) rather than on this wrapper:
+// unlike the first pass, the page now alternates between the dark
+// canvas and light cream sections, so there's no single flat color to
+// set here. Deliberately not using the shared bg-paper/text-ink tokens
+// either way — those are CSS-var-backed and theme-toggle-aware (see
+// globals.css), which is right for the admin/tenant apps but wrong
+// here: bicho's identity doesn't have a light/dark-mode variant and
+// shouldn't flip with a visitor's leftover dashboard theme preference.
 export default function MarketingHomePage() {
   return (
-    <div className="bg-[#000000] text-white">
+    <div className="text-white">
       <MarketingNav />
       <main>
         <Hero />
         <ProblemSection />
+        <TrustSection />
         <FeaturesSection />
+        <StatsBar />
         <ResellerSection />
         <PricingSection />
         <FinalCta />

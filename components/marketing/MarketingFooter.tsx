@@ -7,14 +7,14 @@ import { BichoLogo, BichoTagline } from './BichoLogo';
 // on this same page, plus a real mailto contact.
 export function MarketingFooter() {
   return (
-    <footer className="border-t border-[#1F1F1F] bg-[#000000] px-6 py-14">
+    <footer className="border-t border-[#1E3A28] bg-[#0D2B1B] px-6 py-14">
       <div className="mx-auto flex max-w-6xl flex-col gap-10 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <BichoLogo className="h-7" />
           <BichoTagline className="mt-2 text-[10px]" />
         </div>
 
-        <div className="flex flex-wrap gap-x-10 gap-y-4 text-sm text-[#8C8C8C]">
+        <div className="flex flex-wrap gap-x-10 gap-y-4 text-sm text-[#9CA99A]">
           <a href="#funciones" className="hover:text-white">
             Funciones
           </a>
@@ -30,7 +30,7 @@ export function MarketingFooter() {
         </div>
       </div>
 
-      <p className="mx-auto mt-12 max-w-6xl text-xs text-[#8C8C8C]/70">
+      <p className="mx-auto mt-12 max-w-6xl text-xs text-[#9CA99A]/70">
         © {new Date().getFullYear()} bicho. Software &amp; AI Solutions.
       </p>
     </footer>

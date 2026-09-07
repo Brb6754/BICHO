@@ -18,12 +18,15 @@ const LINKS = [
   { id: 'vendedores', label: 'Vendedores' },
 ];
 
+// Floating rounded pill (2026 reference redesign), not a full-width bar —
+// sits with margin on all sides instead of flush against the viewport
+// edges, matching the reference's nav treatment.
 export function MarketingNav() {
   return (
-    <header className="sticky top-0 z-20 border-b border-[#1F1F1F] bg-[#000000]/85 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+    <header className="sticky top-4 z-20 px-4 sm:top-6 sm:px-6">
+      <div className="mx-auto flex max-w-6xl items-center justify-between rounded-full bg-[#123321]/90 px-5 py-3 shadow-[0_8px_30px_rgba(0,0,0,0.25)] backdrop-blur sm:px-7">
         <a href="#top" onClick={scrollToSection('top')} className="shrink-0">
-          <BichoLogo className="h-8" />
+          <BichoLogo className="h-7" />
         </a>
 
         <nav className="hidden items-center gap-8 md:flex">
@@ -32,7 +35,7 @@ export function MarketingNav() {
               key={link.id}
               href={`#${link.id}`}
               onClick={scrollToSection(link.id)}
-              className="text-sm text-[#8C8C8C] transition-colors hover:text-white"
+              className="text-sm text-[#9CA99A] transition-colors hover:text-white"
             >
               {link.label}
             </a>
@@ -41,9 +44,9 @@ export function MarketingNav() {
 
         <a
           href="mailto:nonameynk@gmail.com?subject=Quiero%20una%20demo%20de%20bicho"
-          className="inline-flex items-center justify-center rounded-full bg-[#D4F23A] px-4 py-2 text-sm font-semibold text-black transition hover:brightness-95 sm:px-5"
+          className="inline-flex items-center justify-center rounded-full border border-[#D4F23A]/50 px-4 py-2 text-sm font-medium text-[#D4F23A] transition hover:bg-[#D4F23A]/10 sm:px-5"
         >
-          Agenda una demo
+          Contáctanos
         </a>
       </div>
     </header>

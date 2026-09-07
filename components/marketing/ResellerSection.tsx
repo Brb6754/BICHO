@@ -1,3 +1,14 @@
+// Hand-drawn, low-poly approximation of Mexico's outline (not traced
+// from any licensed dataset — a simplified/faceted silhouette fits the
+// dot-matrix treatment anyway, and precision doesn't matter for a
+// decorative background shape). Filled with a repeating dot pattern
+// instead of a solid color: "a map of Mexico with lots of dots", per
+// Bruno's own ask, and it keeps the section's existing texture
+// language (the abstract dot field below) rather than introducing a
+// flat icon.
+const MEXICO_PATH =
+  'M60,20 L140,15 L220,20 L280,30 L330,45 L345,90 L325,140 L290,175 L300,165 L330,155 L365,160 L385,175 L375,200 L340,210 L300,205 L270,195 L230,205 L180,200 L140,190 L100,165 L75,130 L65,95 L55,70 L45,85 L35,120 L25,160 L30,170 L40,155 L35,110 L40,65 L50,35 Z';
+
 // Distribution/trust section grounded in the real go-to-market model
 // (an independent sales rep network), not a fabricated logo wall or
 // review count. A raised band (#123321) sets this section apart from
@@ -17,6 +28,34 @@ export function ResellerSection() {
         }}
         aria-hidden
       />
+
+      {/* The empty right half of this section (text stays inside
+          max-w-2xl on the left) is where the "presente en todo México"
+          claim gets a visual — a dot-matrix silhouette of the country,
+          not a literal map with pins on specific unverified cities. */}
+      <svg
+        viewBox="0 0 400 300"
+        className="pointer-events-none absolute -right-10 top-1/2 hidden h-[420px] w-[560px] -translate-y-1/2 lg:block"
+        aria-hidden="true"
+      >
+        <defs>
+          <clipPath id="reseller-mx-clip">
+            <path d={MEXICO_PATH} />
+          </clipPath>
+          <pattern id="reseller-mx-dots" width="7" height="7" patternUnits="userSpaceOnUse">
+            <circle cx="1.6" cy="1.6" r="1.6" fill="#D4F23A" />
+          </pattern>
+        </defs>
+        <rect
+          x="0"
+          y="0"
+          width="400"
+          height="300"
+          fill="url(#reseller-mx-dots)"
+          clipPath="url(#reseller-mx-clip)"
+          opacity="0.55"
+        />
+      </svg>
 
       <div className="relative mx-auto max-w-6xl">
         <div className="max-w-2xl">

@@ -1,3 +1,5 @@
+import { Reveal } from './Reveal';
+
 // Hand-drawn, low-poly approximation of Mexico's outline (not traced
 // from any licensed dataset — a simplified/faceted silhouette fits the
 // dot-matrix treatment anyway, and precision doesn't matter for a
@@ -75,7 +77,7 @@ export function ResellerSection() {
         ))}
       </svg>
 
-      <div className="relative mx-auto max-w-6xl">
+      <Reveal className="relative mx-auto max-w-6xl">
         <div className="max-w-2xl">
           <h2 className="text-3xl font-bold leading-tight text-white sm:text-4xl">
             Presente en todo México a través de nuestra red de vendedores.
@@ -96,7 +98,7 @@ export function ResellerSection() {
             Quiero vender bicho en mi zona
           </a>
         </div>
-      </div>
+      </Reveal>
     </section>
   );
 }

@@ -1,4 +1,5 @@
 import { Scissors, Sparkles, Stethoscope, Dumbbell } from 'lucide-react';
+import { Reveal } from './Reveal';
 
 // The reference's spot for a client-logo wall — bicho doesn't have real
 // client logos to show yet, and a fabricated trust row would be a
@@ -16,7 +17,7 @@ const VERTICALS = [
 export function TrustSection() {
   return (
     <section className="bg-[#F3F4EC] px-6 py-14">
-      <div className="mx-auto flex max-w-6xl flex-col items-center gap-8 sm:flex-row sm:items-center sm:justify-between">
+      <Reveal className="mx-auto flex max-w-6xl flex-col items-center gap-8 sm:flex-row sm:items-center sm:justify-between">
         <p className="max-w-[10rem] text-sm font-medium leading-snug text-[#5B6B5A]">
           Hecho para estos negocios
         </p>
@@ -28,7 +29,7 @@ export function TrustSection() {
             </div>
           ))}
         </div>
-      </div>
+      </Reveal>
     </section>
   );
 }

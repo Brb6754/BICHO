@@ -1,9 +1,10 @@
 import { BichoLogo } from './BichoLogo';
+import { Reveal } from './Reveal';
 
 export function FinalCta() {
   return (
     <section className="bg-[#0D2B1B] px-6 py-24">
-      <div className="mx-auto flex max-w-6xl flex-col items-center border-t border-[#1E3A28] pt-24 text-center">
+      <Reveal className="mx-auto flex max-w-6xl flex-col items-center border-t border-[#1E3A28] pt-24 text-center">
         <BichoLogo className="h-10" />
         <h2 className="mt-8 max-w-xl text-3xl font-bold leading-tight text-white sm:text-4xl">
           Deja de agendar a mano. Empieza hoy.
@@ -18,7 +19,7 @@ export function FinalCta() {
         >
           Agenda una demo
         </a>
-      </div>
+      </Reveal>
     </section>
   );
 }

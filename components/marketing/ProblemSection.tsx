@@ -1,4 +1,5 @@
 import { Scissors, Sparkles, Stethoscope, Dumbbell } from 'lucide-react';
+import { Reveal } from './Reveal';
 
 const SCENARIOS = [
   {
@@ -33,7 +34,7 @@ export function ProblemSection() {
   return (
     <section className="bg-[#0D2B1B] px-6 py-24">
       <div className="mx-auto max-w-6xl">
-        <div className="max-w-2xl">
+        <Reveal className="max-w-2xl">
           <h2 className="text-3xl font-bold leading-tight text-white sm:text-4xl">
             Un chat no es un sistema de citas.
           </h2>
@@ -42,28 +43,27 @@ export function ProblemSection() {
             estas escenas. No son casos raros — son el día a día de un
             negocio que crece más rápido que su forma de agendar.
           </p>
-        </div>
+        </Reveal>
 
         <div className="mt-14 grid grid-cols-1 gap-5 sm:grid-cols-2">
-          {SCENARIOS.map(({ vertical, scenario, Icon }) => (
-            <div
-              key={vertical}
-              className="relative overflow-hidden rounded-3xl bg-[#123321] p-8"
-            >
-              <span
-                aria-hidden="true"
-                className="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full bg-[#D4F23A]/10"
-              />
-              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[#D4F23A]">
-                <Icon className="h-6 w-6 text-black" strokeWidth={1.75} />
-              </span>
-              <p className="relative mt-6 text-xl font-semibold leading-snug text-white">
-                {scenario}
-              </p>
-              <p className="mt-4 text-sm font-medium uppercase tracking-[0.15em] text-[#D4F23A]">
-                {vertical}
-              </p>
-            </div>
+          {SCENARIOS.map(({ vertical, scenario, Icon }, i) => (
+            <Reveal key={vertical} delay={i * 90}>
+              <div className="relative h-full overflow-hidden rounded-3xl bg-[#123321] p-8">
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full bg-[#D4F23A]/10"
+                />
+                <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[#D4F23A]">
+                  <Icon className="h-6 w-6 text-black" strokeWidth={1.75} />
+                </span>
+                <p className="relative mt-6 text-xl font-semibold leading-snug text-white">
+                  {scenario}
+                </p>
+                <p className="mt-4 text-sm font-medium uppercase tracking-[0.15em] text-[#D4F23A]">
+                  {vertical}
+                </p>
+              </div>
+            </Reveal>
           ))}
         </div>
       </div>

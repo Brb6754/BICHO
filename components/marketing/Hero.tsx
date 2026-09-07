@@ -36,7 +36,7 @@ export function Hero() {
             className="animate-fade-in mt-5 max-w-xl text-4xl font-bold leading-[1.08] tracking-tight text-white sm:text-5xl"
             style={{ animationDelay: '80ms' }}
           >
-            El agendado de tu negocio no debería vivir en un chat de WhatsApp.
+            Deja de agendar citas por WhatsApp.
           </h1>
 
           <p

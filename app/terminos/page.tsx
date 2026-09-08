@@ -14,9 +14,9 @@ export default function TerminosPage() {
   return (
     <LegalPageLayout title="Términos y Condiciones" updated="7 de septiembre de 2026">
       <p>
-        Al crear una cuenta de negocio en bicho, aceptás estas condiciones. Si sos
+        Al crear una cuenta de negocio en bicho, aceptas estas condiciones. Si eres
         cliente final reservando una cita con un negocio que usa bicho, lo que aplica
-        para vos es el{' '}
+        para ti es el{' '}
         <a href="/privacidad" className="underline">
           Aviso de Privacidad
         </a>
@@ -35,8 +35,8 @@ export default function TerminosPage() {
       <section>
         <h2 className="text-lg font-semibold text-[#0B1A10]">Tu cuenta</h2>
         <p className="mt-2">
-          Sos responsable de la información que cargás sobre tu negocio y de mantener
-          segura tu contraseña. Tenés que ser mayor de edad y tener autoridad real para
+          Eres responsable de la información que cargas sobre tu negocio y de mantener
+          segura tu contraseña. Tienes que ser mayor de edad y tener autoridad real para
           representar al negocio que estás registrando.
         </p>
       </section>
@@ -44,9 +44,9 @@ export default function TerminosPage() {
       <section>
         <h2 className="text-lg font-semibold text-[#0B1A10]">Prueba y suscripción</h2>
         <p className="mt-2">
-          Empezás con 15 días de prueba sin tarjeta. Después de la prueba, seguir
+          Empiezas con 15 días de prueba sin tarjeta. Después de la prueba, seguir
           usando bicho requiere un plan pago — hoy coordinamos el cobro directamente
-          por correo, sin un procesador de pagos automático todavía. Podés cancelar
+          por correo, sin un procesador de pagos automático todavía. Puedes cancelar
           cuando quieras escribiéndonos.
         </p>
       </section>
@@ -54,7 +54,7 @@ export default function TerminosPage() {
       <section>
         <h2 className="text-lg font-semibold text-[#0B1A10]">Los datos de tus clientes</h2>
         <p className="mt-2">
-          Cuando alguien reserva una cita con tu negocio a través de bicho, vos sos
+          Cuando alguien reserva una cita con tu negocio a través de bicho, tú eres
           responsable de usar esos datos correctamente — para lo que la persona
           esperaría (gestionar su cita), no para otra cosa.
         </p>
@@ -72,7 +72,7 @@ export default function TerminosPage() {
       <section>
         <h2 className="text-lg font-semibold text-[#0B1A10]">Límite de responsabilidad</h2>
         <p className="mt-2">
-          Usás bicho bajo tu propio riesgo comercial. No respondemos por pérdidas de
+          Usas bicho bajo tu propio riesgo comercial. No respondemos por pérdidas de
           negocio indirectas (por ejemplo, una cita perdida por una falla puntual del
           servicio) más allá de lo que hayas pagado por tu suscripción ese mes.
         </p>
@@ -89,7 +89,7 @@ export default function TerminosPage() {
       <section>
         <h2 className="text-lg font-semibold text-[#0B1A10]">Contacto</h2>
         <p className="mt-2">
-          Cualquier duda sobre estos términos, escribinos a{' '}
+          Cualquier duda sobre estos términos, escríbenos a{' '}
           <a href="mailto:nonameynk@gmail.com" className="underline">
             nonameynk@gmail.com
           </a>

@@ -84,7 +84,7 @@ export function Hero() {
             style={{ animationDelay: '140ms' }}
           >
             Tus clientes reservan solos, ven horarios que sí existen, y
-            reciben su confirmación al instante. Vos dejás de escribir nada
+            reciben su confirmación al instante. Tú dejas de escribir nada
             a mano.
           </p>
 

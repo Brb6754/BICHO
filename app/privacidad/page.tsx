@@ -18,7 +18,7 @@ export default function PrivacidadPage() {
     <LegalPageLayout title="Aviso de Privacidad" updated="7 de septiembre de 2026">
       <p>
         Este aviso explica qué datos personales recaba bicho, para qué los usa, y qué
-        derechos tenés sobre ellos — ya seas dueño de un negocio que usa bicho, o
+        derechos tienes sobre ellos — ya seas dueño de un negocio que usa bicho, o
         cliente final de uno de esos negocios.
       </p>
 
@@ -27,7 +27,7 @@ export default function PrivacidadPage() {
         <p className="mt-2">
           bicho (&quot;nosotros&quot;) es responsable del tratamiento de los datos personales
           que recabamos a través de esta plataforma. Para cualquier duda sobre este
-          aviso o tus datos, escribinos a{' '}
+          aviso o tus datos, escríbenos a{' '}
           <a href="mailto:nonameynk@gmail.com" className="underline">
             nonameynk@gmail.com
           </a>
@@ -40,7 +40,7 @@ export default function PrivacidadPage() {
         <p className="mt-2">Depende de cómo uses bicho:</p>
         <ul className="mt-2 list-disc pl-5">
           <li>
-            <strong>Si reservás una cita</strong> en la página de un negocio: tu nombre,
+            <strong>Si reservas una cita</strong> en la página de un negocio: tu nombre,
             correo (opcional) y cualquier nota que agregues sobre la cita.
           </li>
           <li>
@@ -57,7 +57,7 @@ export default function PrivacidadPage() {
         <ul className="mt-2 list-disc pl-5">
           <li>Crear y administrar tu cita (o las citas de tu negocio).</li>
           <li>Mandarte confirmaciones y avisos de cambios por correo.</li>
-          <li>Darte acceso a tu cuenta si administrás un negocio.</li>
+          <li>Darte acceso a tu cuenta si administras un negocio.</li>
           <li>Mantener el servicio funcionando y corregir problemas.</li>
         </ul>
         <p className="mt-2">
@@ -78,12 +78,12 @@ export default function PrivacidadPage() {
       <section>
         <h2 className="text-lg font-semibold text-[#0B1A10]">Tus derechos</h2>
         <p className="mt-2">
-          Podés pedirnos acceder a tus datos, corregirlos, o que los borremos, escribiendo
+          Puedes pedirnos acceder a tus datos, corregirlos, o que los borremos, escribiendo
           a{' '}
           <a href="mailto:nonameynk@gmail.com" className="underline">
             nonameynk@gmail.com
           </a>
-          . Si sos cliente final de un negocio (no administrás la cuenta), también podés
+          . Si eres cliente final de un negocio (no administras la cuenta), también puedes
           pedirle directamente a ese negocio que borre tus datos.
         </p>
       </section>

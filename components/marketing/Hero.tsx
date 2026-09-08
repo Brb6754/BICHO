@@ -83,9 +83,9 @@ export function Hero() {
             className="animate-fade-in mt-6 max-w-md text-base leading-relaxed text-[#9CA99A] sm:text-lg"
             style={{ animationDelay: '140ms' }}
           >
-            bicho le da a tu peluquería, spa, consultorio o gimnasio una
-            página de reservas con tu propia marca, disponibilidad real y
-            confirmación automática — para que dejes de agendar citas a mano.
+            Tus clientes reservan solos, ven horarios que sí existen, y
+            reciben su confirmación al instante. Vos dejás de escribir nada
+            a mano.
           </p>
 
           <div

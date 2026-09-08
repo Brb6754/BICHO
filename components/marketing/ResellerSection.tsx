@@ -1,4 +1,5 @@
 import { Reveal } from './Reveal';
+import { DotField } from './DotField';
 
 // Distribution/trust section grounded in the real go-to-market model
 // (an independent sales rep network), not a fabricated logo wall or
@@ -8,17 +9,7 @@ import { Reveal } from './Reveal';
 export function ResellerSection() {
   return (
     <section id="vendedores" className="relative overflow-hidden bg-[#123321] px-6 py-24">
-      {/* quiet decorative texture — an abstract dot field, not a literal
-          map with pins on cities we haven't actually verified */}
-      <div
-        className="pointer-events-none absolute inset-0 opacity-[0.15]"
-        style={{
-          backgroundImage: 'radial-gradient(#D4F23A 1px, transparent 1px)',
-          backgroundSize: '28px 28px',
-          maskImage: 'linear-gradient(to bottom, transparent, black, transparent)',
-        }}
-        aria-hidden
-      />
+      <DotField />
 
       <Reveal className="relative mx-auto max-w-6xl">
         <div className="max-w-2xl">

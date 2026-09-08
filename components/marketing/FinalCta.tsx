@@ -1,10 +1,12 @@
 import { BichoLogo } from './BichoLogo';
 import { Reveal } from './Reveal';
+import { DotField } from './DotField';
 
 export function FinalCta() {
   return (
-    <section className="bg-[#0D2B1B] px-6 py-24">
-      <Reveal className="mx-auto flex max-w-6xl flex-col items-center border-t border-[#1E3A28] pt-24 text-center">
+    <section className="relative overflow-hidden bg-[#0D2B1B] px-6 py-24">
+      <DotField />
+      <Reveal className="relative mx-auto flex max-w-6xl flex-col items-center border-t border-[#1E3A28] pt-24 text-center">
         <BichoLogo className="h-10" />
         <h2 className="mt-8 max-w-xl font-[family-name:var(--font-display)] text-3xl font-bold leading-tight text-white sm:text-4xl">
           Deja de agendar a mano. Empieza hoy.

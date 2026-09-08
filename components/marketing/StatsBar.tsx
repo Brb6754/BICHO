@@ -1,5 +1,6 @@
 import { Clock, Palette, MailX } from 'lucide-react';
 import { Reveal } from './Reveal';
+import { DotField } from './DotField';
 
 // The reference's stat band shows fake usage numbers ("120+ clientes",
 // "2.5M+ leads") — bicho has no real customers yet, so copying that
@@ -16,8 +17,9 @@ const STATS = [
 export function StatsBar() {
   return (
     <section className="bg-[#F3F4EC] px-6 pb-24">
-      <Reveal className="mx-auto max-w-6xl rounded-3xl bg-[#0D2B1B] px-8 py-10">
-        <div className="grid grid-cols-1 gap-8 sm:grid-cols-3">
+      <Reveal className="relative mx-auto max-w-6xl overflow-hidden rounded-3xl bg-[#0D2B1B] px-8 py-10 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+        <DotField />
+        <div className="relative grid grid-cols-1 gap-8 sm:grid-cols-3">
           {STATS.map(({ Icon, value, label }) => (
             <div key={label} className="flex items-center gap-4">
               <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#D4F23A]">

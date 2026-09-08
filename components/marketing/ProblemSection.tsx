@@ -1,5 +1,6 @@
 import { Scissors, Sparkles, Stethoscope, Dumbbell } from 'lucide-react';
 import { Reveal } from './Reveal';
+import { DotField } from './DotField';
 
 const SCENARIOS = [
   {
@@ -32,8 +33,9 @@ const SCENARIOS = [
 // label underneath instead of leading.
 export function ProblemSection() {
   return (
-    <section className="bg-[#0D2B1B] px-6 py-24">
-      <div className="mx-auto max-w-6xl">
+    <section className="relative overflow-hidden bg-[#0D2B1B] px-6 py-24">
+      <DotField />
+      <div className="relative mx-auto max-w-6xl">
         <Reveal className="max-w-2xl">
           <h2 className="font-[family-name:var(--font-display)] text-3xl font-bold leading-tight text-white sm:text-4xl">
             Un chat no es un sistema de citas.
@@ -48,7 +50,7 @@ export function ProblemSection() {
         <div className="mt-14 grid grid-cols-1 gap-5 sm:grid-cols-2">
           {SCENARIOS.map(({ vertical, scenario, Icon }, i) => (
             <Reveal key={vertical} delay={i * 90}>
-              <div className="relative h-full overflow-hidden rounded-3xl bg-[#123321] p-8">
+              <div className="relative h-full overflow-hidden rounded-3xl bg-[#123321] p-8 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] ring-1 ring-inset ring-white/[0.04]">
                 <span
                   aria-hidden="true"
                   className="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full bg-[#D4F23A]/10"

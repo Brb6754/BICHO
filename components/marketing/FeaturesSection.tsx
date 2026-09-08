@@ -48,7 +48,7 @@ export function FeaturesSection() {
         <div className="mt-14 grid grid-cols-1 gap-6 md:grid-cols-3">
           {FEATURES.map(({ title, description, Mock, Icon }, i) => (
             <Reveal key={title} delay={i * 100}>
-              <div className="h-full rounded-3xl bg-[#E8F0E0] p-5 transition-shadow duration-300 hover:shadow-lg">
+              <div className="h-full rounded-3xl bg-[#E8F0E0] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] transition-shadow duration-300 hover:shadow-lg">
                 <div className="relative h-44 overflow-hidden rounded-2xl">
                   <Mock />
                   <span className="absolute -left-3 -top-3 flex h-11 w-11 items-center justify-center rounded-full bg-[#0D2B1B] shadow-md">

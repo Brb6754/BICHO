@@ -1,6 +1,7 @@
 import { CalendarCheck, MailCheck } from 'lucide-react';
 import { BichoTagline } from './BichoLogo';
 import { CalendarMock, ConfirmationMock, DotGrid } from './ProductMocks';
+import { DotField } from './DotField';
 
 // The two diagonal lime shapes behind the hero — pulled into their own
 // component and rendered by app/page.tsx OUTSIDE both MarketingNav and
@@ -65,7 +66,8 @@ export function HeroBackdrop() {
 // reference's stock photography, tilted and overlapping the same way.
 export function Hero() {
   return (
-    <section id="top" className="relative px-6 pb-28 pt-28 sm:pt-32">
+    <section id="top" className="relative overflow-hidden px-6 pb-28 pt-28 sm:pt-32">
+      <DotField />
       <div className="relative mx-auto grid max-w-6xl items-center gap-16 lg:grid-cols-2">
         <div>
           <BichoTagline className="animate-fade-in text-[11px] sm:text-xs" />
@@ -106,6 +108,11 @@ export function Hero() {
         </div>
 
         <div className="relative hidden lg:block">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute left-1/2 top-1/2 h-[380px] w-[380px] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-40 blur-3xl"
+            style={{ background: 'radial-gradient(circle, #D4F23A, transparent 70%)' }}
+          />
           <div className="absolute -top-6 left-4 -rotate-6">
             <div className="h-64 w-52 overflow-hidden rounded-2xl shadow-[0_30px_60px_rgba(0,0,0,0.4)]">
               <CalendarMock />

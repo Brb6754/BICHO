@@ -1,4 +1,5 @@
 import { Reveal } from './Reveal';
+import { DotField } from './DotField';
 
 const TIERS = [
   {
@@ -36,8 +37,9 @@ const TIERS = [
 // numbers pulled from anywhere.
 export function PricingSection() {
   return (
-    <section id="precios" className="bg-[#0D2B1B] px-6 py-24">
-      <div className="mx-auto max-w-6xl">
+    <section id="precios" className="relative overflow-hidden bg-[#0D2B1B] px-6 py-24">
+      <DotField />
+      <div className="relative mx-auto max-w-6xl">
         <Reveal className="max-w-2xl">
           <h2 className="font-[family-name:var(--font-display)] text-3xl font-bold leading-tight text-white sm:text-4xl">
             Un plan para cada tamaño de negocio.
@@ -54,7 +56,7 @@ export function PricingSection() {
               <div
                 className={`flex h-full flex-col rounded-2xl border p-8 transition-colors duration-300 ${
                   tier.featured
-                    ? 'border-[#D4F23A]/50 bg-[#123321]'
+                    ? 'border-[#D4F23A]/50 bg-[#123321] shadow-[0_0_60px_-15px_rgba(212,242,58,0.35)]'
                     : 'border-[#1E3A28] bg-transparent hover:border-[#D4F23A]/30'
                 }`}
               >

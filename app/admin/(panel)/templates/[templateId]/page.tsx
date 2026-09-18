@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { Button } from '@/components/ui/Button';
+import { Plus } from 'lucide-react';
 import type { Block } from '@/lib/templates/blocks';
 
 type DefaultService = { name: string; duration_minutes: number; price_cents: number };
@@ -42,17 +43,31 @@ export default async function TemplateEditPage({ params }: { params: Promise<{ t
       <Link href="/templates" className="text-sm text-muted hover:underline">
         ← Plantillas
       </Link>
-      <h1 className="mt-2 text-2xl font-semibold tracking-tight text-ink">{template.name}</h1>
-      <p className="mt-1 text-muted">
-        Vertical: <span className="font-medium text-ink">{template.vertical}</span> (no editable — es la
-        clave que usan los tenants de este tipo)
-      </p>
+      <div className="mt-2 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-ink">{template.name}</h1>
+          <p className="mt-1 max-w-2xl text-muted">
+            Vertical: <span className="font-medium text-ink">{template.vertical}</span>. Esta plantilla es el
+            punto de partida: al crear un negocio se copia a su página, y a partir de ahí son independientes
+            — editar aquí ya no toca los negocios que existen.
+          </p>
+        </div>
+        {/* The whole point of editing a template: use it. Without this
+            you had to leave, remember the vertical, and find it again
+            in a dropdown. */}
+        <Link href={'/tenants/new?vertical=' + encodeURIComponent(template.vertical)}>
+          <Button type="button">
+            <Plus className="h-4 w-4" />
+            Crear negocio con esta plantilla
+          </Button>
+        </Link>
+      </div>
 
       <section className="mt-6">
         <p className="mb-3 text-sm font-semibold text-ink">
           Contenido de la página pública — arrastra para reordenar
         </p>
-        <TemplateBuilder initialBlocks={template.blocks as Block[]} onSave={saveBlocks} />
+        <TemplateBuilder accentColor={template.accent_color} initialBlocks={template.blocks as Block[]} onSave={saveBlocks} />
       </section>
 
       <section className="mt-10">

@@ -12,15 +12,33 @@ import {
 } from 'lucide-react';
 import type { Block, BlockStyle, Padding, MaxWidth } from '@/lib/templates/blocks';
 import { normalizeBlock } from '@/lib/templates/blocks';
-import { PLATFORM_PRIMARY, PLATFORM_ACCENT, tenantGlassBackground, tenantCtaStyle } from '@/lib/branding/colors';
+import {
+  PLATFORM_PRIMARY,
+  PLATFORM_ACCENT,
+  tenantGlassBackground,
+  tenantCtaStyle,
+  contrastRatio,
+  readableFgRgb,
+} from '@/lib/branding/colors';
 import { safeHref } from '@/lib/branding/safeHref';
 import BookingFlow from '@/components/booking/BookingFlow';
+import {
+  HeroSection,
+  ServicesSection,
+  SplitSection,
+  TeamSection,
+  FaqSection,
+  CtaSection,
+  HoursSection,
+  LocationSection,
+} from './Sections';
 
 type BookingData = {
   slug: string;
   businessName?: string;
   services: { id: string; name: string; duration_minutes: number; price_cents: number }[];
   resources: { id: string; name: string }[];
+  timezone?: string | null;
 };
 
 // isDark/darkBase are optional so every existing caller (template
@@ -43,17 +61,51 @@ function glassBg(branding: Branding, level: 1 | 2 | 3): string {
   return tenantGlassBackground(branding.primaryColor, branding.accentColor, level, branding.isDark ? branding.darkBase : undefined);
 }
 
+// A small icon on a primary-filled badge. The accent is the on-brand
+// choice, but two light (or two dark) brand colors made the icon vanish;
+// icons need 3:1, so below that it switches to black or white.
+function iconBadgeStyle(branding: Branding): React.CSSProperties {
+  const fg =
+    contrastRatio(branding.accentColor, branding.primaryColor) >= 3
+      ? branding.accentColor
+      : 'rgb(' + readableFgRgb(branding.primaryColor) + ')';
+  return { backgroundColor: branding.primaryColor, color: fg };
+}
+
 // The platform's own light-mode palette, not a tenant-specific default —
 // the public booking page shares the same indigo/violet/cyan
 // glassmorphism as the admin/tenant dashboards (see reservar/page.tsx).
 const DEFAULT_BRANDING: Branding = { primaryColor: PLATFORM_PRIMARY, accentColor: PLATFORM_ACCENT, logoUrl: null };
 
-const PADDING_CLASS: Record<Padding, string> = { sm: 'py-6 px-6', md: 'py-10 px-6', lg: 'py-16 px-6' };
+// Vertical rhythm comes from the template's own design language
+// (--tpl-space, set by templateDesignCssVars) rather than three fixed
+// Tailwind values, so a "cinematic" template actually breathes
+// differently from a "compact" one instead of just recolouring.
+// The multipliers keep the three editor options meaningful within that.
+const PADDING_STYLE: Record<Padding, React.CSSProperties> = {
+  sm: { paddingTop: 'calc(var(--tpl-space, 5rem) * 0.4)', paddingBottom: 'calc(var(--tpl-space, 5rem) * 0.4)' },
+  md: { paddingTop: 'calc(var(--tpl-space, 5rem) * 0.7)', paddingBottom: 'calc(var(--tpl-space, 5rem) * 0.7)' },
+  lg: { paddingTop: 'var(--tpl-space, 5rem)', paddingBottom: 'var(--tpl-space, 5rem)' },
+};
+
+// THE single biggest cause of every template looking identical: these
+// four keys used to resolve to max-w-sm / max-w-md / max-w-2xl — so the
+// DEFAULT block rendered 448px wide on a 1440px screen (measured), and
+// the widest option available was 672px. A page built from those can
+// only ever be a narrow centred column of stacked boxes, no matter what
+// colours or fonts it uses. Full-bleed and split compositions weren't
+// styled badly, they were unreachable.
+//
+// The keys are unchanged so every block already saved in the DB keeps
+// working and simply gets wider; only what they mean changed.
 const MAX_WIDTH_CLASS: Record<MaxWidth, string> = {
-  sm: 'max-w-sm',
-  md: 'max-w-md',
-  lg: 'max-w-2xl',
-  full: 'max-w-none',
+  // px-5 on phones matches the header and the booking sheet, so every
+  // block on the page starts at the same 20px edge. It was px-6, which
+  // put the blocks 4px in from the header above them.
+  sm: 'max-w-2xl px-5 sm:px-6', // reading measure — long-form text
+  md: 'max-w-4xl px-5 sm:px-6', // default content column
+  lg: 'max-w-6xl px-5 sm:px-6', // wide — grids, galleries, service menus
+  full: 'max-w-none px-0', // edge to edge; the block owns its own insets
 };
 
 // lucide-react doesn't ship brand logos (dropped for licensing reasons) —
@@ -87,11 +139,33 @@ export function BlockRenderer({
   bookingData?: BookingData;
   branding?: Branding;
 }) {
+  // The booking block's editor preview needs example services. Taking
+  // them from THIS page's own "Servicios y precios" section is what
+  // keeps a padel template from advertising "Corte de cabello $300" —
+  // which is what a single hardcoded list did in all six templates.
+  const servicesBlock = blocks.find((b) => b.type === 'services');
+  const sampleServices =
+    servicesBlock && servicesBlock.type === 'services'
+      ? servicesBlock.props.items.slice(0, 3).map((i) => ({
+          name: i.name,
+          price: i.price,
+          duration: i.duration,
+        }))
+      : [];
+
   return (
     <>
-      {blocks.map((rawBlock) => {
+      {blocks.filter((b) => !b.hidden).map((rawBlock) => {
         const block = normalizeBlock(rawBlock);
-        return <BlockItem key={block.id} block={block} bookingData={bookingData} branding={branding} />;
+        return (
+          <BlockItem
+            key={block.id}
+            block={block}
+            bookingData={bookingData}
+            branding={branding}
+            sampleServices={sampleServices}
+          />
+        );
       })}
     </>
   );
@@ -120,10 +194,15 @@ function BlockBox({
   const bg = style.backgroundColor ?? defaultBackground;
   return (
     <div
-      className={`mx-auto ${MAX_WIDTH_CLASS[style.maxWidth]} ${PADDING_CLASS[style.padding]} ${
-        style.rounded ? 'rounded-3xl' : ''
-      } ${style.shadow ? 'shadow-card' : ''} ${className}`}
-      style={bg ? { background: bg } : undefined}
+      className={`mx-auto ${MAX_WIDTH_CLASS[style.maxWidth]} ${style.shadow ? 'shadow-card' : ''} ${className}`}
+      style={{
+        ...PADDING_STYLE[style.padding],
+        // Radius follows the template's shape language rather than a
+        // hard-coded rounded-3xl, so "sharp" templates are actually
+        // sharp. Still gated on the per-block toggle.
+        ...(style.rounded ? { borderRadius: 'var(--tpl-radius, 28px)' } : null),
+        ...(bg ? { background: bg } : null),
+      }}
     >
       {children}
     </div>
@@ -134,102 +213,21 @@ function BlockItem({
   block,
   bookingData,
   branding,
+  sampleServices = [],
 }: {
   block: Block;
   bookingData?: BookingData;
   branding: Branding;
+  sampleServices?: { name: string; price: string; duration: string }[];
 }) {
   switch (block.type) {
-    case 'hero': {
-      const hasImage = block.props.backgroundImageUrl.trim().length > 0;
-      const hasCustomColor = Boolean(block.style.backgroundColor);
-      // Default look is a soft-tinted opaque card (matches every other
-      // surface on the page) instead of a solid dark gradient block — a
-      // saturated color slab was the one thing on the page that didn't
-      // match. An explicit style.backgroundColor from the editor, or a
-      // background image, still gets dark-overlay + white text like
-      // before — those are deliberate choices, not the default. (Named
-      // isGlass from when this really was a glass panel — pre-2026
-      // redesign — kept as-is since it still marks "the default tinted-
-      // card look" accurately enough.)
-      const isGlass = !hasImage && !hasCustomColor;
-      // BlockBox only adds rounded-3xl when style.rounded is true (a
-      // per-block editor toggle, off by default) — but the tinted-card
-      // look reads as broken with square corners, so force it on
-      // regardless of that toggle.
-      const heroStyle = isGlass ? { ...block.style, rounded: true } : block.style;
-      return (
-        <BlockBox
-          style={heroStyle}
-          defaultBackground={isGlass ? glassBg(branding, 3) : undefined}
-          className={`relative overflow-hidden border ${
-            isGlass ? `border-border shadow-card` : 'text-white'
-          } ${block.props.align === 'center' ? 'text-center' : 'text-left'}`}
-        >
-          <div
-            className="relative"
-            style={
-              hasImage
-                ? {
-                    backgroundImage: `linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.35)), url(${block.props.backgroundImageUrl})`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    margin: '-2.5rem -1.5rem',
-                    padding: '2.5rem 1.5rem',
-                  }
-                : undefined
-            }
-          >
-            {/* Angular accent block in the tenant's accent color (2026
-                reference redesign: flat diagonal color, not a blurred
-                glow) — decorative, purely visual depth, doesn't affect
-                layout or content flow. */}
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute -right-10 -top-16 h-40 w-40 opacity-20"
-              style={{ backgroundColor: branding.accentColor, clipPath: 'polygon(100% 0, 100% 100%, 0 100%, 45% 0)' }}
-            />
-            <div className="relative">
-              {branding.logoUrl && (
-                // object-contain (not cover) — a real logo file is
-                // usually a wide wordmark or an irregular shape, not a
-                // square icon, and cropping it to fill a square box cuts
-                // off part of the actual logo. inline-block + the
-                // ancestor's own text-center/text-left already handles
-                // alignment, so no fixed width is needed here.
-                <span
-                  className={`mb-4 inline-block max-w-[240px] ${
-                    isGlass ? '' : 'rounded-xl bg-white/95 px-3 py-2 shadow-md ring-1 ring-white/50'
-                  }`}
-                >
-                  <img
-                    src={branding.logoUrl}
-                    alt={block.props.title}
-                    className="h-16 w-auto max-w-full object-contain"
-                  />
-                </span>
-              )}
-              <h1
-                className={`text-4xl font-bold tracking-tight sm:text-5xl ${isGlass ? 'text-ink' : ''}`}
-                style={{ fontFamily: 'var(--font-heading)' }}
-              >
-                {block.props.title}
-              </h1>
-              <p className={`mt-3 text-lg ${isGlass ? 'text-muted' : 'text-white/75'}`}>{block.props.subtitle}</p>
-              {block.props.ctaText && block.props.ctaLink && (
-                <a
-                  href={safeHref(block.props.ctaLink)}
-                  className="mt-6 inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold transition duration-200 hover:-translate-y-0.5"
-                  style={tenantCtaStyle(branding.primaryColor, branding.accentColor)}
-                >
-                  {block.props.ctaText}
-                </a>
-              )}
-            </div>
-          </div>
-        </BlockBox>
-      );
-    }
+    // Hero is no longer one rendering with an `align` toggle — it
+    // dispatches to five real compositions (see HeroSection). It also
+    // opts out of BlockBox entirely: a fullscreen or split hero has to
+    // own its own edges, and BlockBox's centred max-width column is
+    // exactly what made every hero look the same.
+    case 'hero':
+      return <HeroSection variant={block.variant} props={block.props} branding={branding} />;
 
     case 'text':
       return (
@@ -265,7 +263,7 @@ function BlockItem({
                 >
                   <span
                     className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
-                    style={{ backgroundColor: branding.primaryColor, color: branding.accentColor }}
+                    style={iconBadgeStyle(branding)}
                   >
                     <Check className="h-4 w-4" strokeWidth={3} />
                   </span>
@@ -279,7 +277,7 @@ function BlockItem({
                 <li key={item} className="flex items-center gap-2.5 text-sm text-ink">
                   <span
                     className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full"
-                    style={{ backgroundColor: branding.primaryColor, color: branding.accentColor }}
+                    style={iconBadgeStyle(branding)}
                   >
                     <Check className="h-3 w-3" strokeWidth={3} />
                   </span>
@@ -349,57 +347,15 @@ function BlockItem({
 
     case 'location':
       return (
-        <BlockBox style={block.style} className="text-center">
-          <div
-            className={`mx-auto max-w-sm rounded-[28px] border border-border px-6 py-7 shadow-sm`}
-            style={{ background: glassBg(branding, 2) }}
-          >
-            <span
-              className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full"
-              style={{ backgroundColor: branding.primaryColor, color: branding.accentColor }}
-            >
-              <MapPin className="h-5 w-5" />
-            </span>
-            <h2 className="text-xl font-semibold text-ink" style={{ fontFamily: 'var(--font-heading)' }}>
-              {block.props.heading}
-            </h2>
-            {block.props.address && <p className="mt-2 text-muted">{block.props.address}</p>}
-            {block.props.mapUrl && (
-              <a
-                href={safeHref(block.props.mapUrl)}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-4 inline-block rounded-full border border-border px-4 py-2 text-sm font-medium text-ink transition hover:border-primary/30"
-              >
-                Ver en el mapa
-              </a>
-            )}
-          </div>
+        <BlockBox style={block.style}>
+          <LocationSection props={block.props} mapHref={block.props.mapUrl ? safeHref(block.props.mapUrl) : null} />
         </BlockBox>
       );
 
     case 'hours':
       return (
-        <BlockBox style={block.style} className="text-center">
-          <div
-            className={`mx-auto max-w-sm rounded-[28px] border border-border px-6 py-7 shadow-sm`}
-            style={{ background: glassBg(branding, 2) }}
-          >
-            <span
-              className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full"
-              style={{ backgroundColor: branding.primaryColor, color: branding.accentColor }}
-            >
-              <Clock3 className="h-5 w-5" />
-            </span>
-            <h2 className="text-xl font-semibold text-ink" style={{ fontFamily: 'var(--font-heading)' }}>
-              {block.props.heading}
-            </h2>
-            <ul className="mx-auto mt-2 flex flex-col gap-1 text-sm text-muted">
-              {block.props.lines.map((line) => (
-                <li key={line}>{line}</li>
-              ))}
-            </ul>
-          </div>
+        <BlockBox style={block.style}>
+          <HoursSection props={block.props} />
         </BlockBox>
       );
 
@@ -450,6 +406,41 @@ function BlockItem({
       return <div style={{ height, backgroundColor: block.style.backgroundColor ?? undefined }} />;
     }
 
+    case 'services':
+      return (
+        <BlockBox style={block.style}>
+          <ServicesSection variant={block.variant} props={block.props} branding={branding} />
+        </BlockBox>
+      );
+
+    case 'split':
+      return (
+        <BlockBox style={block.style}>
+          <SplitSection variant={block.variant} props={block.props} branding={branding} />
+        </BlockBox>
+      );
+
+    case 'team':
+      return (
+        <BlockBox style={block.style}>
+          <TeamSection variant={block.variant} props={block.props} branding={branding} />
+        </BlockBox>
+      );
+
+    case 'faq':
+      return (
+        <BlockBox style={block.style}>
+          <FaqSection props={block.props} branding={branding} />
+        </BlockBox>
+      );
+
+    case 'cta':
+      return (
+        <BlockBox style={block.style}>
+          <CtaSection props={block.props} branding={branding} />
+        </BlockBox>
+      );
+
     case 'booking':
       if (!bookingData) {
         // Template editor context — no real tenant, so no real services
@@ -457,14 +448,31 @@ function BlockItem({
         // step pills, same card styling) with sample data instead of a
         // blank placeholder, so the preview isn't misleading about
         // whether the new design is actually wired in.
-        return <BookingFlowMockPreview branding={branding} />;
+        return <BookingFlowMockPreview branding={branding} sample={sampleServices} />;
       }
       return (
-        <div className="mx-auto max-w-lg px-6 py-10">
-          <div
-            className={`rounded-[32px] border border-border p-6 shadow-card sm:p-8`}
-            style={{ background: glassBg(branding, 3) }}
-          >
+        // On a phone the card is a full-width sheet, not a floating box:
+        // 20px of page margin plus 20px of card padding on each side left
+        // the calendar ~295px on a 375px screen (and 240px on a 320px
+        // one). Edge to edge, its content lines up with the header text
+        // and gets that width back. From sm up it floats again.
+        //
+        // The one element on the page that gets real elevation. A
+        // booking page has exactly one job, so exactly one surface
+        // should look raised — everything else sits flat on the
+        // ground. Wider measure (max-w-2xl) because the flow holds a
+        // calendar and a grid of times, and cramming those into 512px
+        // was making the page feel like a phone screenshot on desktop.
+        // Wider from lg because the flow now lays out in two columns
+        // there (step on the left, summary and action on the right), and
+        // 672px squeezed both into gutters.
+        //
+        // No card treatment here any more: BookingFlow renders its own
+        // surface, border and elevation, so wrapping it in a second one
+        // was drawing two cards inside each other. This is now only a
+        // measure and some page padding.
+        <div className="mx-auto max-w-2xl sm:px-6 sm:py-14 lg:max-w-4xl">
+          <div>
             <BookingFlow
               slug={bookingData.slug}
               businessName={bookingData.businessName}
@@ -472,6 +480,7 @@ function BlockItem({
               resources={bookingData.resources}
               accentColor={branding.accentColor}
               primaryColor={branding.primaryColor}
+              timezone={bookingData.timezone}
             />
           </div>
         </div>
@@ -479,58 +488,61 @@ function BlockItem({
   }
 }
 
-const MOCK_STEPS = ['Servicio', 'Fecha', 'Hora', 'Datos', 'Confirmación'];
-const MOCK_SERVICES = [
-  { name: 'Corte de cabello', duration: 30, price: 300 },
-  { name: 'Barba', duration: 20, price: 150 },
+// Used only when the page has no "Servicios y precios" section to borrow
+// from. Deliberately nameless: inventing "Corte de cabello" here is what
+// put a barbershop price list inside the padel template.
+const FALLBACK_SERVICES = [
+  { name: 'Tu primer servicio', duration: '30 min', price: '$—' },
+  { name: 'Tu segundo servicio', duration: '45 min', price: '$—' },
 ];
 
-function BookingFlowMockPreview({ branding }: { branding: Branding }) {
+// What the booking block looks like in the editor, where there is no
+// tenant and so no real services. It mirrors the live first step of
+// BookingFlow exactly: same card, same template-typed prompt, same
+// full-width rows. It used to show a numbered step rail and one card
+// per service with a "Seleccionar" button, a design the real flow
+// dropped, so the editor was promising a page that no longer exists.
+function BookingFlowMockPreview({
+  branding,
+  sample = [],
+}: {
+  branding: Branding;
+  sample?: { name: string; price: string; duration: string }[];
+}) {
+  const services = sample.length > 0 ? sample : FALLBACK_SERVICES;
   return (
-    <div className="mx-auto max-w-lg px-6 py-10">
+    <div className="mx-auto max-w-2xl sm:px-6 sm:py-14">
       <div
-        className="rounded-[32px] border border-border p-6 shadow-card sm:p-8"
-        style={{ background: tenantGlassBackground(branding.primaryColor, branding.accentColor, 3) }}
+        className="-mt-px border-y border-ink/[0.08] px-5 pb-8 pt-7 sm:mt-0 sm:rounded-3xl sm:border sm:p-8 sm:shadow-[0_1px_2px_rgba(16,24,40,0.04),0_12px_32px_-12px_rgba(16,24,40,0.14)]"
+        style={{ background: glassBg(branding, 3) }}
       >
-        <div className="mb-4 flex flex-wrap items-center justify-center gap-1.5">
-          {MOCK_STEPS.map((label, i) => (
-            <span
-              key={label}
-              className="rounded-full px-3 py-1 text-xs font-medium"
-              style={
-                i === 0
-                  ? { backgroundColor: branding.accentColor, color: branding.primaryColor }
-                  : { backgroundColor: 'rgba(0,0,0,0.05)', color: 'rgba(0,0,0,0.4)' }
-              }
-            >
-              {label}
-            </span>
-          ))}
-        </div>
-        <p className="mb-3 text-center text-xs text-muted">
-          Vista previa del flujo de reserva real — con datos de ejemplo, no interactivo aquí
-        </p>
-        <div className="flex flex-col gap-3">
-          {MOCK_SERVICES.map((s) => (
-            <div
-              key={s.name}
-              className="flex items-center justify-between rounded-3xl border border-black/5 bg-white px-5 py-4 shadow-card transition duration-200 hover:-translate-y-0.5 hover:shadow-lg"
-            >
-              <div>
-                <p className="font-medium text-ink">{s.name}</p>
-                <p className="text-sm text-muted">{s.duration} min</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <p className="font-semibold text-ink">${s.price.toFixed(2)} MXN</p>
-                <span
-                  className="rounded-full px-4 py-1.5 text-xs font-medium"
-                  style={tenantCtaStyle(branding.primaryColor, branding.accentColor)}
-                >
-                  Seleccionar
+        <div className="flex flex-col gap-5">
+          <h2
+            className="text-xl font-semibold text-ink"
+            style={{ fontFamily: 'var(--tpl-heading-font, var(--font-heading))', letterSpacing: 'var(--tpl-heading-tracking)' }}
+          >
+            Elige un servicio
+          </h2>
+          <ul className="-mx-2 flex flex-col">
+            {services.map((s, i) => (
+              <li
+                key={s.name + i}
+                className={'flex items-baseline gap-4 px-2 py-4 ' + (i > 0 ? 'border-t border-ink/[0.07]' : '')}
+              >
+                <span className="min-w-0 flex-1">
+                  <span className="block font-medium text-ink">{s.name}</span>
+                  <span className="mt-0.5 block text-sm text-muted">{s.duration}</span>
                 </span>
-              </div>
-            </div>
-          ))}
+                <span className="shrink-0 text-right">
+                  <span className="block font-semibold tabular-nums text-ink">{s.price}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className="text-xs text-muted">
+            Vista previa. En la página publicada aparecen los servicios reales del negocio, con sus
+            horarios libres.
+          </p>
         </div>
       </div>
     </div>

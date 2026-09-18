@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { requireAdmin } from '@/lib/auth/access';
 import type { Block } from '@/lib/templates/blocks';
 
 // No redirect() in either action — both just mutate + revalidate and
@@ -9,6 +10,8 @@ import type { Block } from '@/lib/templates/blocks';
 // redirect-bypasses-middleware issue documented in CLAUDE.md.
 
 export async function duplicateTemplate(templateId: string) {
+  // Templates are shared by every business on a vertical — internal only.
+  await requireAdmin();
   const admin = createAdminClient();
   const { data: original } = await admin.from('templates').select('*').eq('id', templateId).single();
   if (!original) return;
@@ -43,6 +46,8 @@ export async function duplicateTemplate(templateId: string) {
 }
 
 export async function updateTemplate(templateId: string, formData: FormData) {
+  // Templates are shared by every business on a vertical — internal only.
+  await requireAdmin();
   const name = formData.get('name') as string;
   const available = formData.get('available') === 'on';
   const accentColor = formData.get('accent_color') as string;
@@ -96,6 +101,8 @@ export async function updateTemplate(templateId: string, formData: FormData) {
 // a bound Server Action reference as a plain async function from a
 // Client Component, not just wiring it to a form.
 export async function updateTemplateBlocks(templateId: string, blocks: Block[]) {
+  // Templates are shared by every business on a vertical — internal only.
+  await requireAdmin();
   const admin = createAdminClient();
   const { error } = await admin
     .from('templates')

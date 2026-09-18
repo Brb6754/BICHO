@@ -1,59 +1,138 @@
 'use client';
 
+import { useState } from 'react';
+import { Menu, X } from 'lucide-react';
 import { BichoLogo } from './BichoLogo';
+import { PillLink, focusRingOnDark, focusRingOnLight } from './Primitives';
 
 // This nav is shared by the homepage AND the legal pages (/privacidad,
 // /terminos) — these section ids only exist on the homepage. Smooth-
 // scroll when the target is actually on the current page; otherwise
-// fall through to a normal navigation to `/#id`, which lands on the
-// homepage and jumps there on load, same as any other cross-page anchor
-// link.
-function scrollToSection(id: string) {
+// fall through to a normal navigation to `/#id`.
+function scrollToSection(id: string, onDone?: () => void) {
   return (e: React.MouseEvent) => {
     const target = document.getElementById(id);
-    if (!target) return; // not on this page — let the browser navigate to /#id
+    if (!target) return; // not on this page — let the browser go to /#id
     e.preventDefault();
     target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    onDone?.();
   };
 }
 
 const LINKS = [
   { id: 'funciones', label: 'Funciones' },
+  { id: 'como-funciona', label: 'Cómo funciona' },
   { id: 'precios', label: 'Precios' },
   { id: 'vendedores', label: 'Vendedores' },
 ];
 
-// Floating rounded pill (2026 reference redesign), not a full-width bar —
-// sits with margin on all sides instead of flush against the viewport
-// edges, matching the reference's nav treatment.
-export function MarketingNav() {
+// Sits transparently ON the hero rather than as its own coloured band —
+// the nav is part of the hero composition, which is what lets the hero
+// read as one full-bleed field instead of "a bar, then a section".
+//
+// `tone` exists because this nav renders on two different grounds: the
+// hero's violet field and the white legal pages. Every colour it needs
+// is resolved once, up top, as a pair — not as conditionals sprinkled
+// through the JSX, which is how one of them ends up forgotten and
+// invisible. The logo matters most: its pixels are white, so on white it
+// has to be inverted (tone="ink") or it renders as nothing at all.
+export function MarketingNav({ tone = 'onLight' }: { tone?: 'onViolet' | 'onLight' }) {
+  const [open, setOpen] = useState(false);
+  const close = () => setOpen(false);
+  const onViolet = tone === 'onViolet';
+
+  const ring = onViolet ? focusRingOnDark : focusRingOnLight;
+  // The links live inside a glass capsule, so each one needs its own
+  // hover fill — a colour-only hover inside a tinted shell is almost
+  // invisible, since the shell has already lifted the contrast.
+  const linkTone = onViolet
+    ? 'text-white/75 hover:bg-white/15 hover:text-white'
+    : 'text-[#140F2E]/65 hover:bg-[#5B34E8]/[0.08] hover:text-[#140F2E]';
+  // The capsule itself. On violet it is a real frosted panel; on the
+  // white legal pages white-on-white would vanish, so there it is a
+  // whisper of violet with a hairline instead.
+  const navShell = onViolet
+    ? 'bg-white/10 ring-white/20'
+    : 'bg-[#5B34E8]/[0.05] ring-[#140F2E]/[0.08]';
+  const burgerTone = onViolet
+    ? 'border-white/25 text-white hover:bg-white/10'
+    : 'border-[#140F2E]/15 text-[#140F2E] hover:bg-[#140F2E]/[0.04]';
+
   return (
-    <header className="sticky top-4 z-20 px-4 sm:top-6 sm:px-6">
-      <div className="mx-auto flex max-w-6xl items-center justify-between rounded-full bg-[#123321]/90 px-5 py-3 shadow-[0_8px_30px_rgba(0,0,0,0.25)] backdrop-blur sm:px-7">
-        <a href="/#top" onClick={scrollToSection('top')} className="shrink-0">
-          <BichoLogo className="h-7" />
+    <header className="relative z-30">
+      {/* Grid and not justify-between: with the logo on one side and a
+          pill button on the other, "space between" leaves the middle item
+          wherever the two unequal sides happen to put it — it was landing
+          61px off centre, which nobody notices on bare links and everyone
+          notices on a capsule. The 1fr columns force the centre column to
+          the real centre. Below lg the nav is hidden, that column
+          collapses to zero, and the row reads as logo + actions. */}
+      <div className="mx-auto grid max-w-7xl grid-cols-[1fr_auto_1fr] items-center gap-6 px-6 py-5">
+        <a
+          href="/#top"
+          onClick={scrollToSection('top', close)}
+          className={`shrink-0 rounded-sm ${ring}`}
+        >
+          <BichoLogo className="h-7" tone={onViolet ? 'light' : 'ink'} />
         </a>
 
-        <nav className="hidden items-center gap-8 md:flex">
+        <nav
+          className={`hidden items-center gap-1 rounded-full p-1.5 ring-1 ring-inset backdrop-blur-xl lg:flex ${navShell}`}
+        >
           {LINKS.map((link) => (
             <a
               key={link.id}
               href={`/#${link.id}`}
               onClick={scrollToSection(link.id)}
-              className="text-sm text-[#9CA99A] transition-colors hover:text-white"
+              className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${linkTone} ${ring}`}
             >
               {link.label}
             </a>
           ))}
         </nav>
 
-        <a
-          href="mailto:nonameynk@gmail.com?subject=Quiero%20una%20demo%20de%20bicho"
-          className="inline-flex items-center justify-center rounded-full border border-[#D4F23A]/50 px-4 py-2 text-sm font-medium text-[#D4F23A] transition hover:bg-[#D4F23A]/10 sm:px-5"
-        >
-          Agenda una demo
-        </a>
+        <div className="flex items-center justify-self-end gap-3">
+          <PillLink
+            href="/demo"
+            tone={onViolet ? 'white' : 'violet'}
+            className="hidden sm:inline-flex"
+          >
+            Agenda una demo
+          </PillLink>
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            aria-expanded={open}
+            aria-label={open ? 'Cerrar menú' : 'Abrir menú'}
+            className={`flex h-10 w-10 items-center justify-center rounded-full border transition-colors lg:hidden ${burgerTone} ${ring}`}
+          >
+            {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+        </div>
       </div>
+
+      {/* The panel is white on both grounds: a translucent panel over the
+          hero's grid texture made the links unreadable. */}
+      {open && (
+        <div className="absolute inset-x-4 top-full z-30 rounded-2xl bg-white p-2 shadow-[0_24px_60px_-20px_rgba(20,15,46,0.35)] ring-1 ring-[#140F2E]/[0.08] lg:hidden">
+          {LINKS.map((link) => (
+            <a
+              key={link.id}
+              href={`/#${link.id}`}
+              onClick={scrollToSection(link.id, close)}
+              className={`block rounded-xl px-4 py-3 text-sm font-medium text-[#140F2E]/75 transition-colors hover:bg-[#5B34E8]/[0.06] hover:text-[#140F2E] ${focusRingOnLight}`}
+            >
+              {link.label}
+            </a>
+          ))}
+          <a
+            href="/demo"
+            className={`mt-1 block rounded-xl bg-[#5B34E8] px-4 py-3 text-center text-sm font-semibold text-white ${focusRingOnLight}`}
+          >
+            Agenda una demo
+          </a>
+        </div>
+      )}
     </header>
   );
 }

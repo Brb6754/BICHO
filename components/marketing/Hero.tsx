@@ -1,135 +1,156 @@
-import { CalendarCheck, MailCheck } from 'lucide-react';
-import { BichoTagline } from './BichoLogo';
-import { CalendarMock, ConfirmationMock, DotGrid } from './ProductMocks';
-import { DotField } from './DotField';
+import { Mail } from 'lucide-react';
+import { PillLink } from './Primitives';
+import { ConfirmedCard, AgendaCard, MiniCalendar } from './HeroCards';
+import {
+  AsteriskMark,
+  BichoBug,
+  CircleStamp,
+  GridField,
+  LimeArrow,
+  Sparkle,
+} from './Flourishes';
+import { MarketingNav } from './MarketingNav';
 
-// The two diagonal lime shapes behind the hero — pulled into their own
-// component and rendered by app/page.tsx OUTSIDE both MarketingNav and
-// this section (see the wrapper there), not inside Hero's own
-// `<section>`: the nav takes real flow height above the section, so a
-// shape confined to the section (clipped by ITS OWN overflow-hidden)
-// could never reach the section's own top edge, since the section
-// itself starts below the nav. The reference bleeds this diagonal
-// behind the nav all the way to the literal top corner of the page —
-// matching that needs a wrapper that starts at the page's own top,
-// spanning both the nav and the hero.
-export function HeroBackdrop() {
-  return (
-    <>
-      {/* Fixed px size, not vw-relative — measured against the real
-          hero text (tagline starts at y=174-190px depending on
-          breakpoint, same everywhere since Hero's own top padding is a
-          fixed rem value, not fluid) so this stays entirely above it
-          at every viewport width instead of scaling up into the text
-          column. The previous vw-sized version grew wide/tall enough
-          to sit behind the tagline, headline AND paragraph at once —
-          Bruno flagged all three as unreadable. */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -left-[20px] top-0 h-[150px] w-[340px] opacity-90"
-        style={{ background: '#D4F23A', clipPath: 'polygon(0 0, 75% 0, 20% 100%, 0 100%)' }}
-      />
-      {/* Fixed px size, positioned flush against this wrapper's own
-          bottom-right corner (bottom-0/right, not a percentage-based
-          negative offset) — the previous version used `bottom: -45%`
-          to bleed past its container on purpose, but that math means
-          the box's bottom edge is ALWAYS 45% of the container's own
-          height past the container's edge, however tall the container
-          is; the wrapper's overflow-hidden then cropped it mid-taper
-          instead of at its intended point, leaving a flat, unfinished-
-          looking cut instead of the clean diagonal corner. Same
-          polygon ratios as before, just applied to a box that's
-          entirely self-contained (its own tapered point is always
-          fully inside its box), so it renders complete regardless of
-          how tall the hero ends up being. */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute bottom-0 -right-[16px] h-[280px] w-[240px] opacity-90"
-        style={{ background: '#D4F23A', clipPath: 'polygon(100% 0, 100% 100%, 35% 100%, 70% 0)' }}
-      />
-    </>
-  );
-}
-
-// The one orchestrated motion moment on the page (per the frontend-design
-// skill: one page-load sequence beats fade-ups scattered on every
-// section). Plain CSS, reuses the app's existing .animate-fade-in
-// keyframe (globals.css) — that class is pure opacity/transform, no
-// color, so it's safe to reuse without touching the shared file. Each
-// element's `animationDelay` staggers the reveal without any JS.
+// Rebuilt a second time, against the reference Bruno picked after the
+// page went white (a bold editorial site: one saturated colour field,
+// headline set enormous and centred, small cards and lime arrows
+// breaking its edges, a rotating stamp in a corner).
 //
-// 2026 reference redesign: deep forest-green canvas (was flat black,
-// now painted by the wrapper in app/page.tsx alongside HeroBackdrop
-// above — this section itself stays transparent so that bg/backdrop
-// show through) + two floating "photo" cards on the right — mockups of
-// the real product (see ProductMocks.tsx) standing in for the
-// reference's stock photography, tilted and overlapping the same way.
+// The page's rule is still "white is the primary colour" — this is the
+// one violet field on it, and the section right below overlaps it with a
+// rounded white sheet, which is what makes the white read as the page
+// and the violet as its opening rather than as a theme.
+//
+// What the previous hero did and this one doesn't: fill the right half
+// with a full product mock. At hero scale that pane read as an
+// unparseable purple calendar (Bruno's words, and he was right), and it
+// pinned the layout to the standard "copy left, screenshot right" split.
+// The product is still here, reduced to two cards a person can read at a
+// glance while scrolling.
+//
+// The nav renders INSIDE this section so it sits on the violet field
+// rather than above it as a separate bar.
 export function Hero() {
   return (
-    <section id="top" className="relative overflow-hidden px-6 pb-28 pt-28 sm:pt-32">
-      <DotField />
-      <div className="relative mx-auto grid max-w-6xl items-center gap-16 lg:grid-cols-2">
-        <div>
-          <BichoTagline className="animate-fade-in text-[11px] sm:text-xs" />
+    <section id="top" className="relative isolate overflow-hidden bg-[#5B34E8]">
+      <GridField />
 
-          <h1
-            className="animate-fade-in mt-5 max-w-xl font-[family-name:var(--font-display)] text-4xl font-bold leading-[1.1] text-white sm:text-5xl"
-            style={{ animationDelay: '80ms' }}
-          >
-            Deja de agendar citas por WhatsApp.
+      <MarketingNav tone="onViolet" />
+
+      <div className="relative mx-auto max-w-7xl px-6 pb-20 pt-6 sm:pb-24 lg:pb-28">
+        {/* The type block. `text-[clamp()]` rather than a step per
+            breakpoint: this headline's whole job is to be as large as
+            the viewport allows, and three fixed sizes leave it looking
+            timid at every width in between. */}
+        <div className="relative">
+          <h1 className="text-center font-[family-name:var(--font-display)] text-[clamp(2.6rem,11.5vw,8.5rem)] font-extrabold uppercase leading-[0.88] tracking-[-0.03em] text-white">
+            Deja de
+            <br />
+            agendar por
+            <br />
+            {/* Lime works here and only here: on this violet it is 5.3:1,
+                while the same word on the white sections would be 1.4:1.
+                That asymmetry is why the accent word moved to violet when
+                the hero was white, and can move back now that it isn't. */}
+            <span className="text-[#D4F23A]">WhatsApp</span>
           </h1>
 
-          <p
-            className="animate-fade-in mt-6 max-w-md text-base leading-relaxed text-[#9CA99A] sm:text-lg"
-            style={{ animationDelay: '140ms' }}
-          >
-            Tus clientes reservan solos, ven horarios que sí existen, y
-            reciben su confirmación al instante. Tú dejas de escribir nada
-            a mano.
-          </p>
+          {/* Cards and annotations overlap the type from lg up only:
+              below that they'd cover the headline, so the hero carries
+              the type alone and the cards return further down the page.
+              Placement rule: a card may break the headline's edge, never
+              cover a letter. The first pass put this one over the A of
+              AGENDAR and the line read "GENDAR POR". The type is centred,
+              so the free space is at the outer margins beside the SHORT
+              lines — line 1 up top, line 3 at the bottom — which is
+              where these two sit. Each arrow points at its own card.
+              The pair hangs BELOW the type block (-bottom-6) rather than
+              flush with it, and at lg the right card is pushed past the
+              container edge (-right-10) so the section clips it: at
+              exactly 1024px both were needed to keep the card off the
+              final P of WHATSAPP. The tightest breakpoint decides this,
+              not the roomiest — at xl there is room to bring it back
+              inside. */}
+          <ConfirmedCard className="absolute left-0 top-0 hidden lg:block xl:left-4" />
+          <LimeArrow
+            flip
+            className="absolute left-[13.5rem] top-[1.25rem] hidden h-20 w-20 text-[#D4F23A] lg:block xl:left-[17rem]"
+          />
+          <AgendaCard className="absolute -bottom-6 -right-10 hidden lg:block xl:right-2" />
+          {/* This one only exists from xl. It has to clear the end of
+              line 2 AND still reach the card, and between 1024 and 1279
+              there is no band that does both — it ended up sitting on
+              the letters of POR. An annotation that lands on the word it
+              is meant to sit beside is worse than no annotation. */}
+          <LimeArrow className="absolute right-[6rem] top-[9rem] hidden h-20 w-20 text-[#D4F23A] xl:block" />
 
-          <div
-            className="animate-fade-in mt-10 flex flex-wrap items-center gap-4"
-            style={{ animationDelay: '200ms' }}
-          >
-            <a
-              href="mailto:nonameynk@gmail.com?subject=Quiero%20una%20demo%20de%20bicho"
-              className="inline-flex items-center justify-center rounded-full bg-[#D4F23A] px-6 py-3 text-sm font-semibold text-black transition hover:brightness-95"
-            >
-              Agenda una demo
-            </a>
-            <a
-              href="#funciones"
-              className="inline-flex items-center justify-center rounded-full border border-white/20 px-6 py-3 text-sm font-medium text-white transition hover:bg-white/10"
-            >
-              Ver qué incluye
-            </a>
-          </div>
+          {/* The two glyphs sit in the corners the cards DON'T use: the
+              type is centred, so the space beside the short first and
+              last lines is free at both scales. These are the only
+              decoration that survives on a phone, where the cards and
+              arrows drop out — without them the mobile hero is a block
+              of type on a flat field. */}
+          <AsteriskMark className="absolute right-1 top-0 h-7 w-7 text-[#D4F23A] sm:h-9 sm:w-9 lg:right-[7%] lg:top-2 lg:h-12 lg:w-12" />
+          {/* Three bugs, three angles. The first rides beside the
+              asterisk at every size; the other two only exist from xl,
+              where the margins beside the type are wide enough to hold
+              them — at 1024 the left one would land on the A of AGENDAR
+              and the right one on POR. `top-[0.75rem]` and not 1.5: at
+              exactly 1024 the lower edge of the first one grazed the top
+              of POR. */}
+          <BichoBug className="absolute right-10 top-0 h-8 w-8 -rotate-12 sm:h-10 sm:w-10 lg:right-[14%] lg:top-[0.75rem] lg:h-20 lg:w-20" />
+          <BichoBug className="absolute right-[0.5%] top-[5.5rem] hidden h-14 w-14 rotate-[18deg] xl:block" />
+          <BichoBug className="absolute left-[9%] top-[10rem] hidden h-14 w-14 -rotate-[24deg] xl:block" />
+          {/* The sparkle holds the bottom-left corner only below lg; from
+              lg the calendar takes that corner and two lime glyphs
+              stacked there would just be clutter. */}
+          <Sparkle className="absolute bottom-1 left-0 h-6 w-6 text-[#D4F23A] sm:h-8 sm:w-8 lg:hidden" />
+          <MiniCalendar className="absolute -bottom-6 left-0 hidden lg:block xl:left-2" />
         </div>
 
-        <div className="relative hidden lg:block">
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute left-1/2 top-1/2 h-[380px] w-[380px] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-40 blur-3xl"
-            style={{ background: 'radial-gradient(circle, #D4F23A, transparent 70%)' }}
-          />
-          <div className="absolute -top-6 left-4 -rotate-6">
-            <div className="h-64 w-52 overflow-hidden rounded-2xl shadow-[0_30px_60px_rgba(0,0,0,0.4)]">
-              <CalendarMock />
-            </div>
-            <span className="absolute -right-5 -top-5 flex h-12 w-12 items-center justify-center rounded-full bg-[#D4F23A] shadow-lg">
-              <CalendarCheck className="h-5 w-5 text-black" />
-            </span>
+        {/* The ask, straight under the type — no supporting paragraph.
+            It used to carry one, and it pushed the buttons a screen and a
+            half down on a wide monitor: the headline already says what
+            this is, and the section right below exists to explain it.
+            The stamp anchors the right end of the same line so the row
+            reads as one bar rather than buttons with a sticker floating
+            near them. */}
+        <div className="mt-10 flex flex-col items-start gap-8 sm:mt-12 lg:mt-16 lg:flex-row lg:items-center lg:justify-between lg:gap-16">
+          <div className="flex flex-wrap items-center gap-5">
+            <PillLink
+              href="/demo"
+              tone="lime"
+            >
+              Agenda una demo
+            </PillLink>
+
+            <a
+              href="mailto:nonameynk@gmail.com"
+              className="group flex items-center gap-3 text-left"
+            >
+              <span className="flex h-11 w-11 items-center justify-center rounded-full border border-white/30 text-white transition-colors group-hover:border-[#D4F23A] group-hover:text-[#D4F23A]">
+                <Mail className="h-4 w-4" />
+              </span>
+              <span className="leading-tight">
+                <span className="block text-[11px] font-medium uppercase tracking-wide text-[#E3DEFA]">
+                  Escríbenos
+                </span>
+                <span className="block text-sm font-semibold text-white">
+                  nonameynk@gmail.com
+                </span>
+              </span>
+            </a>
           </div>
-          <div className="absolute -bottom-10 right-2 rotate-6">
-            <div className="h-60 w-44 overflow-hidden rounded-2xl shadow-[0_30px_60px_rgba(0,0,0,0.4)]">
-              <ConfirmationMock />
-            </div>
-            <span className="absolute -left-5 -top-5 flex h-12 w-12 items-center justify-center rounded-full bg-[#D4F23A] shadow-lg">
-              <MailCheck className="h-5 w-5 text-black" />
-            </span>
-          </div>
-          <DotGrid className="absolute -bottom-24 left-10" />
+
+          <CircleStamp className="hidden shrink-0 sm:inline-flex" />
+        </div>
+
+        {/* Phone gets the cards too, just in the flow instead of floating
+            over the type — the product should appear above the fold on
+            the device most of these visitors are actually holding. */}
+        <div className="mt-14 flex items-start justify-center gap-4 lg:hidden">
+          <ConfirmedCard className="w-[13rem]" />
+          <AgendaCard className="mt-8 hidden w-[12rem] sm:block" />
         </div>
       </div>
     </section>

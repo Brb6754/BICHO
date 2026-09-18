@@ -23,7 +23,7 @@ export default function PrivacidadPage() {
       </p>
 
       <section>
-        <h2 className="text-lg font-semibold text-[#0B1A10]">Quién es responsable de tus datos</h2>
+        <h2 className="text-lg font-semibold text-[#140F2E]">Quién es responsable de tus datos</h2>
         <p className="mt-2">
           bicho (&quot;nosotros&quot;) es responsable del tratamiento de los datos personales
           que recabamos a través de esta plataforma. Para cualquier duda sobre este
@@ -36,7 +36,7 @@ export default function PrivacidadPage() {
       </section>
 
       <section>
-        <h2 className="text-lg font-semibold text-[#0B1A10]">Qué datos recabamos</h2>
+        <h2 className="text-lg font-semibold text-[#140F2E]">Qué datos recabamos</h2>
         <p className="mt-2">Depende de cómo uses bicho:</p>
         <ul className="mt-2 list-disc pl-5">
           <li>
@@ -44,7 +44,7 @@ export default function PrivacidadPage() {
             correo (opcional) y cualquier nota que agregues sobre la cita.
           </li>
           <li>
-            <strong>Si administrás un negocio</strong> en bicho: tu nombre, correo y
+            <strong>Si administras un negocio</strong> en bicho: tu nombre, correo y
             contraseña de acceso, además de los datos de tu negocio (colores de marca,
             logo, servicios, horarios) y los de tus propios clientes que reservan
             contigo.
@@ -53,7 +53,7 @@ export default function PrivacidadPage() {
       </section>
 
       <section>
-        <h2 className="text-lg font-semibold text-[#0B1A10]">Para qué los usamos</h2>
+        <h2 className="text-lg font-semibold text-[#140F2E]">Para qué los usamos</h2>
         <ul className="mt-2 list-disc pl-5">
           <li>Crear y administrar tu cita (o las citas de tu negocio).</li>
           <li>Mandarte confirmaciones y avisos de cambios por correo.</li>
@@ -66,7 +66,7 @@ export default function PrivacidadPage() {
       </section>
 
       <section>
-        <h2 className="text-lg font-semibold text-[#0B1A10]">Con quién los compartimos</h2>
+        <h2 className="text-lg font-semibold text-[#140F2E]">Con quién los compartimos</h2>
         <p className="mt-2">
           Con los proveedores que necesitamos para operar bicho — hosting (Vercel),
           base de datos (Supabase) y envío de correos (Resend) — solo en la medida
@@ -76,7 +76,7 @@ export default function PrivacidadPage() {
       </section>
 
       <section>
-        <h2 className="text-lg font-semibold text-[#0B1A10]">Tus derechos</h2>
+        <h2 className="text-lg font-semibold text-[#140F2E]">Tus derechos</h2>
         <p className="mt-2">
           Puedes pedirnos acceder a tus datos, corregirlos, o que los borremos, escribiendo
           a{' '}
@@ -89,7 +89,7 @@ export default function PrivacidadPage() {
       </section>
 
       <section>
-        <h2 className="text-lg font-semibold text-[#0B1A10]">Cambios a este aviso</h2>
+        <h2 className="text-lg font-semibold text-[#140F2E]">Cambios a este aviso</h2>
         <p className="mt-2">
           Si cambiamos este aviso de forma importante, lo vamos a anunciar en esta misma
           página con una nueva fecha de actualización arriba.

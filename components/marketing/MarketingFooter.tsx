@@ -1,37 +1,44 @@
 import { BichoLogo, BichoTagline } from './BichoLogo';
+import { focusRingOnDark } from './Primitives';
 
 export function MarketingFooter() {
   return (
-    <footer className="border-t border-[#1E3A28] bg-[#0D2B1B] px-6 py-14">
+    <footer className="bg-[#1B1040] px-6 py-14">
       <div className="mx-auto flex max-w-6xl flex-col gap-10 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <BichoLogo className="h-7" />
           <BichoTagline className="mt-2 text-[10px]" />
         </div>
 
-        <div className="flex flex-wrap gap-x-10 gap-y-4 text-sm text-[#9CA99A]">
-          <a href="#funciones" className="hover:text-white">
+        {/* Root-relative (`/#id`), not a bare `#id`: this footer also
+            renders on /privacidad and /terminos, where those section
+            ids don't exist — a bare hash would just do nothing there. */}
+        <div className="flex flex-wrap gap-x-10 gap-y-4 text-sm text-[#B9B1E6]">
+          <a href="/#funciones" className={`rounded-sm transition-colors hover:text-white ${focusRingOnDark}`}>
             Funciones
           </a>
-          <a href="#precios" className="hover:text-white">
+          <a href="/#como-funciona" className={`rounded-sm transition-colors hover:text-white ${focusRingOnDark}`}>
+            Cómo funciona
+          </a>
+          <a href="/#precios" className={`rounded-sm transition-colors hover:text-white ${focusRingOnDark}`}>
             Precios
           </a>
-          <a href="#vendedores" className="hover:text-white">
+          <a href="/#vendedores" className={`rounded-sm transition-colors hover:text-white ${focusRingOnDark}`}>
             Vendedores
           </a>
-          <a href="mailto:nonameynk@gmail.com" className="hover:text-white">
+          <a href="mailto:nonameynk@gmail.com" className={`rounded-sm transition-colors hover:text-white ${focusRingOnDark}`}>
             Contacto
           </a>
         </div>
       </div>
 
-      <div className="mx-auto mt-12 flex max-w-6xl flex-col gap-3 border-t border-[#1E3A28] pt-6 text-xs text-[#9CA99A]/70 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mx-auto mt-12 flex max-w-6xl flex-col gap-3 border-t border-[#332A63] pt-6 text-xs text-[#B9B1E6]/70 sm:flex-row sm:items-center sm:justify-between">
         <p>© {new Date().getFullYear()} bicho. Software &amp; AI Solutions.</p>
         <div className="flex gap-6">
-          <a href="/privacidad" className="hover:text-white">
+          <a href="/privacidad" className={`rounded-sm transition-colors hover:text-white ${focusRingOnDark}`}>
             Aviso de privacidad
           </a>
-          <a href="/terminos" className="hover:text-white">
+          <a href="/terminos" className={`rounded-sm transition-colors hover:text-white ${focusRingOnDark}`}>
             Términos
           </a>
         </div>

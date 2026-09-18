@@ -18,7 +18,7 @@ const APPOINTMENTS: Record<number, number[]> = { 1: [2], 2: [1, 4], 4: [3], 5: [
 
 export function CalendarMock() {
   return (
-    <div className="flex h-full w-full flex-col gap-2 rounded-2xl bg-[#132E1F] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ring-1 ring-inset ring-white/[0.06]">
+    <div className="flex h-full w-full flex-col gap-2 rounded-2xl bg-[#241A52] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ring-1 ring-inset ring-white/[0.06]">
       <div className="flex items-center justify-between">
         <div className="h-2 w-16 rounded-full bg-white/25" />
         <div className="h-2 w-2 rounded-full bg-[#D4F23A]" />
@@ -47,7 +47,7 @@ export function CalendarMock() {
 
 export function BookingPageMock() {
   return (
-    <div className="flex h-full w-full flex-col gap-3 rounded-2xl bg-[#132E1F] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ring-1 ring-inset ring-white/[0.06]">
+    <div className="flex h-full w-full flex-col gap-3 rounded-2xl bg-[#241A52] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ring-1 ring-inset ring-white/[0.06]">
       <div className="flex items-center gap-2">
         <span className="h-6 w-6 rounded-full bg-[#D4F23A]" />
         <span className="h-2 w-20 rounded-full bg-white/25" />
@@ -66,7 +66,7 @@ export function BookingPageMock() {
 
 export function DashboardMock() {
   return (
-    <div className="grid h-full w-full grid-cols-2 gap-2 rounded-2xl bg-[#132E1F] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ring-1 ring-inset ring-white/[0.06]">
+    <div className="grid h-full w-full grid-cols-2 gap-2 rounded-2xl bg-[#241A52] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ring-1 ring-inset ring-white/[0.06]">
       <div className="col-span-2 flex flex-col justify-center rounded-xl bg-[#D4F23A] p-3">
         <span className="text-[10px] font-medium text-black/60">Próximas citas</span>
         <span className="text-2xl font-bold text-black">24</span>
@@ -85,7 +85,7 @@ export function DashboardMock() {
 
 export function ConfirmationMock() {
   return (
-    <div className="flex h-full w-full flex-col items-center justify-center gap-3 rounded-2xl bg-[#132E1F] p-6 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ring-1 ring-inset ring-white/[0.06]">
+    <div className="flex h-full w-full flex-col items-center justify-center gap-3 rounded-2xl bg-[#241A52] p-6 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] ring-1 ring-inset ring-white/[0.06]">
       <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[#D4F23A]">
         <Check className="h-5 w-5 text-black" strokeWidth={3} />
       </span>
@@ -113,4 +113,4 @@ export function DotGrid({ className = '' }: { className?: string }) {
   );
 }
 
-export const MOCK_BG = BICHO.canvasRaised;
+export const MOCK_BG = BICHO.violetRaised;

@@ -24,7 +24,7 @@ export default function TerminosPage() {
       </p>
 
       <section>
-        <h2 className="text-lg font-semibold text-[#0B1A10]">Qué es bicho</h2>
+        <h2 className="text-lg font-semibold text-[#140F2E]">Qué es bicho</h2>
         <p className="mt-2">
           bicho es una plataforma que le da a tu negocio una página de reservas con tu
           propia marca, un panel para administrar citas, recursos y servicios, y
@@ -33,7 +33,7 @@ export default function TerminosPage() {
       </section>
 
       <section>
-        <h2 className="text-lg font-semibold text-[#0B1A10]">Tu cuenta</h2>
+        <h2 className="text-lg font-semibold text-[#140F2E]">Tu cuenta</h2>
         <p className="mt-2">
           Eres responsable de la información que cargas sobre tu negocio y de mantener
           segura tu contraseña. Tienes que ser mayor de edad y tener autoridad real para
@@ -42,7 +42,7 @@ export default function TerminosPage() {
       </section>
 
       <section>
-        <h2 className="text-lg font-semibold text-[#0B1A10]">Prueba y suscripción</h2>
+        <h2 className="text-lg font-semibold text-[#140F2E]">Prueba y suscripción</h2>
         <p className="mt-2">
           Empiezas con 15 días de prueba sin tarjeta. Después de la prueba, seguir
           usando bicho requiere un plan pago — hoy coordinamos el cobro directamente
@@ -52,7 +52,7 @@ export default function TerminosPage() {
       </section>
 
       <section>
-        <h2 className="text-lg font-semibold text-[#0B1A10]">Los datos de tus clientes</h2>
+        <h2 className="text-lg font-semibold text-[#140F2E]">Los datos de tus clientes</h2>
         <p className="mt-2">
           Cuando alguien reserva una cita con tu negocio a través de bicho, tú eres
           responsable de usar esos datos correctamente — para lo que la persona
@@ -61,7 +61,7 @@ export default function TerminosPage() {
       </section>
 
       <section>
-        <h2 className="text-lg font-semibold text-[#0B1A10]">Disponibilidad del servicio</h2>
+        <h2 className="text-lg font-semibold text-[#140F2E]">Disponibilidad del servicio</h2>
         <p className="mt-2">
           Hacemos lo posible por mantener bicho funcionando sin interrupciones, pero no
           garantizamos que el servicio esté disponible el 100% del tiempo. Si algo se
@@ -70,7 +70,7 @@ export default function TerminosPage() {
       </section>
 
       <section>
-        <h2 className="text-lg font-semibold text-[#0B1A10]">Límite de responsabilidad</h2>
+        <h2 className="text-lg font-semibold text-[#140F2E]">Límite de responsabilidad</h2>
         <p className="mt-2">
           Usas bicho bajo tu propio riesgo comercial. No respondemos por pérdidas de
           negocio indirectas (por ejemplo, una cita perdida por una falla puntual del
@@ -79,7 +79,7 @@ export default function TerminosPage() {
       </section>
 
       <section>
-        <h2 className="text-lg font-semibold text-[#0B1A10]">Cambios a estos términos</h2>
+        <h2 className="text-lg font-semibold text-[#140F2E]">Cambios a estos términos</h2>
         <p className="mt-2">
           Si cambiamos algo importante, lo vamos a anunciar en esta misma página con una
           nueva fecha de actualización arriba.
@@ -87,7 +87,7 @@ export default function TerminosPage() {
       </section>
 
       <section>
-        <h2 className="text-lg font-semibold text-[#0B1A10]">Contacto</h2>
+        <h2 className="text-lg font-semibold text-[#140F2E]">Contacto</h2>
         <p className="mt-2">
           Cualquier duda sobre estos términos, escríbenos a{' '}
           <a href="mailto:nonameynk@gmail.com" className="underline">

@@ -16,15 +16,15 @@ const VERTICALS = [
 
 export function TrustSection() {
   return (
-    <section className="bg-[#F3F4EC] px-6 py-14">
+    <section className="bg-white px-6 py-14">
       <Reveal className="mx-auto flex max-w-6xl flex-col items-center gap-8 sm:flex-row sm:items-center sm:justify-between">
-        <p className="max-w-[10rem] text-sm font-medium leading-snug text-[#5B6B5A]">
+        <p className="max-w-[10rem] text-sm font-medium leading-snug text-[#6A6488]">
           Hecho para estos negocios
         </p>
         <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-4">
           {VERTICALS.map(({ label, icon: Icon }) => (
-            <div key={label} className="flex items-center gap-2 text-[#0B1A10]">
-              <Icon className="h-5 w-5 text-[#5B6B5A]" strokeWidth={1.75} />
+            <div key={label} className="flex items-center gap-2 text-[#140F2E]">
+              <Icon className="h-5 w-5 text-[#6A6488]" strokeWidth={1.75} />
               <span className="text-sm font-medium">{label}</span>
             </div>
           ))}

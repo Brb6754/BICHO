@@ -1,36 +1,53 @@
-// Bicho brand tokens — scoped ONLY to the marketing homepage
-// (app/page.tsx + everything under components/marketing/).
+// Bicho brand tokens — scoped ONLY to the marketing site
+// (app/page.tsx, /privacidad, /terminos, the apex 404, and everything
+// under components/marketing/).
 //
 // Deliberately NOT wired into tailwind.config.ts / globals.css: those
-// drive the admin panel + tenant dashboards (indigo/violet CSS-var
-// system, plus each tenant's own branding colors). Repointing
-// --color-primary/--color-accent to this palette would retint every
-// tenant's dashboard and the admin panel along with it — see CLAUDE.md
-// and the task brief for why that's off-limits.
+// drive the admin panel + tenant dashboards (the CSS-var system where
+// each tenant's own brand colors take over). Repointing --color-primary
+// here would retint every tenant's dashboard — see CLAUDE.md.
 //
-// 2nd pass (2026): Bruno asked to replicate a specific reference
-// (a French marketing-agency template — deep forest green instead of
-// flat black, alternating cream/mint light sections, rounded photo
-// cards) almost exactly, judging the earlier all-black version "not
-// friendly enough". Kept the real lime brand accent unchanged; every
-// other value below is new.
-//
-// Components in this folder mostly consume these as literal Tailwind
-// arbitrary-value classes (e.g. `bg-[#0D2B1B]`, `text-[#D4F23A]`) since
-// Tailwind can't resolve a JS variable inside an arbitrary value — the
-// hex below exists as the single documented source of truth, and as a
-// real value for the handful of spots (inline SVG fill/stroke, `style`
-// attrs) that aren't Tailwind classes.
+// 4th pass (2026-09-17): Bruno asked for purple tones with WHITE as the
+// primary color. That inverted the page rather than recoloring it: the
+// old palette was deep-teal-dominant (7 of 11 sections were a dark
+// slab), so simply swapping teal for purple would have produced a
+// purple-dominant page — the opposite of the brief. Now white is the
+// ground almost everywhere, violet is the structural color (CTAs,
+// chips, the hero visual, the two dark punctuation blocks), and lime
+// stays exactly as it was: the literal logo color, spent as a spark and
+// never as a field. Lime is NEVER text on white — it fails contrast
+// (~1.4:1); on white it only ever appears as a fill under dark text.
 export const BICHO = {
-  canvas: '#0D2B1B', // deep forest green — replaces the old flat #000000 canvas
-  canvasRaised: '#123321', // one step up from canvas, for the floating nav + alternating bands
-  cream: '#F3F4EC', // light section background (trust row, final CTA)
-  mint: '#E8F0E0', // pale mint card background on cream sections
-  white: '#FFFFFF',
-  lime: '#D4F23A', // the one accent — "bicho lime", unchanged from the real logo
-  ink: '#0B1A10', // near-black text on cream/mint sections
-  gray: '#9CA99A', // secondary/body text on the dark canvas
-  grayOnLight: '#5B6B5A', // secondary/body text on cream/mint sections
-  line: '#1E3A28', // hairline dividers/borders on the dark canvas
-  lineOnLight: '#DCE3D6', // hairline dividers/borders on cream/mint sections
+  // Light grounds — white is the page
+  white: '#FFFFFF', // primary ground
+  mist: '#F5F3FC', // lavender-tinted banding ground, separates sections
+  mistDeep: '#EFEBFB', // card surface on a white section
+  // Violet — the structural color
+  violet: '#5B34E8', // vivid: CTAs, chips, icon fills, the hero visual
+  violetDeep: '#4423C4', // pressed/hover state for violet surfaces
+  violetInk: '#1B1040', // deep violet-black: the dark punctuation blocks
+  violetRaised: '#2A1B5E', // raised panel inside a violetInk block
+  // Accent — the real logo lime, unchanged
+  lime: '#D4F23A',
+  limeDeep: '#B5D42B', // pressed/hover state for lime surfaces
+  // Text
+  ink: '#140F2E', // near-black with a violet cast, on light grounds
+  inkMuted: '#6A6488', // secondary text on light grounds
+  onDark: '#FFFFFF',
+  onDarkMuted: '#B9B1E6', // secondary text on violetInk
+  onVioletMuted: '#E3DEFA', // secondary text on VIVID violet — a darker
+  // muted tone only clears 3.5:1 there, which is why this is separate.
+  // Hairlines
+  line: '#332A63', // divider on violetInk
+  lineOnLight: '#E6E2F4', // divider on white/mist
+} as const;
+
+// Radius scale — deliberate hierarchy, not one value everywhere.
+// The reference rounds photos and cards moderately and pills fully;
+// nothing is uniformly "rounded-3xl".
+export const RADIUS = {
+  sm: 'rounded-lg', // chips, small controls
+  md: 'rounded-2xl', // cards, photos
+  lg: 'rounded-[28px]', // large feature blocks
+  pill: 'rounded-full', // buttons, badges
 } as const;

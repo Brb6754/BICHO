@@ -25,7 +25,19 @@ const CROP = {
 // Sized purely by the `className` the caller passes (e.g. `h-9` in the
 // nav, `h-20 sm:h-28` in the hero) — width follows from the fixed
 // aspect-ratio, no separate asset per size.
-export function BichoLogo({ className = 'h-10' }: { className?: string }) {
+//
+// `tone` exists because the mark inside logo.png is WHITE pixels on a
+// transparent canvas (verified by sampling the real file, not assumed):
+// invisible on the white ground the page now uses. `ink` inverts it to
+// black with a filter rather than shipping a second asset, so there's
+// still one logo file to replace if the brand mark ever changes.
+export function BichoLogo({
+  className = 'h-10',
+  tone = 'light',
+}: {
+  className?: string;
+  tone?: 'light' | 'ink';
+}) {
   return (
     <span
       className={`relative block overflow-hidden ${className}`}
@@ -44,6 +56,7 @@ export function BichoLogo({ className = 'h-10' }: { className?: string }) {
           left: `${CROP.leftPct}%`,
           top: `${CROP.topPct}%`,
           maxWidth: 'none',
+          filter: tone === 'ink' ? 'brightness(0)' : undefined,
         }}
       />
     </span>

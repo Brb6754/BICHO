@@ -1,3 +1,5 @@
+import { Check } from 'lucide-react';
+import { SectionOpener } from './Primitives';
 import { Reveal } from './Reveal';
 import { DotField } from './DotField';
 
@@ -6,7 +8,11 @@ const TIERS = [
     name: 'Básico',
     price: '$399',
     tagline: 'Para un negocio con un solo recurso.',
-    features: ['1 recurso (silla, consultorio o cancha)', 'Página de reservas con tu marca', 'Confirmación automática por correo'],
+    features: [
+      '1 recurso (silla, consultorio o cancha)',
+      'Página de reservas con tu marca',
+      'Confirmación automática por correo',
+    ],
     featured: false,
   },
   {
@@ -35,58 +41,87 @@ const TIERS = [
 // (verified: no such table in db/) — these tier names, feature splits
 // and MXN/mes figures are a plausible starting structure only, not real
 // numbers pulled from anywhere.
+//
+// This is the one section on the page that SHOULD be three parallel
+// columns: the content genuinely is a comparison, and breaking the
+// symmetry would make the tiers harder to read against each other.
+// What changed instead is how the recommended tier is marked — a solid
+// lime surface rather than a slightly brighter border plus a badge, so
+// the hierarchy is carried by colour (as everywhere else on this page)
+// and readable at a glance instead of needing to be labelled.
 export function PricingSection() {
   return (
-    <section id="precios" className="relative overflow-hidden bg-[#0D2B1B] px-6 py-24">
+    <section id="precios" className="relative overflow-hidden bg-[#F5F3FC] px-6 py-24 sm:py-28">
       <DotField />
       <div className="relative mx-auto max-w-6xl">
-        <Reveal className="max-w-2xl">
-          <h2 className="font-[family-name:var(--font-display)] text-3xl font-bold leading-tight text-white sm:text-4xl">
-            Un plan para cada tamaño de negocio.
-          </h2>
-          <p className="mt-4 text-base leading-relaxed text-[#9CA99A] sm:text-lg">
-            Precios estimados en pesos mexicanos, por mes. Sin tarjeta para
-            probar.
-          </p>
+        <Reveal>
+          <SectionOpener
+            eyebrow="Precios"
+            title="Un plan para cada tamaño de negocio."
+            intro="Precios estimados en pesos mexicanos, por mes. Los 15 días de prueba no piden tarjeta, así que puedes decidir con el producto ya montado y funcionando."
+          />
         </Reveal>
 
-        <div className="mt-14 grid grid-cols-1 gap-6 md:grid-cols-3">
+        <div className="mt-16 grid grid-cols-1 items-start gap-6 md:grid-cols-3">
           {TIERS.map((tier, i) => (
-            <Reveal key={tier.name} delay={i * 90} className="h-full">
+            <Reveal key={tier.name} delay={i * 90} className={tier.featured ? 'md:-mt-6' : ''}>
               <div
-                className={`flex h-full flex-col rounded-2xl border p-8 transition-colors duration-300 ${
+                className={`flex h-full flex-col rounded-[28px] p-8 ${
                   tier.featured
-                    ? 'border-[#D4F23A]/50 bg-[#123321] shadow-[0_0_60px_-15px_rgba(212,242,58,0.35)]'
-                    : 'border-[#1E3A28] bg-transparent hover:border-[#D4F23A]/30'
+                    ? 'bg-[#D4F23A] md:pb-12 md:pt-12'
+                    : 'bg-white ring-1 ring-inset ring-[#140F2E]/[0.06]'
                 }`}
               >
-                {tier.featured && (
-                  <span className="mb-4 inline-block w-fit rounded-full bg-[#D4F23A] px-3 py-1 text-xs font-semibold text-black">
-                    Más elegido
-                  </span>
-                )}
-                <h3 className="text-lg font-semibold text-white">{tier.name}</h3>
-                <p className="mt-1 text-sm text-[#9CA99A]">{tier.tagline}</p>
-                <p className="mt-6 text-4xl font-bold text-white">
-                  {tier.price}
-                  <span className="text-base font-normal text-[#9CA99A]"> MXN/mes</span>
+                <h3
+                  className={`text-sm font-semibold ${
+                    tier.featured ? 'text-[#140F2E]' : 'text-[#5B34E8]'
+                  }`}
+                >
+                  {tier.name}
+                </h3>
+                <p
+                  className={`mt-1 text-sm ${tier.featured ? 'text-[#3A3170]' : 'text-[#6A6488]'}`}
+                >
+                  {tier.tagline}
                 </p>
 
-                <ul className="mt-8 flex-1 space-y-3">
+                <p
+                  className={`mt-7 font-[family-name:var(--font-display)] text-[2.75rem] font-bold leading-none ${
+                    tier.featured ? 'text-[#140F2E]' : 'text-[#140F2E]'
+                  }`}
+                >
+                  {tier.price}
+                </p>
+                <p className={`mt-2 text-sm ${tier.featured ? 'text-[#3A3170]' : 'text-[#6A6488]'}`}>
+                  MXN al mes
+                </p>
+
+                <ul className="mt-8 flex-1 space-y-3.5">
                   {tier.features.map((feature) => (
-                    <li key={feature} className="flex gap-3 text-sm text-[#9CA99A]">
-                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-sm bg-[#D4F23A]" aria-hidden />
+                    <li
+                      key={feature}
+                      className={`flex gap-3 text-sm leading-snug ${
+                        tier.featured ? 'text-[#140F2E]' : 'text-[#6A6488]'
+                      }`}
+                    >
+                      <Check
+                        className={`mt-0.5 h-4 w-4 shrink-0 ${
+                          tier.featured ? 'text-[#140F2E]' : 'text-[#5B34E8]'
+                        }`}
+                        strokeWidth={2.5}
+                        aria-hidden="true"
+                      />
                       {feature}
                     </li>
                   ))}
                 </ul>
 
                 <a
-                  href="mailto:nonameynk@gmail.com?subject=Quiero%20contratar%20bicho"
-                  className={`mt-8 inline-flex items-center justify-center rounded-full px-5 py-2.5 text-sm font-semibold transition ${
+                  href={`/demo?plan=${encodeURIComponent(tier.name)}`}
+                  className={`mt-9 inline-flex items-center justify-center rounded-full px-5 py-3 text-sm font-semibold transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white ${
                     tier.featured
-                      ? 'bg-[#D4F23A] text-black hover:brightness-95'
-                      : 'border border-white/20 bg-white/5 text-white hover:bg-white/15'
+                      ? 'bg-[#140F2E] text-[#D4F23A] hover:bg-[#2A1B5E] focus-visible:ring-[#140F2E]'
+                      : 'border border-[#140F2E]/15 text-[#140F2E] hover:bg-[#5B34E8]/[0.06] focus-visible:ring-[#5B34E8]'
                   }`}
                 >
                   Empezar prueba de 15 días

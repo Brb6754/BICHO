@@ -1,34 +1,39 @@
-import Link from 'next/link';
 import { BichoLogo } from '@/components/marketing/BichoLogo';
+import { DotField } from '@/components/marketing/DotField';
+import { PillLink } from '@/components/marketing/Primitives';
 
 // The apex domain's 404 — proxy.ts leaves an unmatched apex path
 // un-rewritten, so it lands here whenever a link is stale or mistyped.
-// t/[slug] and admin/(panel) have their own not-found.tsx now (neutral
+// t/[slug] and admin/(panel) have their own not-found.tsx (neutral
 // platform styling) specifically so this one is free to be Bicho-
 // branded without misrepresenting a broken tenant-dashboard or
 // admin-panel link as the public marketing site.
+//
+// Uses the same dot texture and pill CTA as the landing rather than a
+// one-off decorative shape, so a wrong URL still lands somewhere that
+// looks like the same site.
 export default function NotFound() {
   return (
-    <div className="relative flex min-h-screen flex-col items-center justify-center gap-6 overflow-hidden bg-[#0D2B1B] px-6 text-center">
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -left-[20px] top-0 h-[150px] w-[340px] opacity-90"
-        style={{ background: '#D4F23A', clipPath: 'polygon(0 0, 75% 0, 20% 100%, 0 100%)' }}
-      />
-      <BichoLogo className="h-10" />
-      <div>
-        <p className="font-[family-name:var(--font-display)] text-6xl font-bold text-white">404</p>
-        <p className="mt-3 text-lg font-semibold text-white">Esta página no existe.</p>
-        <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-[#9CA99A]">
-          Revisa el link, o volvé al inicio y buscá lo que necesitás desde ahí.
-        </p>
+    <div className="relative flex min-h-screen flex-col items-center justify-center gap-8 overflow-hidden bg-[#0F3A31] px-6 text-center">
+      <DotField />
+
+      <div className="relative flex flex-col items-center gap-8">
+        <BichoLogo className="h-9" />
+
+        <div>
+          <p className="font-[family-name:var(--font-display)] text-[5rem] font-bold leading-none text-[#D4F23A]">
+            404
+          </p>
+          <p className="mt-6 font-[family-name:var(--font-display)] text-2xl font-bold text-white">
+            Esta página no existe.
+          </p>
+          <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed text-[#9FB3AA]">
+            Revisa el link, o vuelve al inicio y busca lo que necesitas desde ahí.
+          </p>
+        </div>
+
+        <PillLink href="/">Ir al inicio</PillLink>
       </div>
-      <Link
-        href="/"
-        className="inline-flex items-center justify-center rounded-full bg-[#D4F23A] px-6 py-3 text-sm font-semibold text-black transition hover:brightness-95"
-      >
-        Ir al inicio
-      </Link>
     </div>
   );
 }

@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
-import { MarketingNav } from '@/components/marketing/MarketingNav';
-import { Hero, HeroBackdrop } from '@/components/marketing/Hero';
+import { Hero } from '@/components/marketing/Hero';
 import { ProblemSection } from '@/components/marketing/ProblemSection';
 import { TrustSection } from '@/components/marketing/TrustSection';
 import { FeaturesSection } from '@/components/marketing/FeaturesSection';
+import { HowItWorksSection } from '@/components/marketing/HowItWorksSection';
 import { StatsBar } from '@/components/marketing/StatsBar';
 import { ResellerSection } from '@/components/marketing/ResellerSection';
 import { PricingSection } from '@/components/marketing/PricingSection';
@@ -22,11 +22,12 @@ export const metadata: Metadata = {
 // landing here. `admin.*` and `{slug}.*` rewrite to /admin and /t/[slug]
 // respectively and never reach this file.
 //
-// Each section still owns its own dark-forest/cream bg (see tokens.ts;
-// the page alternates between them) — but the outer div ALSO needs its
-// own explicit dark bg, not just "no bg": the shared <body> (layout.tsx)
-// carries the app-wide `bg-paper` token, which is near-black in dark
-// mode, and would otherwise show through around/behind the nav.
+// The page is white-grounded (see tokens.ts): sections own their own
+// bg, and the two dark violet blocks are punctuation, not the field.
+// The outer div still needs an explicit white bg, not just "no bg":
+// the shared <body> (layout.tsx) carries the app-wide `bg-paper` token,
+// which is near-black in dark mode, and would otherwise show through
+// around/behind the nav.
 //
 // Deliberately not using the shared bg-paper/text-ink tokens for this,
 // though — those are CSS-var-backed and theme-toggle-aware (see
@@ -35,27 +36,26 @@ export const metadata: Metadata = {
 // shouldn't flip with a visitor's leftover dashboard theme preference.
 export default function MarketingHomePage() {
   return (
-    <div className="bg-[#0D2B1B] text-white">
-      <MarketingNav />
+    <div className="bg-white text-[#140F2E]">
       <main>
-        {/* This wrapper is pulled up by MarketingNav's own flow height
-            (negative margin) and pads itself back down by the same
-            amount, so HeroBackdrop's shapes — positioned from this
-            wrapper's own top edge — can bleed all the way to the
-            page's true top corner, behind the nav, instead of being
-            clipped at Hero's own section (which starts BELOW the nav
-            in flow, so a shape confined to it could never reach past
-            that point). The negative-margin amount is coupled to
-            MarketingNav's real rendered height (padding + pill) —
-            re-check it visually if that component's sizing changes. */}
-        <div className="relative -mt-[64px] overflow-hidden pt-[64px]">
-          <HeroBackdrop />
-          <Hero />
-        </div>
+        {/* Hero renders the nav itself — see the comment in Hero.tsx.
+            It has to, so the full-bleed visual can run up behind the
+            nav to the page's top edge instead of starting under it. */}
+        {/* The rhythm is now white-dominant, and the banding is what
+            separates sections: white (hero) → mist (problem) → white
+            (who it's for, what it does) → mist (how it works) → the
+            one dark violet block (vendedores) → white (precios, CTA)
+            → dark footer. Only two surfaces on the whole page are
+            dark violet — the stats panel and the vendedores band —
+            and they're what keeps a white page from going flat.
+            StatsBar's panel still has to sit BETWEEN two light
+            sections: it has no vertical padding of its own. */}
+        <Hero />
         <ProblemSection />
         <TrustSection />
         <FeaturesSection />
         <StatsBar />
+        <HowItWorksSection />
         <ResellerSection />
         <PricingSection />
         <FinalCta />

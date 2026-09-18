@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { sendBookingConfirmation } from '@/lib/email/sendBookingConfirmation';
+import { sendBookingWhatsApp } from '@/lib/whatsapp/send';
 import { tenantManageBookingUrl } from '@/lib/urls';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -86,7 +87,14 @@ export async function POST(request: Request) {
 
   const supabase = createAdminClient();
 
-  const { data: tenant } = await supabase.from('tenants').select('id, name, accent_color').eq('slug', slug).single();
+  const { data: tenant } = await supabase
+    .from('tenants')
+    // whatsapp_enabled is selected separately from the rest so a missing
+    // column (db/021 not run yet) can't take down the whole booking
+    // query — the same defensive split used for theme_mode/page_blocks.
+    .select('id, name, accent_color, timezone')
+    .eq('slug', slug)
+    .single();
   if (!tenant) {
     return NextResponse.json({ error: 'Negocio no encontrado.' }, { status: 404 });
   }
@@ -156,9 +164,9 @@ export async function POST(request: Request) {
   // here isn't guaranteed to finish. sendBookingConfirmation never
   // throws on its own failures, so this can't turn a successful booking
   // into an error response just because the email had trouble.
-  if (customer_email) {
-    const manageUrl = tenantManageBookingUrl(slug, bookingId);
+  const manageUrl = tenantManageBookingUrl(slug, bookingId);
 
+  if (customer_email) {
     await sendBookingConfirmation({
       customerEmail: customer_email,
       customerName: customer_name,
@@ -167,6 +175,32 @@ export async function POST(request: Request) {
       startsAt: starts_at,
       manageUrl,
       accentColor: tenant.accent_color ?? undefined,
+      timezone: tenant.timezone,
+    });
+  }
+
+  // WhatsApp add-on. Read in its own query so that a database without
+  // db/021 applied just behaves as "add-on off" instead of breaking
+  // every booking. Awaited for the same reason as the email: a
+  // serverless function can be frozen the moment it responds.
+  const { data: addon } = await supabase
+    .from('tenants')
+    .select('whatsapp_enabled')
+    .eq('id', tenant.id)
+    .maybeSingle();
+
+  if (addon?.whatsapp_enabled && customer_phone) {
+    await sendBookingWhatsApp({
+      tenantId: tenant.id,
+      tenantName: tenant.name,
+      whatsappEnabled: true,
+      bookingId,
+      customerPhone: customer_phone,
+      customerName: customer_name,
+      serviceName: service.name,
+      startsAt: starts_at,
+      timezone: tenant.timezone,
+      manageUrl,
     });
   }
 

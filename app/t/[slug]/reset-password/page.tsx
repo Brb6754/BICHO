@@ -1,21 +1,21 @@
+import type { Metadata } from 'next';
 import ResetPasswordForm from './ResetPasswordForm';
-import { Card } from '@/components/ui/Card';
-import { Text } from '@/components/ui/Text';
+import { AuthShell } from '@/components/tenant-dash/AuthShell';
 
-export default function ResetPasswordPage() {
+export const metadata: Metadata = {
+  title: 'Elige una contraseña nueva',
+  robots: { index: false, follow: false },
+};
+
+export default async function ResetPasswordPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-paper px-6">
-      <div className="ambient-glow">
-        <div className="ambient-glow-accent" />
-      </div>
-      <div className="relative z-10 w-full max-w-sm animate-fade-in">
-        <Text variant="h1" className="mb-6 text-center">
-          Elegí una contraseña nueva
-        </Text>
-        <Card elevation="overlay" className="rounded-[28px]">
-          <ResetPasswordForm />
-        </Card>
-      </div>
-    </main>
+    <AuthShell
+      slug={slug}
+      title="Elige una contraseña nueva"
+      description="Usa al menos 10 caracteres. Después entras directo a tu panel."
+    >
+      <ResetPasswordForm />
+    </AuthShell>
   );
 }

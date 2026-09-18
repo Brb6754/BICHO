@@ -1,90 +1,117 @@
-import { CalendarDays } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { cancelBooking } from './actions';
-import { Card } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
-import { Text } from '@/components/ui/Text';
+import { NewBookingForm } from './NewBookingForm';
+import { RescheduleButton } from './RescheduleButton';
 import { ConfirmForm } from '@/components/ui/ConfirmForm';
-import { EmptyState } from '@/components/ui/EmptyState';
+import { PageHeader } from '@/components/tenant-dash/PageHeader';
+import { AgendaList, type AgendaBooking } from '@/components/tenant-dash/AgendaList';
+import { dayKey } from '@/lib/dates/tenantTime';
 
-type BookingRow = {
-  id: string;
-  starts_at: string;
-  ends_at: string;
-  status: string;
-  resources: { name: string } | null;
-  service_types: { name: string } | null;
-  customers: { name: string } | null;
-};
-
+// AGENDA. Same AgendaList as the Resumen — one component for "a list of
+// appointments" across the whole dashboard, so a booking reads the same
+// wherever you meet it. The old page was one card per booking with the
+// date repeated on every row and the times formatted in the server's
+// timezone (UTC on Vercel).
 export default async function CalendarPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const supabase = await createClient();
-  const { data: tenant } = await supabase.from('tenants').select('id').eq('slug', slug).single();
+  const { data: tenant } = await supabase.from('tenants').select('id, timezone').eq('slug', slug).single();
 
-  const { data: bookingsRaw } = await supabase
+  const now = new Date();
+  const tz = tenant?.timezone ?? null;
+
+  // Start 24h back so the rest of TODAY (including appointments that
+  // already started) is still on the agenda — the old query began at
+  // "now" and silently dropped everything earlier in the same day.
+  const { data: raw } = await supabase
     .from('bookings')
-    .select('id, starts_at, ends_at, status, resources(name), service_types(name), customers(name)')
+    .select(
+      'id, starts_at, ends_at, status, resource_id, service_type_id, resources(name), service_types(name), customers(name, phone)'
+    )
     .eq('tenant_id', tenant!.id)
-    .gte('starts_at', new Date().toISOString())
+    .gte('starts_at', new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString())
     .order('starts_at')
-    .limit(50);
+    .limit(150);
 
-  const bookings = bookingsRaw as unknown as BookingRow[] | null;
+  // The catalog the "agendar una cita" form works from. Only active rows:
+  // the form must offer exactly what the public page offers.
+  const [{ data: services }, { data: resources }] = await Promise.all([
+    supabase
+      .from('service_types')
+      .select('id, name, duration_minutes')
+      .eq('tenant_id', tenant!.id)
+      .eq('active', true)
+      .order('name'),
+    supabase
+      .from('resources')
+      .select('id, name')
+      .eq('tenant_id', tenant!.id)
+      .eq('active', true)
+      .order('name'),
+  ]);
+
+  const todayKey = dayKey(now, tz);
+  const bookings = ((raw ?? []) as unknown as AgendaBooking[]).filter((b) => dayKey(b.starts_at, tz) >= todayKey);
+  const active = bookings.filter((b) => b.status === 'confirmed').length;
 
   return (
     <div>
-      <Text variant="h1">Calendario</Text>
-      <Text variant="body" className="mt-1 text-muted">
-        Próximas citas (hasta 50).
-      </Text>
+      <PageHeader
+        title="Agenda"
+        description={
+          active > 0
+            ? `${active} ${active === 1 ? 'cita confirmada' : 'citas confirmadas'} de hoy en adelante.`
+            : 'Todas tus citas, de hoy en adelante, en el orden del día.'
+        }
+      />
 
-      <ul className="mt-6 flex flex-col gap-3">
-        {bookings?.map((b) => (
-          <li key={b.id}>
-            <Card padded={false} className="flex items-center justify-between px-6 py-4">
-              <span className="text-ink">
-                <span className="font-medium">
-                  {new Date(b.starts_at).toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' })}
-                </span>{' '}
-                <span className="text-muted">
-                  — {b.resources?.name} — {b.service_types?.name} — {b.customers?.name}
-                </span>
-                {b.status === 'cancelled' && (
-                  <Badge tone="danger" className="ml-2">
-                    cancelada
-                  </Badge>
-                )}
-                {b.status === 'completed' && (
-                  <Badge tone="muted" className="ml-2">
-                    completada
-                  </Badge>
-                )}
-              </span>
-              {b.status === 'confirmed' && (
-                <ConfirmForm
-                  action={cancelBooking.bind(null, b.id, slug)}
-                  confirmTitle="Cancelar cita"
-                  confirmMessage="¿Seguro que quieres cancelar esta cita? Se notificará como cancelada y el horario quedará libre de nuevo."
-                  confirmLabel="Cancelar cita"
-                  triggerClassName="px-4 py-1.5 text-xs"
-                >
-                  Cancelar
-                </ConfirmForm>
+      <div className="mt-6">
+        <NewBookingForm
+          slug={slug}
+          services={services ?? []}
+          resources={resources ?? []}
+          timezone={tz}
+        />
+      </div>
+
+      <div className="mt-8">
+        <AgendaList
+          bookings={bookings}
+          timezone={tz}
+          now={now}
+          emptyTitle="No hay citas próximas"
+          emptyHint="En cuanto un cliente reserve desde tu página, va a aparecer aquí agrupada por día."
+          renderAction={(b) => (
+            <div className="flex flex-wrap items-center gap-2">
+            {b.status === 'confirmed' &&
+              new Date(b.starts_at) > now &&
+              b.service_type_id &&
+              b.resource_id && (
+              <RescheduleButton
+                bookingId={b.id}
+                slug={slug}
+                serviceId={b.service_type_id}
+                serviceName={b.service_types?.name ?? 'La cita'}
+                resourceId={b.resource_id}
+                currentStart={b.starts_at}
+                timezone={tz}
+              />
               )}
-            </Card>
-          </li>
-        ))}
-      </ul>
-      {bookings?.length === 0 && (
-        <Card className="mt-6">
-          <EmptyState
-            icon={CalendarDays}
-            title="No hay citas próximas"
-            description="En cuanto un cliente reserve desde tu página pública, va a aparecer aquí."
-          />
-        </Card>
-      )}
+            <ConfirmForm
+              action={cancelBooking.bind(null, b.id, slug)}
+              confirmTitle="Cancelar cita"
+              confirmMessage={`¿Cancelar ${b.service_types?.name ?? 'la cita'} de ${
+                b.customers?.name ?? 'este cliente'
+              }? El horario quedará libre de nuevo.`}
+              confirmLabel="Cancelar cita"
+              triggerClassName="px-3 py-1.5 text-xs"
+            >
+              Cancelar
+            </ConfirmForm>
+            </div>
+          )}
+        />
+      </div>
     </div>
   );
 }

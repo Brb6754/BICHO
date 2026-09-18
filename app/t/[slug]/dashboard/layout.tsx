@@ -4,7 +4,6 @@ import {
   PLATFORM_PRIMARY,
   PLATFORM_SECONDARY,
   PLATFORM_ACCENT,
-  withAlpha,
   tenantColorCssVars,
   tenantDarkModeCssVars,
 } from '@/lib/branding/colors';
@@ -64,7 +63,7 @@ export default async function DashboardLayout({
 
   return (
     <div
-      className="tenant-shell relative flex min-h-screen bg-paper"
+      className="tenant-shell tenant-dash relative flex min-h-screen bg-paper"
       style={
         {
           ...tenantColorCssVars(primaryColor, secondaryColor, accentColor),
@@ -72,32 +71,22 @@ export default async function DashboardLayout({
         } as React.CSSProperties
       }
     >
-      {/* Same ambient-glow structure as the admin shell, just tinted with
-          this tenant's own colors instead of the platform's fixed ones —
-          .ambient-glow's own gradient colors are baked into the
-          stylesheet and can't take a runtime color, so the two blobs are
-          painted directly here instead. */}
-      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden bg-paper" aria-hidden="true">
-        <div
-          className="absolute -left-[20%] -top-[18%] h-[75vw] w-[90vw]"
-          style={{ background: withAlpha(primaryColor, 0.08), clipPath: 'polygon(0 0, 55% 0, 22% 100%, 0 100%)' }}
-        />
-        <div
-          className="absolute -bottom-[22%] -right-[18%] h-[70vw] w-[85vw]"
-          style={{ background: withAlpha(accentColor, 0.06), clipPath: 'polygon(100% 0, 100% 100%, 40% 100%, 68% 0)' }}
-        />
-      </div>
+      {/* No decorative wedges. The clip-path shapes that used to sit
+          here cut a hard diagonal across the whole panel and spread the
+          brand colour over everything — the same problem already fixed
+          on the public booking page. This is a tool someone opens forty
+          times a day; it should be quiet, and colour should mean
+          something when it appears. */}
       <Sidebar
         tenantName={tenant.name}
+        slug={slug}
         email={user.email ?? ''}
         role={membership.role}
         primaryColor={primaryColor}
-        secondaryColor={secondaryColor}
-        accentColor={accentColor}
         logoUrl={tenant.logo_url}
       />
-      <main className="relative z-10 min-w-0 flex-1 px-6 pb-10 pt-20 lg:px-10 lg:pt-10">
-        <div className="mx-auto max-w-5xl">{children}</div>
+      <main className="relative z-10 min-w-0 flex-1 px-5 pb-16 pt-20 sm:px-8 lg:px-12 lg:pt-12">
+        <div className="mx-auto max-w-4xl">{children}</div>
       </main>
     </div>
   );

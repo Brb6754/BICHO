@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { authErrorMessage } from '@/lib/auth/authErrors';
 
 // These return a result instead of calling redirect() themselves.
 // redirect() inside a Server Action pre-renders the target route without
@@ -16,7 +17,7 @@ export async function signIn(formData: FormData) {
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
-  return { error: error?.message ?? null };
+  return { error: authErrorMessage(error?.message, 'No pudimos iniciar sesión. Inténtalo de nuevo.') };
 }
 
 export async function signOut() {
@@ -32,5 +33,5 @@ export async function signOut() {
 export async function requestPasswordReset(email: string, redirectTo: string) {
   const supabase = await createClient();
   const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
-  return { error: error?.message ?? null };
+  return { error: authErrorMessage(error?.message, 'No pudimos enviar el enlace. Inténtalo de nuevo.') };
 }

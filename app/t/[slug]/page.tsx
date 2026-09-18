@@ -1,12 +1,11 @@
-import { Badge } from '@/components/ui/Badge';
+import ReservarPage, { generateMetadata, generateViewport } from './reservar/page';
 
-export default async function TenantHomePage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params;
-  return (
-    <main className="min-h-screen bg-paper p-8">
-      <Badge>Negocio</Badge>
-      <h1 className="mt-3 text-2xl font-semibold tracking-tight text-ink">{slug}</h1>
-      <p className="mt-1 text-muted">Pendiente: dashboard y página de reserva.</p>
-    </main>
-  );
-}
+// The root of a business's address ({slug}.dominio/) IS its booking
+// page. This used to render a developer placeholder ("Pendiente:
+// dashboard y página de reserva") to anyone who typed the bare
+// subdomain, which is exactly what a customer does after hearing the
+// name. Rendered in place rather than redirected: a redirect to
+// "/reservar" is only correct on the subdomain, and would 404 when the
+// page is reached through the path-based /t/{slug} form.
+export { generateMetadata, generateViewport };
+export default ReservarPage;

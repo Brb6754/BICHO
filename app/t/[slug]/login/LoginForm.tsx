@@ -2,19 +2,31 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { Eye, EyeOff, MailCheck } from 'lucide-react';
 import { signIn, requestPasswordReset } from '../actions';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 
-export default function LoginForm() {
+function ErrorNote({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="animate-fade-in rounded-xl bg-error-soft px-3.5 py-2.5 text-sm text-error" role="alert">
+      {children}
+    </p>
+  );
+}
+
+export default function LoginForm({ initialError = null }: { initialError?: string | null }) {
   const router = useRouter();
   const [mode, setMode] = useState<'login' | 'forgot' | 'sent'>('login');
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(initialError);
+  const [email, setEmail] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   function handleSubmit(formData: FormData) {
     startTransition(async () => {
+      setError(null);
       const result = await signIn(formData);
       if (result.error) {
         setError(result.error);
@@ -26,32 +38,40 @@ export default function LoginForm() {
   }
 
   function handleForgotSubmit(formData: FormData) {
-    const email = formData.get('email') as string;
+    const value = formData.get('email') as string;
     startTransition(async () => {
       setError(null);
       // Built from the current origin, not guessed server-side — has to
       // match wherever this page is actually being viewed from (dev,
       // preview deploy, prod, whatever domain ends up in front of this).
       const redirectTo = `${window.location.origin}/auth/callback?next=/reset-password`;
-      const result = await requestPasswordReset(email, redirectTo);
+      const result = await requestPasswordReset(value, redirectTo);
       if (result.error) {
         setError(result.error);
         return;
       }
+      setEmail(value);
       setMode('sent');
     });
   }
 
   if (mode === 'sent') {
     return (
-      <div className="flex flex-col gap-4 text-center">
-        <p className="text-sm text-ink">
-          Si ese correo tiene una cuenta, te mandamos un enlace para elegir una contraseña nueva.
-        </p>
+      <div className="animate-fade-in flex flex-col items-start gap-4">
+        <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+          <MailCheck className="h-5 w-5" aria-hidden="true" />
+        </span>
+        <div>
+          <p className="font-semibold text-ink">Revisa tu correo</p>
+          <p className="mt-1 text-sm leading-relaxed text-muted">
+            Si {email ? <span className="font-medium text-ink">{email}</span> : 'ese correo'} tiene una cuenta, te
+            llegará un enlace para elegir una contraseña nueva. Puede tardar un par de minutos.
+          </p>
+        </div>
         <button
           type="button"
           onClick={() => setMode('login')}
-          className="text-sm text-primary hover:underline dark:text-accent"
+          className="text-sm font-medium text-ink underline decoration-ink/25 underline-offset-4 hover:decoration-ink"
         >
           Volver a iniciar sesión
         </button>
@@ -61,15 +81,29 @@ export default function LoginForm() {
 
   if (mode === 'forgot') {
     return (
-      <form action={handleForgotSubmit} className="flex flex-col gap-4">
-        {error && <p className="rounded-2xl bg-error-soft p-3 text-sm text-error">{error}</p>}
-        <p className="text-sm text-muted">Escribí tu correo y te mandamos un enlace para restablecer tu contraseña.</p>
+      <form action={handleForgotSubmit} className="animate-fade-in flex flex-col gap-5">
         <div>
-          <Label>Correo</Label>
-          <Input type="email" name="email" required className="w-full" />
+          <p className="font-semibold text-ink">Recupera tu acceso</p>
+          <p className="mt-1 text-sm leading-relaxed text-muted">
+            Escribe el correo con el que entras y te mandamos un enlace para elegir una contraseña nueva.
+          </p>
         </div>
-        <Button type="submit" disabled={isPending} className="mt-2 w-full">
-          {isPending ? 'Enviando...' : 'Enviar enlace'}
+        {error && <ErrorNote>{error}</ErrorNote>}
+        <div>
+          <Label htmlFor="forgot-email">Correo</Label>
+          <Input
+            id="forgot-email"
+            type="email"
+            name="email"
+            autoComplete="email"
+            defaultValue={email}
+            required
+            autoFocus
+            className="w-full"
+          />
+        </div>
+        <Button type="submit" isLoading={isPending} className="w-full !rounded-xl !py-3">
+          {isPending ? 'Enviando' : 'Enviar enlace'}
         </Button>
         <button
           type="button"
@@ -77,7 +111,7 @@ export default function LoginForm() {
             setError(null);
             setMode('login');
           }}
-          className="text-sm text-muted hover:text-ink hover:underline"
+          className="self-center text-sm text-muted transition-colors hover:text-ink"
         >
           Volver a iniciar sesión
         </button>
@@ -86,31 +120,61 @@ export default function LoginForm() {
   }
 
   return (
-    <form action={handleSubmit} className="flex flex-col gap-4">
-      {error && (
-        <p className="rounded-2xl bg-error-soft p-3 text-sm text-error">{error}</p>
-      )}
+    <form action={handleSubmit} className="flex flex-col gap-5">
+      {error && <ErrorNote>{error}</ErrorNote>}
       <div>
-        <Label>Correo</Label>
-        <Input type="email" name="email" required className="w-full" />
+        <Label htmlFor="login-email">Correo</Label>
+        <Input
+          id="login-email"
+          type="email"
+          name="email"
+          autoComplete="email"
+          inputMode="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          className="w-full"
+        />
       </div>
       <div>
-        <Label>Contraseña</Label>
-        <Input type="password" name="password" required className="w-full" />
+        <div className="flex items-baseline justify-between gap-3">
+          <Label htmlFor="login-password">Contraseña</Label>
+          <button
+            type="button"
+            onClick={() => {
+              setError(null);
+              setMode('forgot');
+            }}
+            className="mb-1 text-xs font-medium text-muted transition-colors hover:text-ink"
+          >
+            ¿La olvidaste?
+          </button>
+        </div>
+        {/* The eye toggle matters most on a phone, where a mistyped
+            password is invisible and the error just says "no coinciden". */}
+        <div className="relative">
+          <Input
+            id="login-password"
+            type={showPassword ? 'text' : 'password'}
+            name="password"
+            autoComplete="current-password"
+            required
+            className="w-full !pr-11"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((v) => !v)}
+            aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+            aria-pressed={showPassword}
+            className="absolute inset-y-0 right-1 my-auto flex h-9 w-9 items-center justify-center rounded-lg text-muted transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+          >
+            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
+        </div>
       </div>
-      <Button type="submit" disabled={isPending} className="mt-2 w-full">
-        {isPending ? 'Entrando...' : 'Entrar'}
+      <Button type="submit" isLoading={isPending} className="mt-1 w-full !rounded-xl !py-3">
+        {isPending ? 'Entrando' : 'Entrar'}
       </Button>
-      <button
-        type="button"
-        onClick={() => {
-          setError(null);
-          setMode('forgot');
-        }}
-        className="text-sm text-muted hover:text-ink hover:underline"
-      >
-        ¿Olvidaste tu contraseña?
-      </button>
     </form>
   );
 }

@@ -1,13 +1,11 @@
-import { Armchair } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { createResource, toggleResourceActive, deleteResource } from './actions';
-import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Badge } from '@/components/ui/Badge';
 import { ConfirmForm } from '@/components/ui/ConfirmForm';
-import { EmptyState } from '@/components/ui/EmptyState';
-import { Text } from '@/components/ui/Text';
+import { PageHeader } from '@/components/tenant-dash/PageHeader';
+import { ItemList, ItemRow, ActiveSwitch, AddBar } from '@/components/tenant-dash/ItemList';
 
 export default async function ResourcesPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -21,59 +19,82 @@ export default async function ResourcesPage({ params }: { params: Promise<{ slug
     .eq('tenant_id', tenant!.id)
     .order('created_at');
 
+  const activeCount = resources?.filter((r) => r.active).length ?? 0;
+
   return (
     <div>
-      <Text variant="h1">Recursos</Text>
-      <Text variant="body" className="mt-1 text-muted">
-        Sillas, consultorios, canchas — lo que se puede reservar.
-      </Text>
+      <PageHeader
+        title="Quién atiende"
+        description="Las personas, sillas, consultorios o pistas que se pueden reservar. Solo los activos aparecen en tu página."
+      />
 
-      <Card className="mt-6">
-        <form action={createResource.bind(null, slug)} className="flex flex-wrap items-end gap-3">
-          <div className="flex-1">
-            <Input type="text" name="name" placeholder="Nombre (ej. Silla 1)" required className="w-full" />
+      <div className="mt-8">
+        <AddBar>
+          <form action={createResource.bind(null, slug)} className="flex flex-col gap-3 sm:flex-row">
+            <label className="sr-only" htmlFor="resource-name">
+              Nombre
+            </label>
+            <Input
+              id="resource-name"
+              type="text"
+              name="name"
+              placeholder="Ej. Renata, Silla 2, Consultorio A"
+              required
+              className="w-full flex-1"
+            />
+            <Button type="submit" className="shrink-0">
+              <Plus className="h-4 w-4" />
+              Agregar
+            </Button>
+          </form>
+        </AddBar>
+      </div>
+
+      <div className="mt-8">
+        {resources && resources.length > 0 ? (
+          <>
+            <p className="mb-3 px-1 text-sm text-muted">
+              {activeCount} de {resources.length} {resources.length === 1 ? 'activo' : 'activos'}
+            </p>
+            <ItemList>
+              {resources.map((r, i) => (
+                <ItemRow
+                  key={r.id}
+                  first={i === 0}
+                  title={r.name}
+                  meta={r.active ? 'Disponible para reservar' : 'Oculto de tu página'}
+                  inactive={!r.active}
+                  trail={
+                    <>
+                      <form action={toggleResourceActive.bind(null, r.id, !r.active, slug)}>
+                        <ActiveSwitch active={r.active} label={r.name} />
+                      </form>
+                      <ConfirmForm
+                        action={deleteResource.bind(null, r.id, slug)}
+                        confirmTitle="Borrar recurso"
+                        confirmMessage={`¿Borrar "${r.name}"? Esta acción no se puede deshacer. Si solo quieres dejar de ofrecerlo, apágalo con el interruptor.`}
+                        confirmLabel="Borrar"
+                        triggerVariant="ghost"
+                        triggerClassName="h-8 w-8 !border-0 !p-0 !text-muted hover:!bg-error-soft hover:!text-error"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        <span className="sr-only">Borrar {r.name}</span>
+                      </ConfirmForm>
+                    </>
+                  }
+                />
+              ))}
+            </ItemList>
+          </>
+        ) : (
+          <div className="rounded-2xl border border-dashed border-border px-6 py-12 text-center">
+            <p className="text-sm font-medium text-ink">Todavía no hay nadie que atienda</p>
+            <p className="mx-auto mt-1 max-w-sm text-sm leading-relaxed text-muted">
+              Agrega a la primera persona o espacio arriba. Sin al menos uno, tu página no puede ofrecer horarios.
+            </p>
           </div>
-          <Button type="submit">Agregar</Button>
-        </form>
-      </Card>
-
-      <ul className="mt-6 flex flex-col gap-3">
-        {resources?.map((r) => (
-          <li key={r.id}>
-            <Card padded={false} className="flex items-center justify-between px-6 py-4">
-              <span className="flex items-center gap-3 font-medium text-ink">
-                {r.name}
-                {!r.active && <Badge tone="muted">inactivo</Badge>}
-              </span>
-              <div className="flex gap-2">
-                <form action={toggleResourceActive.bind(null, r.id, !r.active, slug)}>
-                  <Button type="submit" variant="ghost" className="px-4 py-1.5 text-xs">
-                    {r.active ? 'Desactivar' : 'Activar'}
-                  </Button>
-                </form>
-                <ConfirmForm
-                  action={deleteResource.bind(null, r.id, slug)}
-                  confirmTitle="Borrar recurso"
-                  confirmMessage={`¿Seguro que quieres borrar "${r.name}"? Esta acción no se puede deshacer.`}
-                  confirmLabel="Borrar"
-                  triggerClassName="px-4 py-1.5 text-xs"
-                >
-                  Borrar
-                </ConfirmForm>
-              </div>
-            </Card>
-          </li>
-        ))}
-      </ul>
-      {resources?.length === 0 && (
-        <Card className="mt-6">
-          <EmptyState
-            icon={Armchair}
-            title="Todavía no hay recursos"
-            description="Agrega el primero desde el formulario de arriba — sillas, consultorios, canchas, lo que se pueda reservar."
-          />
-        </Card>
-      )}
+        )}
+      </div>
     </div>
   );
 }

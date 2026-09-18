@@ -3,110 +3,128 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Armchair, Tag, Clock3, CalendarDays, Menu, X, Sparkles } from 'lucide-react';
-import { Text } from '@/components/ui/Text';
+import { LayoutDashboard, CalendarDays, Tag, Users, Clock3, Menu, X, ArrowUpRight } from 'lucide-react';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
-import { tenantSidebarGradient, tenantSidebarFg } from '@/lib/branding/colors';
+import { BusinessMark } from '@/components/tenant-dash/BusinessMark';
+import { tenantBookingPageUrl } from '@/lib/urls';
 import SignOutButton from './SignOutButton';
 
 // These hrefs are the PUBLIC paths as seen on the tenant's subdomain
-// (e.g. test-salon.localhost:3000/dashboard/resources) — middleware.ts
+// (e.g. test-salon.localhost:3000/dashboard/resources) — proxy.ts
 // rewrites that internally to /t/{slug}/dashboard/resources, but a
 // <Link> has to target the public path, not the rewrite target, or
 // clicking it 404s (the rewrite would double-prefix it).
+//
+// Ordered by how often an owner needs each one (the agenda is opened
+// all day, the weekly hours almost never), and labelled with the SAME
+// words as each page's own title. The menu used to say "Recursos" and
+// "Calendario" for pages titled "Quién atiende" and "Agenda".
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Resumen', icon: LayoutDashboard, exact: true },
-  { href: '/dashboard/resources', label: 'Recursos', icon: Armchair },
+  { href: '/dashboard/calendar', label: 'Agenda', icon: CalendarDays },
   { href: '/dashboard/services', label: 'Servicios', icon: Tag },
-  { href: '/dashboard/schedule', label: 'Horarios', icon: Clock3 },
-  { href: '/dashboard/calendar', label: 'Calendario', icon: CalendarDays },
+  { href: '/dashboard/resources', label: 'Quién atiende', icon: Users },
+  { href: '/dashboard/schedule', label: 'Horario', icon: Clock3 },
 ];
 
+const ROLE_LABELS: Record<string, string> = {
+  owner: 'Dueño',
+  admin: 'Administrador',
+  staff: 'Equipo',
+};
+
+// The owner's sidebar.
+//
+// It was a floating glass panel: 28px corners, an indigo drop shadow, a
+// full gradient in the brand colors and a glowing accent bar. It was the
+// loudest thing in a tool someone opens forty times a day, and it read as
+// a 2021 dribbble shot rather than as software. Now it's a calm surface
+// flush to the edge. The business still owns it: its mark and name sit
+// at the top, and its primary color marks where you are.
 export function Sidebar({
   tenantName,
+  slug,
   email,
   role,
   primaryColor,
-  secondaryColor,
-  accentColor,
   logoUrl,
 }: {
   tenantName: string;
+  slug: string;
   email: string;
   role: string;
   primaryColor: string;
-  secondaryColor: string;
-  accentColor: string;
   logoUrl?: string | null;
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const initials = email.slice(0, 2).toUpperCase();
-  // A tenant can pick ANY color, including light ones (cream, pale gold)
-  // that a hardcoded text-white would go invisible against — this is the
-  // triplet readableFgRgb() picks for the sidebar's own background, reused
-  // everywhere the sidebar previously assumed "white always reads".
-  const sidebarFg = tenantSidebarFg(primaryColor, secondaryColor);
 
   useEffect(() => {
     setOpen(false);
   }, [pathname]);
 
+  // Escape closes the drawer, and the page behind it doesn't scroll
+  // while it's open.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
+    document.addEventListener('keydown', onKey);
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = overflow;
+    };
+  }, [open]);
+
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        aria-label="Abrir menú"
-        className="fixed left-4 top-4 z-50 flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-r from-primary to-secondary text-[rgb(var(--color-cta-fg))] shadow-glow-primary lg:hidden"
-      >
-        <Menu className="h-5 w-5" />
-      </button>
+      {/* Mobile top bar: content scrolls under it instead of colliding
+          with a floating button. main's pt-20 reserves the space. */}
+      <div className="fixed inset-x-0 top-0 z-30 flex h-14 items-center gap-2.5 border-b border-border bg-paper/90 px-3 backdrop-blur-md lg:hidden">
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          aria-label="Abrir menú"
+          aria-expanded={open}
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-ink transition-colors hover:bg-ink/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+        <BusinessMark name={tenantName} logoUrl={logoUrl} color={primaryColor} size="sm" />
+        <p className="min-w-0 truncate text-sm font-semibold text-ink">{tenantName}</p>
+      </div>
 
-      {open && (
-        <div
-          className="fixed inset-0 z-40 bg-black/40 lg:hidden"
-          onClick={() => setOpen(false)}
-          aria-hidden="true"
-        />
-      )}
+      <div
+        className={`fixed inset-0 z-40 bg-black/30 transition-opacity duration-200 lg:hidden ${
+          open ? 'opacity-100' : 'pointer-events-none opacity-0'
+        }`}
+        onClick={() => setOpen(false)}
+        aria-hidden="true"
+      />
 
       <aside
-        style={{
-          background: tenantSidebarGradient(primaryColor, secondaryColor),
-          '--sidebar-fg': sidebarFg,
-        } as React.CSSProperties}
-        className={`fixed inset-y-4 left-4 z-40 flex w-64 shrink-0 flex-col overflow-hidden rounded-[28px] border border-[rgb(var(--sidebar-fg)/0.15)] text-[rgb(var(--sidebar-fg))] shadow-[0_20px_56px_rgba(30,27,75,0.25)] transition-transform duration-200 lg:static lg:my-4 lg:ml-4 lg:translate-x-0 ${
-          open ? 'translate-x-0' : '-translate-x-[120%]'
+        className={`fixed inset-y-0 left-0 z-40 flex w-72 shrink-0 flex-col border-r border-border bg-surface transition-transform duration-300 [transition-timing-function:cubic-bezier(0.32,0.72,0,1)] lg:sticky lg:top-0 lg:z-auto lg:h-screen lg:w-64 lg:translate-x-0 lg:bg-transparent ${
+          open ? 'translate-x-0 shadow-2xl' : '-translate-x-full'
         }`}
       >
-        <div className="flex items-center gap-2.5 px-6 pb-2 pt-6">
-          {logoUrl ? (
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white/95 p-1">
-              <img src={logoUrl} alt={tenantName} className="h-full w-full object-contain" />
-            </span>
-          ) : (
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white/95" style={{ color: primaryColor }}>
-              <Sparkles className="h-4 w-4" />
-            </span>
-          )}
+        <div className="flex items-center gap-3 px-5 pb-4 pt-5">
+          <BusinessMark name={tenantName} logoUrl={logoUrl} color={primaryColor} />
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold tracking-tight">{tenantName}</p>
-            <Text variant="label" as="p" className="text-[rgb(var(--sidebar-fg)/0.5)]">
-              Panel de negocio
-            </Text>
+            <p className="truncate text-sm font-semibold leading-tight text-ink">{tenantName}</p>
+            <p className="mt-0.5 truncate text-xs text-muted">Panel del negocio</p>
           </div>
           <button
             type="button"
             onClick={() => setOpen(false)}
             aria-label="Cerrar menú"
-            className="shrink-0 rounded-full p-1 text-[rgb(var(--sidebar-fg)/0.6)] hover:bg-[rgb(var(--sidebar-fg)/0.1)] lg:hidden"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted transition-colors hover:bg-ink/[0.06] hover:text-ink lg:hidden"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        <nav className="mt-6 flex flex-1 flex-col gap-1 px-3">
+        <nav aria-label="Secciones" className="mt-2 flex flex-1 flex-col gap-0.5 px-3">
           {NAV_ITEMS.map((item) => {
             const isActive = item.exact ? pathname === item.href : (pathname?.startsWith(item.href) ?? false);
             const Icon = item.icon;
@@ -114,41 +132,51 @@ export function Sidebar({
               <Link
                 key={item.href}
                 href={item.href}
-                className={`group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150 ${
+                aria-current={isActive ? 'page' : undefined}
+                className={`relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
                   isActive
-                    ? 'bg-[rgb(var(--sidebar-fg)/0.1)] text-[rgb(var(--sidebar-fg))] shadow-[inset_0_0_0_1px_rgb(var(--sidebar-fg)/0.08)]'
-                    : 'text-[rgb(var(--sidebar-fg)/0.6)] hover:bg-[rgb(var(--sidebar-fg)/0.05)] hover:text-[rgb(var(--sidebar-fg))]'
+                    ? 'bg-ink/[0.06] font-semibold text-ink'
+                    : 'font-medium text-muted hover:bg-ink/[0.035] hover:text-ink'
                 }`}
               >
+                {/* The one place the brand color appears in the chrome:
+                    where you are. A bar, not text, so a pale or dark
+                    brand color can never make a label hard to read. */}
                 {isActive && (
-                  <span
-                    className="absolute -left-3 top-1/2 h-5 w-1 -translate-y-1/2 rounded-full"
-                    style={{ backgroundColor: accentColor, boxShadow: `0 0 12px ${accentColor}` }}
-                  />
+                  <span className="absolute inset-y-2 left-0 w-[3px] rounded-full bg-primary dark:bg-[rgb(var(--tenant-dark-glow))]" aria-hidden="true" />
                 )}
-                <Icon
-                  className="h-4 w-4 shrink-0 transition-colors duration-150 text-[rgb(var(--sidebar-fg)/0.4)] group-hover:text-[rgb(var(--sidebar-fg)/0.7)]"
-                  style={isActive ? { color: accentColor } : undefined}
-                />
+                <Icon className={`h-[18px] w-[18px] shrink-0 ${isActive ? 'text-ink' : 'text-muted'}`} aria-hidden="true" />
                 {item.label}
-                {isActive && (
-                  <span className="ml-auto h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: accentColor }} />
-                )}
               </Link>
             );
           })}
+
+          <div className="my-3 h-px bg-border" aria-hidden="true" />
+
+          <a
+            href={tenantBookingPageUrl(slug)}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted transition-colors hover:bg-ink/[0.035] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+          >
+            <ArrowUpRight className="h-[18px] w-[18px] shrink-0" aria-hidden="true" />
+            Ver mi página de reservas
+          </a>
         </nav>
 
-        <div className="border-t border-[rgb(var(--sidebar-fg)/0.1)] px-4 py-4">
-          <div className="mb-3 flex items-center gap-2.5 px-2">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[rgb(var(--sidebar-fg)/0.1)] text-xs font-semibold">
-              {initials}
+        <div className="border-t border-border p-3">
+          <div className="flex items-center gap-2.5 rounded-lg px-2 py-1.5">
+            <span
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-ink/[0.07] text-xs font-semibold text-ink"
+              aria-hidden="true"
+            >
+              {email.slice(0, 1).toUpperCase()}
             </span>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-xs text-[rgb(var(--sidebar-fg)/0.7)]">{email}</p>
-              <p className="truncate text-[11px] capitalize text-[rgb(var(--sidebar-fg)/0.4)]">{role}</p>
+              <p className="truncate text-[13px] font-medium text-ink">{email}</p>
+              <p className="truncate text-xs text-muted">{ROLE_LABELS[role] ?? role}</p>
             </div>
-            <ThemeToggle className="text-[rgb(var(--sidebar-fg)/0.6)] hover:bg-[rgb(var(--sidebar-fg)/0.1)] hover:text-[rgb(var(--sidebar-fg))]" />
+            <ThemeToggle className="text-muted hover:bg-ink/[0.06] hover:text-ink" />
           </div>
           <SignOutButton />
         </div>

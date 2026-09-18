@@ -1,21 +1,28 @@
+import type { Metadata } from 'next';
 import LoginForm from './LoginForm';
-import { Card } from '@/components/ui/Card';
-import { Text } from '@/components/ui/Text';
+import { AuthShell } from '@/components/tenant-dash/AuthShell';
 
-export default function LoginPage() {
+export const metadata: Metadata = {
+  title: 'Entrar a tu panel',
+  robots: { index: false, follow: false },
+};
+
+export default async function LoginPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const { slug } = await params;
+  // The dashboard layout sends people here with ?error= when their
+  // account isn't a member of this business. That message used to be
+  // dropped on the floor: they landed on a blank form with no idea why.
+  const { error } = await searchParams;
+
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-paper px-6">
-      <div className="ambient-glow">
-        <div className="ambient-glow-accent" />
-      </div>
-      <div className="relative z-10 w-full max-w-sm animate-fade-in">
-        <Text variant="h1" className="mb-6 text-center">
-          Iniciar sesión
-        </Text>
-        <Card elevation="overlay" className="rounded-[28px]">
-          <LoginForm />
-        </Card>
-      </div>
-    </main>
+    <AuthShell slug={slug} description="Entra para ver tu agenda y administrar tus citas.">
+      <LoginForm initialError={typeof error === 'string' ? error : null} />
+    </AuthShell>
   );
 }

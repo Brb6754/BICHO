@@ -26,3 +26,23 @@ export function tenantManageBookingUrl(slug: string, bookingId: string): string 
   const protocol = rootDomain.startsWith('localhost') ? 'http' : 'https';
   return `${protocol}://${rootDomain}/t/${slug}/reservar/cita/${bookingId}`;
 }
+
+// The tenant's public booking page — same path-based form as above, for
+// the same two reasons (no wildcard TLS on *.vercel.app, and
+// {slug}.localhost only resolves on the dev machine). Used where the
+// owner needs to open or share their own page from the dashboard.
+export function tenantBookingPageUrl(slug: string): string {
+  const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? 'localhost:3000';
+  const protocol = rootDomain.startsWith('localhost') ? 'http' : 'https';
+  return `${protocol}://${rootDomain}/t/${slug}/reservar`;
+}
+
+// The rep's own subscription screen. Same path-based form and the same
+// two reasons as the functions above: no wildcard TLS on *.vercel.app,
+// and {sub}.localhost only resolves on the dev machine. Used by the
+// dunning email, which by definition is opened somewhere else.
+export function resellerSubscriptionUrl(): string {
+  const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? 'localhost:3000';
+  const protocol = rootDomain.startsWith('localhost') ? 'http' : 'https';
+  return `${protocol}://${rootDomain}/vendedor/suscripcion`;
+}

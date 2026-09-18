@@ -1,4 +1,5 @@
 import { Resend } from 'resend';
+import { appointmentWhen } from '@/lib/dates/tenantTime';
 
 // The "from" address Resend lets any account send from without first
 // verifying a custom domain — fine for now (no domain purchased yet,
@@ -8,13 +9,6 @@ import { Resend } from 'resend';
 // in the Resend dashboard and switch this to something like
 // `reservas@tudominio.com`.
 const FROM_ADDRESS = 'Reservas <onboarding@resend.dev>';
-
-function formatDateTime(isoString: string): string {
-  return new Date(isoString).toLocaleString('es-MX', {
-    dateStyle: 'full',
-    timeStyle: 'short',
-  });
-}
 
 // customerName is raw text from the public booking form — never trust
 // it directly in HTML, even in an email (client rendering varies, and
@@ -42,6 +36,7 @@ export async function sendBookingConfirmation({
   manageUrl,
   accentColor,
   kind = 'confirmed',
+  timezone,
 }: {
   customerEmail: string;
   customerName: string;
@@ -66,6 +61,11 @@ export async function sendBookingConfirmation({
   // instead of an updated time for an existing one. Everything else
   // (styling, the "Ver mi cita" button, escaping) stays identical.
   kind?: 'confirmed' | 'rescheduled';
+  // tenants.timezone. REQUIRED for a correct time: this runs in a
+  // serverless function whose process timezone is UTC, so formatting
+  // without it told a customer in Mexico City that their 17:30
+  // appointment was at 23:30. Falls back to America/Mexico_City.
+  timezone?: string | null;
 }): Promise<void> {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
@@ -77,7 +77,7 @@ export async function sendBookingConfirmation({
 
   try {
     const resend = new Resend(apiKey);
-    const when = formatDateTime(startsAt);
+    const when = appointmentWhen(startsAt, timezone);
     const buttonColor = accentColor ?? '#4F46E5';
     const heading = kind === 'rescheduled' ? 'Tu cita se reprogramó' : '¡Cita confirmada!';
     const intro =
@@ -101,7 +101,7 @@ export async function sendBookingConfirmation({
               Ver mi cita
             </a>
           </div>
-          <p style="margin-top: 20px; color: #888; font-size: 13px; text-align: center;">Desde ahí podés cambiar o cancelar tu cita cuando quieras.</p>
+          <p style="margin-top: 20px; color: #888; font-size: 13px; text-align: center;">Desde ahí puedes cambiar o cancelar tu cita cuando quieras.</p>
         </div>
       `,
     });

@@ -11,11 +11,14 @@ import { PillLink } from '@/components/marketing/Primitives';
 //
 // Uses the same dot texture and pill CTA as the landing rather than a
 // one-off decorative shape, so a wrong URL still lands somewhere that
-// looks like the same site.
+// looks like the same site. That is also why it was the last page still
+// painted in the old teal after the landing went white and violet — it
+// lives outside components/marketing/, so the repaint missed it, and a
+// 404 in the previous identity is exactly the page nobody checks.
 export default function NotFound() {
   return (
-    <div className="relative flex min-h-screen flex-col items-center justify-center gap-8 overflow-hidden bg-[#0F3A31] px-6 text-center">
-      <DotField />
+    <div className="relative flex min-h-screen flex-col items-center justify-center gap-8 overflow-hidden bg-[#5B34E8] px-6 text-center">
+      <DotField tone="onDark" />
 
       <div className="relative flex flex-col items-center gap-8">
         <BichoLogo className="h-9" />
@@ -27,7 +30,7 @@ export default function NotFound() {
           <p className="mt-6 font-[family-name:var(--font-display)] text-2xl font-bold text-white">
             Esta página no existe.
           </p>
-          <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed text-[#9FB3AA]">
+          <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed text-[#E3DEFA]">
             Revisa el link, o vuelve al inicio y busca lo que necesitas desde ahí.
           </p>
         </div>

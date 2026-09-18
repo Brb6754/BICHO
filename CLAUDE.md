@@ -5,19 +5,31 @@ Ponlo en la raíz del repo — Claude Code lo lee automáticamente al arrancar.
 
 ## Cómo quiere trabajar el dueño del proyecto (IMPORTANTE — leer primero)
 
-Bruno (el dueño) **quiere escribir el código él mismo**, paso a paso. NO generes
-archivos completos de golpe ni resuelvas todo de una vez, aunque técnicamente
-puedas. Tu rol es:
-- Explicar el "por qué" antes de que él escriba algo.
-- Dar un paso concreto a la vez, esperar confirmación de que lo hizo, y recién
-  entonces seguir al siguiente.
-- Revisar lo que él escriba: señalar bugs, huecos de seguridad (sobre todo
-  fugas de aislamiento entre tenants) o desviaciones del diseño ya acordado.
-- Si detectas que un paso es grande, pártelo en sub-pasos en vez de resolverlo
-  tú de un jalón.
+Bruno (el dueño) pide **features completas, no pasos**.
 
-No asumas que quiere que resuelvas o generes código salvo que lo pida
-explícitamente para un caso puntual (ej. "escríbeme la función X").
+Esta sección decía lo contrario hasta el 2026-09-17 ("quiere escribir el
+código él mismo, paso a paso; NO generes archivos completos de golpe"). Esa
+regla era cierta el primer día y quedó obsoleta casi de inmediato: desde
+entonces, sesión tras sesión, Bruno pidió explícitamente lo opuesto — "haz
+todo lo que falte, nada de paso a paso", "tienes libertad completa, no pidas
+autorización para nada". Se deja anotado el cambio para que ningún agente que
+lea este archivo resucite la regla vieja. (La corrección salió de un agente
+externo —PagoKit— que se frenó al toparse con la regla antes de escribir la
+integración de pagos: hizo bien en preguntar, y la respuesta fue actualizar
+el archivo.)
+
+Cómo trabajar entonces:
+- Construir la feature completa, verificarla en vivo si se puede, y recién
+  entonces explicar qué se hizo y qué falta. Nada de pedir confirmación entre
+  archivo y archivo.
+- Señalar bugs, huecos de seguridad (sobre todo fugas de aislamiento entre
+  tenants) y desviaciones del diseño acordado aunque no se hayan pedido.
+- **Excepciones que SÍ se piden o se dejan en sus manos, siempre**: desplegar
+  (dijo "no despliegues"); correr migraciones en Supabase (las corre él en el
+  SQL Editor); contraseñas reales (las escribe él en un `<input
+  type="password">`, Claude nunca las ve ni las teclea); commitear (solo
+  cuando lo pide); y nunca correr `npm run build` con el dev server activo
+  (corrompe `.next`).
 
 ## Quién es el dueño del proyecto
 
@@ -2122,3 +2134,1306 @@ Bruno eligió todo de una.
   `tenantGlassBackground` actualizados para el nuevo formato de salida
   (antes esperaban `rgba(...)`/gradiente, ahora es un solo `rgb(...)`
   opaco).
+
+**Rediseño del sistema de plantillas — auditoría + rearquitectura + 6
+plantillas (2026-09-10)**: Bruno pidió un rediseño total del website
+builder porque "todas las plantillas se sienten iguales y cambiar
+colores/imágenes no lo soluciona". Se auditó primero (el brief lo
+exigía) y la causa resultó **arquitectónica, no de CSS**:
+
+1. **La página no tenía sistema de layout.** `BlockBox` era `mx-auto` +
+   `MAX_WIDTH_CLASS` con valores `max-w-sm/md/2xl` — el default `md`
+   renderizaba a **448px en una pantalla de 1440px** (medido en vivo, no
+   estimado). Hero full-bleed, split 50/50 y composiciones asimétricas
+   no estaban mal diseñadas: eran **inalcanzables**.
+2. **Los bloques no tenían variantes** — un tipo = un render. Toda la
+   variación disponible era `hero.align` y `features.layout`.
+3. **El vocabulario era ciego a la industria** — 11 tipos genéricos, y
+   `features` era un array de strings, así que ninguna plantilla podía
+   expresar "servicio con precio y duración".
+4. **Una plantilla no cargaba lenguaje de diseño** — y su `accent_color`
+   ni siquiera se usaba en la página pública (BlockRenderer recibe los
+   colores del *tenant*), así que la única diferencia se borraba en
+   cuanto el negocio configuraba su marca.
+
+**Principio que ordena todo el rediseño**: la diferenciación vive en la
+**composición**, nunca en el color — el color es exactamente lo que el
+tenant sobreescribe.
+
+Cambios:
+- **`MAX_WIDTH_CLASS` remapeado** a `max-w-2xl/4xl/6xl/a sangre`. Las
+  CLAVES guardadas no cambiaron (cero migración de datos), solo lo que
+  significan. Verificado: 448px → 896px.
+- **`variant` en cada bloque** + `BLOCK_VARIANTS`/`DEFAULT_VARIANT`.
+  `normalizeBlock` lo rellena, así que ningún bloque viejo se rompió.
+- **Tipos nuevos**: `services` (nombre/precio/duración/descripción),
+  `team`, `split`, `faq`, `cta`.
+- **`TemplateDesign`** (`db/014_template_design.sql`, ya aplicada):
+  typeScale / rhythm / shape / imageTreatment / headingFont /
+  upperHeadings. Se aplica como variables CSS `--tpl-*` en la raíz vía
+  `templateDesignCssVars()`, así que ningún bloque necesita saber en qué
+  plantilla está. Se consulta en un `.select()` aparte de `blocks` —
+  mismo patrón defensivo que `theme_mode`.
+- **`components/blocks/Sections.tsx`** (nuevo): Hero ×5 composiciones,
+  Services ×4, Split ×3, Team ×2, FAQ (`<details>` nativo, accesible sin
+  JS) y CTA. Con empty states e `ImagePlaceholder` — una plantilla se ve
+  deliberada antes de que suban una sola foto.
+- **`db/seed-templates.mjs`** (idempotente, upsert por `vertical`):
+  las 6 plantillas — peluquería (editorial/serif/sharp), spa
+  (cinematic/arch), pádel (condensed/UPPER, **booking en el primer
+  tercio** porque para una pista la disponibilidad ES el producto),
+  dentista (rounded/grotesque), doctor (humanist/circle, hero minimal),
+  gimnasio (Arial Black/UPPER/compact). Contenido demo real en español
+  mexicano, cero lorem ipsum. Verticales nuevas: `spa`, `doctor`,
+  `gimnasio`.
+- **Editor** (`TemplateBuilder.tsx`): selector de variante ("Composición")
+  arriba de los campos, y formularios para los 5 tipos nuevos. Los ítems
+  repetidos (servicios/equipo/FAQ) se editan como una línea por entrada
+  con campos separados por `|`, misma convención que features/gallery/
+  social — compacto y permite pegar una lista de precios desde un
+  documento.
+- **El filtro de verticales de `/admin/tenants` ya no está hardcodeado**
+  — se consulta de `templates`. El array había derivado: listaba 4
+  verticales cuando existían 6, así que dos eran infiltrables.
+
+**Bug propio encontrado y corregido en la verificación**: el hero
+`overlay` exigía imagen para tomar su rama, así que sin foto caía hasta
+el default editorial — una plantilla cambiaba de composición según si
+alguien había subido una imagen. Ahora `fullscreen` y `overlay` siempre
+toman esa rama; el caso sin imagen pinta el color de marca.
+
+Verificado en vivo con una ruta QA temporal que renderizaba las 6 vía
+el `BlockRenderer` real (borrada al terminar): a 1440px y a 440px cero
+overflow horizontal, y las 6 miden distinto de verdad — h1 de 52 a 88px,
+seis familias tipográficas, tres con hero oscuro y tres claro, y el
+`menu` de servicios con sus guías de puntos. `test-salon` (peluquería)
+ya sirve la plantilla nueva completa con el flujo de reserva intacto.
+`tsc --noEmit` limpio, 30/30 tests.
+
+**Pendiente**: preview responsive (desktop/tablet/mobile) dentro del
+editor, subida real de imágenes (hoy siguen siendo URLs pegadas), y
+drag & drop de secciones ya existe pero no reordena variantes.
+
+**Editor de plantillas → canvas de manipulación directa (2026-09-10,
+mismo día)**: Bruno pidió "un canva de páginas web". El editor era una
+columna de tarjetas-formulario junto a un preview pasivo: para cambiar
+una sección buscabas su tarjeta en la lista, y el preview era algo que
+mirabas. Eso es un CMS, no un page builder — **lo que estabas diseñando
+nunca era lo que tocabas**.
+
+Ahora el preview ES la superficie de edición. Layout de tres paneles:
+riel de capas (izq) · canvas (centro, dominante) · inspector contextual
+(der), con una toolbar arriba.
+
+Tres decisiones que lo hacen comportarse como canvas y no como un
+preview que además es clickeable:
+- **El bloque renderizado es `pointer-events-none`** — un clic sobre un
+  botón o link dentro de la sección la SELECCIONA en vez de navegar
+  fuera del editor. Sin esto, tocar el CTA del hero te sacaba.
+- **Rieles "+" ENTRE secciones**, no solo agregar al final. Insertar en
+  un punto concreto es lo que hace que componer se sienta directo.
+  `insertBlock(type, index)`, no `push`.
+- **Todo pasa por `commit()`** — undo/redo y el estado "sin guardar"
+  caen solos de ahí en vez de que cada mutación tenga que acordarse de
+  registrarse.
+
+Lo demás: selección con clic (y teclado), toolbar flotante sobre la
+sección seleccionada (subir/bajar/duplicar/ocultar/borrar), switch de
+dispositivo real (escritorio/tablet 768/móvil 390 — el canvas cambia de
+ancho de verdad), picker visual de secciones con esquemas dibujados en
+CSS en vez de una lista de etiquetas, y el inspector agrupado en
+Composición / Contenido / Estilo para que el selector de variante no
+quede sepultado bajo ocho campos de servicios.
+
+- **`hidden` nuevo en `BlockBase`** (no en `BlockStyle`, porque no es
+  estilo): `BlockRenderer` las filtra en la página pública, el editor
+  las sigue mostrando en gris para poder restaurarlas. `normalizeBlock`
+  lo rellena, cero migración.
+- **El preview usa el `accent_color` de la plantilla**, no el índigo de
+  la plataforma — antes un gimnasio se previsualizaba como un dashboard
+  SaaS justo en el lugar donde estás juzgando cómo se ve.
+- El riel de capas conserva el drag & drop de `@dnd-kit`; arrastrar una
+  fila de 32px es viable, arrastrar una sección de alto completo sobre
+  una página con scroll no.
+
+**Bug real encontrado y corregido**: mismatch de hidratación de
+`@dnd-kit` — sin un `id` explícito en `DndContext`, la librería deriva
+uno autoincremental que difiere entre el render del servidor y el del
+cliente, y React se quejaba en cada `aria-describedby`. Fix:
+`<DndContext id="template-layers">`. Verificado en el DOM: ahora es el
+mismo id en ambos renders.
+
+**Nota de verificación**: el buffer de `read_console_messages` NO se
+limpia al navegar en esta herramienta — mostró errores viejos
+(`PADDING_CLASS`, ya resuelto reiniciando el dev server) durante toda la
+sesión. Si un error de consola parece imposible, contrastarlo contra
+`preview_logs` del servidor y contra el DOM antes de perseguirlo.
+
+Verificado en vivo (ruta QA temporal contra plantillas reales, borrada
+al terminar): 8 secciones seleccionables, cambiar la variante de
+"Servicios" de Menú a Tarjetas recompone el canvas al instante (6 guías
+de puntos → 0), deshacer lo revierte (→ 6), ocultar pinta el badge
+"Oculta", y el switch a móvil lleva el canvas a 390px exactos.
+`tsc --noEmit` limpio, 30/30 tests.
+
+**Sigue pendiente**: edición de texto in-situ sobre el canvas
+(contentEditable), subida real de imágenes (siguen siendo URLs pegadas
+— el límite práctico más grande hoy), y presets de estilo por plantilla
+(Minimal/Luxury/Bold) expuestos en la UI; `TemplateDesign` ya existe en
+el schema pero solo se edita por seed, no desde el panel.
+
+**Editor: drag & drop real + edición en el lienzo (2026-09-10, mismo
+día, dos iteraciones seguidas)**: Bruno rechazó la primera versión del
+canvas ("quiero un drag and drop real") y después pidió más
+intuitividad. Lo que faltaba en cada caso:
+
+**Iteración 1 — drag real en los dos sentidos.** El drag vivía solo en
+el riel de capas (filas de 32px), que es reordenar una lista, no
+construir una página. Ahora:
+- **Reordenar sobre el lienzo**: cada sección tiene un asa que aparece
+  al hover; las demás se corren para hacer lugar mientras arrastras.
+- **Insertar desde la paleta**: los 15 tipos de sección son chips
+  arrastrables; al empezar a arrastrar, los huecos entre secciones se
+  convierten en zonas de drop visibles.
+- Un solo `DndContext` cubre paleta y lienzo. Los ids de la paleta
+  llevan prefijo `new:` y `onDragEnd` ramifica por ahí.
+- **Las `DropSlot` están `disabled` salvo que haya un chip en vuelo** —
+  activas siempre competían con las secciones sortables por la misma
+  posición del cursor y el reordenamiento se atoraba entre dos targets.
+- **Asa en vez de arrastrar toda la sección**: el cuerpo tiene que
+  seguir siendo clickeable para seleccionar; si todo fuera arrastrable
+  cada clic sería un posible drag de 5px.
+
+**Iteración 2 — intuitividad.**
+- **Edición de texto en el lienzo**: el renderer marca sus propios
+  nodos con `data-edit="<propKey>"` (`Sections.tsx`), y el editor
+  recorre el DOM de la sección SELECCIONADA y los vuelve
+  `contenteditable`. No hay mapa paralelo de "qué texto vive dónde" —
+  lo declara quien lo renderiza. **Se commitea en `blur`, nunca en
+  keystroke**: escribir a estado en cada tecla re-renderiza el subárbol
+  desde React con el caret adentro y lo manda a la posición 0 en cada
+  letra (el bug clásico de contentEditable). Con blur-only, el DOM es
+  dueño del texto mientras escribes y React el resto del tiempo.
+  Los estilos viven en `.tpl-editable` (globals.css) y solo se aplican
+  con la sección seleccionada, así que una página publicada nunca los
+  lleva.
+- **Atajos**: Ctrl/Cmd+Z / Shift+Z, Ctrl+S, Ctrl+D duplicar, Supr
+  borrar, Esc deseleccionar. **Inertes mientras el caret está en un
+  campo o en un nodo editable** — si no, Backspace borraba la sección
+  entera que estabas escribiendo.
+- **"Sin guardar" comparando contra un snapshot** (`savedSnapshot`), no
+  un flag: un flag seguiría diciendo "sin guardar" después de deshacer
+  hasta el estado guardado. Más `beforeunload` mientras haya cambios.
+- **Sidebar del admin colapsable** (`AdminShell` dueño del estado,
+  toggle en `TopBar`): el lienzo gana 272px medidos.
+
+**Bug real corregido**: el logo no aparecía en el sidebar. `BichoLogo`
+es `block` y deriva su ancho del `aspect-ratio`, pero como hijo de un
+flex se estiraba al 100% y el recorte a píxel quedaba fuera de cuadro.
+Fix: `items-start` en el contenedor. Verificado: 77×24, la proporción
+exacta del mark.
+
+**Incidente**: un `replace` de Python sobre una cadena vacía insertó
+texto entre CADA carácter de `TemplateBuilder.tsx` (215k líneas de
+basura). No se restauró desde git (habría perdido la sesión entera); se
+reconstruyó cortando cabecera limpia + cola intacta y re-insertando el
+shell. **Lección**: al calcular un slice con dos `index()`, verificar
+que el segundo sea mayor que el primero antes de usarlo como patrón de
+`replace` — un slice invertido da `''`, y `s.replace('', x)` inserta en
+cada posición.
+
+Verificado en vivo con eventos de puntero reales (no clics
+sintéticos): reordenar arrastrando cambia el orden; arrastrar de la
+paleta arma 9 zonas de drop e inserta en la posición apuntada (8→9
+secciones); escribir en el lienzo commitea al soltar el foco y el
+inspector lo refleja; Ctrl+Z revierte la edición de texto y Shift+Z la
+rehace; Ctrl+D duplica; Esc deselecciona. `tsc` limpio, 30/30 tests.
+
+**Sigue pendiente (el hueco más grande)**: subida real de imágenes.
+Todas las plantillas tienen sus slots con el placeholder "Imagen de la
+sección" hasta que alguien pegue una URL a mano. Necesita Supabase
+Storage.
+
+**Corrección de rumbo: es una página de CITAS, no un sitio sobre el
+negocio (2026-09-10, mismo día)**: Bruno corrigió el enfoque. **Es la
+segunda vez que hace esta misma corrección** — ya la había hecho el
+2026-08-18 ("el Tenant no es un sitio web tipo Wix, es una experiencia
+de reservas enfocada"). El proyecto volvió a derivar hacia
+website-builder porque el propio brief de esta sesión pedía
+explícitamente un clon de Wix/Squarespace/Framer con seis sitios de
+marketing completos. Se construyó eso, y apuntaba al producto
+equivocado.
+
+**Criterio que ahora ordena la página pública** (dejarlo escrito para
+que no vuelva a derivar): alguien llega a `/t/{slug}/reservar` para
+RESERVAR. De ahí sale todo:
+- La reserva va en **posición 2**, debajo de un encabezado de identidad
+  compacto. Nunca debajo de un hero-póster, una galería o un ensayo.
+- Cualquier otro bloque tiene que ganarse su lugar respondiendo una de
+  dos preguntas: *"¿es aquí y puedo confiar?"* o *"¿cuánto cuesta y
+  cuándo puedo ir?"*.
+- Lo que solo responde *"qué bonito este negocio"* — mosaicos
+  editoriales, prosa de filosofía, spreads de equipo, marketing de
+  membresías, slabs de CTA que apuntan a la reserva que YA está en la
+  página — es ruido entre el visitante y lo que vino a hacer. Estaba
+  ahí en la pasada anterior y se cortó a propósito.
+
+Cambios:
+- **Variante de hero `header`** (nuevo default de `hero`): banda de
+  identidad compacta — logo, nombre, una línea. 158px de alto medidos,
+  contra un hero de 68vh. Las variantes póster (editorial/fullscreen/
+  split/overlay) siguen existiendo para quien las quiera, ya no son el
+  default.
+- **Las 6 plantillas resembradas** con esa estructura: identidad →
+  reserva → precios de referencia → lo práctico (horario, ubicación,
+  FAQ corta). De 8-9 bloques a 6-8, y la reserva pasó de posición 6-8 a
+  posición 2 en las seis.
+- La diferenciación entre industrias ya NO es dirección de arte: es qué
+  necesita una página de reservas de esa industria (¿el cliente elige
+  persona? ¿pista? ¿clase? ¿la primera visita difiere del seguimiento?)
+  más el lenguaje de diseño, que sigue costando cero.
+
+Verificado en vivo contra `test-salon`: header 158px, la tarjeta de
+reserva arranca en y=158 y el primer botón accionable en y=356 — muy
+por encima del fold de 800px. La página pasó de 4176px a 2159px de
+alto. En móvil (375px): sin overflow, botón accionable a y=359.
+`tsc` limpio, 30/30 tests.
+
+**Un tenant ahora tiene su PROPIA página; la plantilla es punto de
+partida (2026-09-10, mismo día)**: Bruno pidió poder arrancar el alta
+de un negocio desde una plantilla ya modificada. El pedido destapó un
+problema de arquitectura serio que existía desde `db/008`:
+
+**Un tenant no tenía página propia.** `/t/{slug}/reservar` buscaba en
+`templates` por el `vertical` del tenant y renderizaba esa fila
+compartida. Consecuencias, las dos malas:
+1. Editar una plantilla **reescribía en silencio la página EN VIVO** de
+   todos los negocios de esa vertical. Corriges una errata para un
+   salón y republicas los otros cuarenta.
+2. Un negocio nunca podía diferir de su plantilla — sus propios
+   servicios, su propia redacción, su propio orden de secciones eran
+   imposibles porque no había dónde guardarlos.
+
+- **`db/015_tenant_page.sql`** (⚠️ pendiente de aplicar): agrega
+  `tenants.page_blocks` y `tenants.page_design` (nullable), más un
+  backfill que le da a cada tenant existente una copia de lo que ya
+  está renderizando — comportamiento idéntico hoy, pero ningún tenant
+  queda expuesto a una edición futura de su plantilla.
+- **`createTenant`** copia `blocks` + `design` de la plantilla al
+  tenant al crearlo. Si `db/015` no está aplicada, **reintenta el
+  insert sin esas columnas** en vez de fallar (mismo patrón de
+  fallback que ya usa `app/api/reservar/route.ts` para las columnas
+  opcionales de booking), así el alta funciona antes y después de la
+  migración.
+- **`reservar/page.tsx`** prefiere `page_blocks` del tenant y cae a la
+  plantilla compartida solo si es null (tenants pre-015, o verticales
+  sin plantilla). Consulta separada, mismo motivo defensivo de siempre.
+- **Flujo pedido**: botón "Crear negocio con esta plantilla" en el
+  editor de plantillas → `/tenants/new?vertical=X` con la vertical ya
+  seleccionada. `NewTenantForm` solo honra el `?vertical=` si esa
+  plantilla existe de verdad — un valor viejo o escrito a mano cae al
+  default en vez de crear un tenant apuntando a nada.
+
+Verificado en vivo **con la migración todavía sin aplicar** (que es el
+caso frágil): `/t/test-salon/reservar` sigue renderizando por el
+camino de respaldo sin cambios; `?vertical=gimnasio` preselecciona
+correctamente; y se creó un tenant real de prueba por el formulario
+(el reintento sin columnas funcionó) y se borró al terminar. `tsc`
+limpio, 30/30 tests.
+
+**`db/015` aplicada + editor de página por negocio (2026-09-10, mismo
+día)**: Bruno corrió la migración. Backfill verificado: `barber` y
+`test-salon` (peluquería) recibieron cada uno su copia de 6 bloques;
+`spa` (vertical `general`, sin plantilla) quedó en `null` y sigue por
+el camino de respaldo, que es lo correcto.
+
+Con la página ya siendo propiedad del tenant, se construyó lo que eso
+habilita:
+
+- **`updateTenantPage(tenantId, blocks)`** (`[tenantId]/actions.ts`) —
+  escribe en `tenants.page_blocks`, **nunca** en `templates.blocks`.
+  Revisa `{ error }` y lanza (el bug de guardado silencioso que este
+  proyecto ya sufrió con `BrandEditor`). Revalida el detalle del admin
+  Y la página pública del tenant — esta última con la ruta de archivo
+  real `/t/{slug}/reservar`, no la URL pública, según la nota de
+  `revalidatePath` ya documentada arriba.
+- **Sección "Página de reservas de este negocio"** en
+  `/admin/tenants/[tenantId]`: el MISMO `TemplateBuilder` (canvas, drag
+  & drop, edición en línea) que usa la galería de plantillas, pero
+  guardando en el tenant. Un solo editor, dos destinos.
+- **Orden de arranque del editor**: la copia propia del negocio → la
+  plantilla de su vertical → una página mínima (`hero` + `booking`).
+  El último caso es real (un tenant en una vertical sin plantilla, como
+  `general`) y necesita exactamente un bloque `booking`, que es lo que
+  hace que la página funcione.
+- La sección dice explícitamente si el negocio ya tiene copia propia o
+  sigue mostrando la plantilla compartida — el estado importa y antes
+  era invisible.
+
+**Verificación del aislamiento** (lo que realmente había que probar):
+se editó el título del hero de `test-salon` a "Agenda en Salón de
+Prueba" desde el canvas y se guardó. Después:
+- tenant `test-salon` → "Agenda en Salón de Prueba"
+- tenant `barber` (misma vertical) → "Reserva tu cita", **sin tocar**
+- plantilla `peluqueria` → "Reserva tu cita", **sin tocar**
+- `/t/test-salon/reservar` sirve el título nuevo, con la reserva
+  todavía a 356px del tope y sin overflow.
+
+Nota: `test-salon` quedó con ese título de prueba a propósito, como
+evidencia visible de que la personalización por negocio funciona.
+`tsc` limpio, 30/30 tests.
+
+**Pasada estética de la página del tenant — neutra (2026-09-10, mismo
+día)**: Bruno pidió que la página pública se viera muy bien pero
+neutra. Importante: "neutro" NO podía significar imponer una paleta
+fija — eso revertiría su pivote explícito de "0 colores fijos, los
+colores del panel manejan todo". Significa que el color de marca deja
+de bañar la página y pasa a ser un acento preciso.
+
+- **Se eliminaron TODAS las cuñas decorativas con `clip-path`** (dos
+  en el fondo ambiental de `reservar/page.tsx` + una en el header de
+  respaldo). Cortaban una diagonal dura que se leía como artefacto de
+  render, no como diseño, y repartían color de marca por toda la
+  página. `grep clipPath` en esa ruta y en `BlockRenderer` ahora da 0.
+- **`tenantGlassBackground` de 0.05/0.07/0.09 → 0.012/0.02/0.028.** Una
+  superficie con 9% de color de marca EN TODAS PARTES se lee como una
+  página coloreada, no como una diseñada. Queda una traza mínima, la
+  suficiente para que una tarjeta blanca no se sienta desconectada de
+  la paleta del negocio.
+- **Una sola medida para toda la página**: el `COLUMN` del seed
+  (`maxWidth: 'sm'` → `max-w-2xl`) para todos los bloques de apoyo, y
+  la tarjeta de reserva subió de `max-w-lg` a `max-w-2xl`. Antes los
+  bloques iban a 1152px junto a una tarjeta de 512px y la página se
+  leía como secciones inconexas. Los tenants ya existentes se
+  actualizaron con un script que **solo toca `style.maxWidth`** — los
+  `props` que un negocio ya editó quedaron intactos, porque una
+  pasada cosmética nunca debe reescribir en silencio el texto de
+  alguien.
+- **Una sola elevación**: la tarjeta de reserva es el único elemento
+  con sombra real (dos capas, suave); todo lo demás va plano sobre el
+  fondo con hairlines. En una página con un solo objetivo, una sola
+  superficie debe verse elevada.
+- El eyebrow del header pasó de color de marca a `text-muted`: el
+  acento tiene que significar "esto se presiona".
+
+**Bug propio**: metí un `{/* comentario */}` como primer hijo dentro de
+un `{cond && (...)}`, lo que da dos hijos en un slot que admite una
+expresión — build error `Expected '</', got 'ident'`. Lo detecté
+porque **corrí `grep` en vez de `tsc` después de ese edit**. Regla:
+`tsc --noEmit` después de CADA edición de JSX, sin excepción.
+
+Verificado: `test-salon` (con plantilla) y `spa` (camino de respaldo,
+con logo real) — sin diagonales, sin overflow a 375px ni en desktop,
+reserva accionable a 363px del tope en móvil. `tsc` limpio, 30/30
+tests.
+
+**Segunda pasada de diseño del tenant — "se ve genérico" (2026-09-10,
+mismo día)**: Bruno rechazó la pasada neutra anterior. Tenía razón: lo
+que entregué era *limpio*, y limpio se deslizó a *default* — tarjeta
+blanca con sombra suave, indicador de pasos con círculos numerados,
+divisores hairline. El kit de Tailwind/SaaS que la propia skill
+`frontend-design` marca como el tell principal.
+
+**La causa raíz que no había atacado**: el lenguaje de diseño de cada
+plantilla **se detenía justo antes del formulario de reserva**. La
+parte que todo el mundo mira era Inter idéntico en las seis
+plantillas, sin importar su `typeScale`, su `headingFont` ni nada. Por
+eso seis plantillas distintas se sentían la misma página.
+
+- **Los prompts del flujo son ahora encabezados en la tipografía de la
+  plantilla** (`--tpl-heading-font` / `--tpl-heading-tracking`), y
+  dejaron de ser `<p className="text-sm text-muted">`. Verificado: en
+  `test-salon` (peluquería) "¿Qué te hacemos?" resuelve a **Georgia**,
+  no a Inter.
+- **Se eliminó el indicador ①—②—③—④—⑤.** Era el elemento más genérico
+  de la página y además informaba lo que al cliente no le importa
+  ("vas en el paso 2 de 5") mientras ocultaba lo que sí ("qué llevo
+  elegido"). Lo reemplaza un **rastro de selección**: `Corte · 14 de
+  septiembre · 10:00`, donde cada valor es clickeable para volver a
+  ese paso. Menos cromo, más información.
+- **Consecuencia del rastro: se borraron los tres botones "Cambiar
+  servicio / Cambiar fecha / Cambiar hora"** y la tarjeta que repetía
+  la selección en el paso de datos. Dos caminos de vuelta en la misma
+  vista es desorden, no generosidad.
+- **Servicios: de N tarjetas con N botones a filas donde la fila ES el
+  botón.** El kit de "una card por ítem con su propio CTA" obligaba al
+  cliente a apuntarle a un botón chico cuando la fila entera ya era el
+  objetivo. Ahora: 80px de alto de objetivo táctil, precio alineado en
+  columna con cifras tabulares, y la flecha de affordance aparece solo
+  en hover/focus.
+- **Horarios: de pills con `flex-wrap` a una rejilla real** (3 col
+  móvil / 4 desktop) en formato 24h. Un set de opciones equivalentes
+  se escanea en columnas; el wrapping irregular hace trabajar al ojo
+  sin motivo y ningún scheduler real lo hace.
+
+Verificado recorriendo el flujo completo en vivo: servicio → día →
+hora → datos, con el rastro construyéndose (`Corte · 14 de septiembre
+· 10:00`) y navegando de vuelta al hacer clic en un valor. En móvil
+(375px): sin overflow, fila de servicio de 80px, 18 horarios en
+rejilla con objetivo táctil de 92×42px. `tsc` limpio, 30/30 tests.
+
+**Dashboard del negocio + páginas públicas: pasada de pulido y
+corrección de zona horaria (2026-09-15)**: Bruno pidió "más dedicación
+al frontend de los tenants y dashboards de los clientes, que sea
+perfecto". Dos mitades: rediseño del dashboard, y una auditoría de las
+páginas que ve el cliente final que encontró bugs reales, no solo
+cosmética.
+
+**Bug grave de producción — la hora de las citas salía 6 horas
+corrida.** Todo código de servidor (Server Components, API routes,
+Server Actions) formatea fechas en la zona del PROCESO: en la máquina
+de Bruno es America/Mexico_City (todo se veía bien), en Vercel es UTC.
+Afectaba a:
+- el dashboard (`toLocaleString` en Resumen/Agenda),
+- **"Ver mi cita"** (`date-fns format()` en un Server Component),
+- **el correo de confirmación y el de reagendado**
+  (`toLocaleString` sin `timeZone`): un cliente con cita a las 17:30
+  habría leído "23:30".
+Y del lado del cliente, `BookingFlow` y `RescheduleForm` agrupaban y
+mostraban horarios con el reloj del NAVEGADOR, así que un visitante con
+el teléfono en otra zona veía horas que no existen en el negocio.
+- **`lib/dates/tenantTime.ts`** (nuevo, con tests que corren bajo
+  `TZ=UTC`): `formatTime`, `dayKey`, `addDaysKey`, `dayLabel`
+  ("Hoy"/"Mañana"/"miércoles 23 de septiembre"), `longDate` (nunca
+  relativo — para correos y "Ver mi cita"), `appointmentWhen`
+  ("Miércoles 23 de septiembre, 17:30"), `groupByDay`. Todo contra
+  `tenants.timezone`.
+- **Regla**: ninguna fecha visible se formatea sin `tenants.timezone`.
+  Ni `toLocaleString`, ni `date-fns format()` sobre un instante. La
+  única excepción válida es `format(selectedDate, 'yyyy-MM-dd')` sobre
+  la fecha que el visitante tocó en el calendario (es una fecha de
+  calendario, no un instante).
+- `get_available_slots` interpreta `p_from/p_to` como fechas en la
+  zona del tenant (db/004), así que "hoy" también se calcula con
+  `dayKey(new Date(), timezone)`.
+- **Pendiente fuera de alcance**: `toLocaleDateString` en el panel
+  admin (`app/admin/(panel)/tenants/page.tsx` y `[tenantId]/page.tsx`)
+  — son fechas de alta, no citas, pero es la misma clase de bug.
+
+**Dashboard del negocio rediseñado**: componentes compartidos en
+`components/tenant-dash/` (`PageHeader`, `SectionHeading`, `AgendaList`
+agrupada por día local con columna de hora, `ItemList`/`ItemRow`/
+`ActiveSwitch`/`AddBar`). Resumen muestra checklist de configuración
+solo si falta algo, "Hoy" y "Próximos días". Horario ahora es una
+semana por recurso empezando en lunes, con "Cerrado" en los días sin
+rango. Barra superior móvil real en vez de hamburguesa flotante.
+Neutros hue-neutral en claro (`html:not(.dark) .tenant-dash`).
+
+**Página pública y "Ver mi cita"**:
+- **"Ver mi cita" rediseñada** con la misma piel que la página de
+  reservas (header de identidad, tipografía de la plantilla, una sola
+  tarjeta elevada) en vez de la tarjeta de vidrio centrada con cuña
+  diagonal. Estados: Confirmada / Cancelada / Ya pasó / no encontrada,
+  cada uno con su siguiente paso. `robots: noindex` (la URL da acceso a
+  la cita de alguien).
+- **Citas pasadas ya no se pueden cambiar ni cancelar** — ni en la UI
+  ni en las Server Actions (`.gt('starts_at', now)`).
+- **Reagendar reportaba éxito sin cambiar nada**: un `update` cuyos
+  filtros no matchean ninguna fila no es error para PostgREST, así que
+  una cita cancelada "se reagendaba" y mandaba correo de "tu cita se
+  movió". Ahora `.select('id')` y se revisa que haya fila.
+- El modal de cancelar decía "Cancelar" junto a "Cancelar cita" — la
+  opción segura y la destructiva se leían igual. `ConfirmForm` ganó
+  `dismissLabel` ("No, conservarla").
+- **Pantalla de confirmación de `BookingFlow`**: ya no es una Card
+  dentro de la tarjeta; resume servicio/cuándo/quién y ofrece "Ver o
+  cambiar mi cita" (antes, quien no daba correo no tenía ninguna forma
+  de cambiar o cancelar) y "Agregar a Google Calendar" como `<a>` real
+  (antes `<a><Button/></a>`, HTML inválido). Labels ligados a inputs
+  (`htmlFor`) + `autoComplete` para que el teléfono autocomplete.
+- **Tenants sin plantilla** (`general`) ya no tienen un layout aparte y
+  más viejo: se les arma `[hero header, booking]` y pasan por el mismo
+  `BlockRenderer`.
+- `<title>` por negocio ("Salón · Reserva tu cita"); antes todas las
+  páginas públicas decían "Reservas SaaS".
+- La vista previa del bloque de reserva en el editor mostraba el riel
+  de pasos numerado y tarjetas con "Seleccionar" que el flujo real ya
+  no tiene — ahora refleja el primer paso real.
+
+**Contraste — colores de marca usados sin revisar**:
+- **`.dark .tenant-shell` nunca aplicaba en la página pública**: ahí
+  `dark` y `tenant-shell` van en el MISMO `<main>`, y el selector era
+  de descendiente. El modo oscuro público pintaba el navy de la
+  plataforma, no el oscuro del negocio. Selector ahora es
+  `.dark .tenant-shell, .dark.tenant-shell`.
+- `readableFgRgb` usaba un umbral de luminancia 0.5 que ponía texto
+  blanco sobre tonos medios (magenta: 3.5:1). Ahora elige por ratio de
+  contraste real (`contrastRatio`, cruce ≈ 0.2).
+- `tenantCtaStyle` usaba `primaryColor` como texto del botón siempre;
+  con dos colores oscuros el texto no se leía. Ahora solo si pasa 4.5:1
+  contra ambos extremos del degradado.
+- `legibleBrandText(primary, accent, ground)`: precios, eyebrows,
+  números e íconos de FAQ usaban `primaryColor` como texto — invisible
+  con un primario crema en claro o café en oscuro. Día seleccionado del
+  calendario tenía texto blanco fijo (invisible sobre lima/dorado).
+
+Verificado en vivo: "Ver mi cita" de una cita real de `spa` a las
+23:30 UTC muestra 17:30; reagendar y cancelar de punta a punta con una
+cita de prueba en `test-salon` (DB confirmada: 16:00 UTC = 10:00 local),
+confirmación del flujo público, modo oscuro con `theme_mode` activado y
+revertido. Datos de prueba borrados. `tsc` limpio, 48 tests de `lib/`
+en verde (también con `TZ=UTC`).
+
+**Encontrado, no arreglado**: `npm run lint` está roto desde el upgrade
+a Next 16 (`next lint` ya no existe y ESLint 10 no lee
+`.eslintrc.json`), así que el paso de lint del CI no puede pasar.
+
+**Pasada estética de una hora — teléfono primero (2026-09-15)**: Bruno
+dio una hora con libertad total para lo que "de verdad se note", y a
+media pasada recordó que **la página de reserva se hace para
+teléfono**. Criterio aplicado: arreglar lo que un cliente o un dueño
+ve primero y usa más.
+
+**Página de reserva en teléfono** (verificado a 320, 375 y 800px):
+- **La tarjeta de reserva es una hoja de ancho completo en teléfono**
+  (desde `sm` vuelve a flotar). Antes: 20px de margen de página + 20px
+  de padding de tarjeta por lado → el calendario quedaba en ~295px a
+  375px y **se salía de su marco a 320px**. Ahora todo arranca en el
+  mismo borde de 20px que el header (`MAX_WIDTH_CLASS` pasó a
+  `px-5 sm:px-6` por la misma razón; los headings medían 20/24/49px).
+- **Día y hora lado a lado desde `sm`** (calendario + panel de horas);
+  en teléfono las horas quedan debajo y hacen scroll a la vista. Antes
+  eran dos pantallas: elegir día hacía desaparecer el calendario.
+  Horas agrupadas en Mañana / Tarde / Noche (hora local del negocio).
+- **Calendario rediseñado** (`.booking-calendar` en `globals.css`,
+  scoped): celdas que se reparten el ancho (discos de hasta 44px que se
+  encogen en pantallas chicas), día reservable = disco suave del acento
+  (antes solo negrita + un punto que desalineaba el número), hoy = punto
+  pequeño (antes anillo de acento, lo más ruidoso de la cuadrícula),
+  flechas en tinta (en acento claro desaparecían). `required` en
+  `DayPicker`: volver a tocar el día elegido ya no lo deselecciona.
+- **Inputs a 16px en teléfono** (`Input`/`Select`/textarea, `text-base
+  sm:text-sm`): iOS Safari hace zoom a cualquier campo con texto
+  menor a 16px al enfocarlo. Botones de hora 48px de alto en teléfono.
+- Al elegir hora, el flujo vuelve a la vista si quedó arriba del
+  viewport (el formulario aparecía fuera de pantalla).
+- **Filas de servicio**: chevron siempre visible (antes solo en hover,
+  que no existe en touch, y su espacio vacío desalineaba precios),
+  precio "$300 MXN" en una línea.
+- **Horario y Ubicación** (`HoursSection`/`LocationSection` en
+  `Sections.tsx`): de tarjetas centradas con medallón y sombra (el
+  último resto del lenguaje glass) a filas planas alineadas a la
+  izquierda. "Cómo llegar" arma un link de Google Maps con la dirección
+  si no hay `mapUrl`.
+- **Espaciado fluido** (`RHYTHM_SPACE` con `clamp()`): el mismo hueco
+  de 112px entre secciones en teléfono que en escritorio.
+- `generateViewport` → `themeColor` del fondo del negocio (claro u
+  oscuro): la barra del navegador del teléfono deja de ser gris.
+- Eyebrow del header sigue la caja de la plantilla
+  (`--tpl-heading-transform` + nuevo `--tpl-label-tracking`) en vez de
+  mayúsculas espaciadas siempre.
+
+**La raíz del negocio (`{slug}.dominio/`) mostraba "Pendiente:
+dashboard y página de reserva"**. Ahora `app/t/[slug]/page.tsx`
+re-exporta la página de reserva (con su metadata/viewport).
+
+**Login y "elige contraseña" del dueño** (`components/tenant-dash/
+AuthShell.tsx`): antes índigo de la plataforma, blobs, vidrio y un
+"Iniciar sesión" sin decir de qué negocio. Ahora logo o monograma
+(`BusinessMark`) + nombre, colores del negocio en el botón, ojo para
+mostrar contraseña, `autoComplete` correcto, errores de Supabase
+traducidos (`authErrorMessage` en `app/t/[slug]/actions.ts`; antes se
+mostraba "Invalid login credentials"), y el `?error=` que manda el
+layout del dashboard por fin se muestra. Voseo corregido.
+
+**Dashboard del dueño**:
+- **Sidebar**: de panel de vidrio flotante (radio 28px, sombra índigo,
+  degradado de marca, barra con glow) a superficie tranquila pegada al
+  borde. La marca sigue ahí: monograma/logo + nombre arriba y barra en
+  `bg-primary` en la sección activa. Etiquetas iguales a los títulos de
+  cada página (decía "Recursos"/"Calendario" para "Quién
+  atiende"/"Agenda") y ordenadas por uso. Rol en español, "Ver mi
+  página de reservas", Escape cierra el drawer y bloquea el scroll
+  detrás. `SignOutButton` usaba `ghost-inverse` (texto blanco).
+- **Agenda**: línea roja "Ahora" entre lo que ya pasó y lo que sigue
+  (solo si hay citas a ambos lados), citas pasadas atenuadas, estado
+  como ícono en teléfono (las pills truncaban "Corte y pein…"), y el
+  Resumen ya no repite "Hoy · 3 citas" bajo "Hoy 3 citas".
+- **"Copiar enlace de reservas"** (`CopyLinkButton`) en el Resumen: lo
+  que un dueño hace con su página es pegarla en WhatsApp.
+
+`not-found` del negocio: `<Link><Button>` anidado reemplazado.
+
+Verificado con ruta QA temporal del dashboard (datos falsos, borrada)
+en claro y oscuro, y la reserva real de `test-salon` a 320/375/800px
+(sin overflow, bordes alineados, tap targets medidos). `tsc` limpio,
+59 tests en verde con `TZ=UTC`. **Nota de herramienta**: las capturas
+del panel a anchos de escritorio salen recortadas o viejas; a 375px sí
+son confiables — para escritorio, medir con el DOM.
+
+**Modo oscuro del dashboard: de color sólido a oscuro con tinte + luz
+(2026-09-15)**: Bruno: "no me gusta el color sólido del modo oscuro del
+dashboard". El oscuro pintaba toda la página con el color más oscuro
+de la marca tal cual (olivo plano, café plano): un color saturado a
+escala de pantalla completa pesa y compite con todo lo de encima.
+Esto reemplaza la dirección de "el más oscuro de la selección" de
+agosto; la regla "nunca negro, solo colores del negocio" se mantiene.
+
+- **`tenantDarkPalette()`** (`lib/branding/colors.ts`, reemplaza
+  `darkestOf`/`floorDarkness`): la marca aporta el TONO, no el relleno.
+  Fondo = casi neutro con el matiz del **primario** a saturación ≤14%
+  (L 8.5%); tarjetas (`surface` = `glass`) L 13%; `elevated` L 16.5%.
+  Verde → carbón verdoso, café → carbón cálido. Si el primario es gris,
+  toma el color más saturado de los otros.
+- **`--tenant-dark-glow`**: el **acento** (el color con el que la marca
+  resalta) vuelve como luz, no como pintura: dos `radial-gradient`
+  suaves en `.dark .tenant-shell` (arriba-izquierda 17%, esquina opuesta
+  7%), `background-attachment: fixed`. El sidebar en `lg` pasó a
+  `lg:bg-transparent` para que la luz corra detrás; la barra activa usa
+  el glow en oscuro (el primario café desaparecía sobre el fondo).
+- Ink y muted neutros bajo `.dark .tenant-shell` (los de la plataforma
+  tiraban a lavanda). Como el mismo par de variables alimenta la página
+  pública en `theme_mode = 'dark'` y "Ver mi cita", también cambiaron.
+
+Verificado con ruta QA temporal (borrada) con los colores reales de
+`test-salon` (fondo `rgb(25,24,19)`, luz dorada) y `spa` (fondo
+`rgb(19,25,19)`, luz dorada). Tests de dark reescritos (no es el color
+de marca, conserva temperatura, nunca negro, jerarquía por luminosidad,
+luz del acento). `tsc` limpio, suite completa en verde con `TZ=UTC`.
+
+**Red de vendedores: panel propio + visibilidad en el admin
+(2026-09-17)**: Bruno pidió que los vendedores autorizados tengan su
+propio dashboard para crear páginas/negocios, y que toda su información
+se vea desde el panel interno. Tres decisiones suyas antes de construir:
+alcance **alta completa** (el vendedor crea el negocio, edita su página
+y crea el acceso del dueño), panel en **vendedores.{dominio}**, y
+comisión de **monto fijo en pesos por negocio activo**.
+
+**Hueco de seguridad encontrado al empezar (esto existía desde antes)**:
+NINGUNA Server Action del panel admin verificaba quién la llamaba —
+corrían con `service_role` sin más. Una Server Action es un endpoint
+POST real: cualquier usuario con sesión (el dueño de un negocio, o
+alguien que se registró) podía invocar `setTenantStatus(idAjeno,
+'cancelled')` o `createTenantOwner(idAjeno, …)` si conocía el id de la
+acción. Agregar vendedores (que legítimamente administran ALGUNOS
+tenants) lo volvió imposible de dejar pasar.
+- **`lib/auth/access.ts`** (nuevo): `getActor()` resuelve la sesión a
+  `admin` | `reseller` | null vía `service_role` (ambas tablas son
+  service_role-only por diseño). `requireAdmin()`, `requireReseller()`
+  y `requireTenantManager(tenantId)` (el equipo interno, o el vendedor
+  DUEÑO de ese negocio — nunca uno metiéndose en el de otro).
+- Aplicado: `setTenantStatus`/`setTenantPlan` y las 3 acciones de
+  plantillas → solo admin; `updateTenantBranding`/`updateTenantPage`/
+  `createTenantOwner` → admin o su vendedor; `createTenant` → cualquiera
+  de los dos, y **un vendedor siempre queda acreditado con lo que crea**
+  (no puede atribuirlo a otro).
+
+**`db/016_resellers.sql`** (⚠️ pendiente de correr): tabla `resellers`
+(`user_id` nullable para registrar a alguien antes de que tenga cuenta,
+`commission_mxn` entero en pesos, `active`, `zone`, `notes`) con RLS sin
+policies (service_role only, mismo patrón que `platform_admins`), y
+`tenants.reseller_id` con `on delete set null` — borrar un vendedor
+jamás debe arrastrar negocios reales.
+
+**Panel del vendedor** (`vendedores.{dominio}` → `/vendedor/*` vía
+`proxy.ts`): login propio con la paleta bicho, Resumen (negocios
+traídos, activos, comisión mensual estimada + lista con estado y enlace
+a su página), "Dar de alta un negocio" y el detalle de cada negocio con
+**las mismas tres herramientas del panel interno**: editor de página
+(`TemplateBuilder`), marca (`BrandEditor`) y acceso del dueño
+(`OwnerCreator`). Lo que NO ve: estado/plan, citas, clientes y pagos —
+eso es la relación de bicho con el negocio, no la venta.
+
+**Panel interno**: sección **Vendedores** nueva (lista con negocios,
+activos y comisión por vendedor + totales de la red; detalle con sus
+negocios, edición de datos/comisión, alta/baja con confirmación, y
+creación de su acceso), columna **Vendedor** en la lista de negocios, y
+selector de vendedor en el detalle de cada negocio (para acreditar o
+mover uno que llegó directo).
+
+**`components/tenant-setup/NewBusinessForm.tsx`**: el formulario de alta
+es ahora uno solo para los dos paneles (antes `NewTenantForm` vivía en
+admin). El interno además puede elegir vendedor; el del vendedor no
+muestra ese campo a propósito.
+
+**Bug real encontrado en el camino (afectaba a TODOS los subdominios)**:
+`proxy.ts` reescribía también los archivos de `public/`, así que
+`vendedores.dominio/logo.png` iba a `/vendedor/logo.png` → 404 y el
+wordmark de bicho salía como una placa vacía (el login del admin tenía
+el mismo problema). Confirmado en el navegador (`naturalWidth === 0`).
+Fix: no reescribir rutas con extensión de archivo.
+
+**Tolerancia a la migración sin correr** (mismo patrón defensivo de
+`theme_mode`/`page_blocks`): `/admin/vendedores` muestra "falta correr
+db/016" en vez de tronar, la columna Vendedor de la lista de negocios
+solo aparece si la consulta de atribución funciona (un `reseller_id`
+inexistente da 42703, no 42P01 — por eso la condición es "sin error", no
+"tabla ausente"), y `createTenant` reintenta el insert sin
+`reseller_id`. Verificado en vivo con la migración TODAVÍA sin aplicar:
+la lista de negocios sigue igual y sin columna, y `/admin/vendedores`
+explica qué falta.
+
+Verificado también: `vendedores.localhost:3000` sirve el login (rewrite
+del subdominio), entrar a `/` sin sesión rebota al login, y el logo
+vuelve a cargar tras el fix del proxy. `tsc` limpio, 66 tests en verde
+(6 nuevos de comisiones en `lib/resellers.test.ts`).
+
+**Pendiente de vos**:
+1. Correr `db/016_resellers.sql` en el SQL Editor de Supabase.
+2. Registrar al primer vendedor en `/admin/vendedores` y crearle su
+   acceso (la contraseña la escribes tú, no yo).
+3. Probar el flujo completo entrando como ese vendedor — yo no puedo,
+   no tengo credenciales.
+
+**Corrección del modelo de negocio de la red de vendedores (2026-09-17,
+mismo día)**: lo construido en la mañana asumía que bicho le PAGA una
+comisión al vendedor. Bruno aclaró que es al revés y es un modelo
+mayorista:
+- El vendedor le pone **su propio precio a cada negocio** y le cobra
+  directo, por fuera de la plataforma (efectivo, transferencia, lo que
+  sea). bicho nunca le cobra al negocio.
+- bicho le cobra **al vendedor** un precio fijo por negocio ACTIVO, un
+  día del mes. La ganancia del vendedor es la diferencia.
+
+Cambios:
+- **`db/016_resellers.sql` reescrita** (si todavía no la corriste, usa
+  solo esta): `commission_mxn` → `wholesale_price_mxn`, más
+  `default_retail_price_mxn` (solo para prellenar el formulario del
+  vendedor) y `billing_day` (1-28, para que el día exista todos los
+  meses). `tenants` gana `retail_price_mxn` — el precio que ESE vendedor
+  le puso a ESE negocio, null si el negocio llegó directo.
+- **`db/017_reseller_pricing.sql`** (nueva): la misma migración pero
+  idempotente, para el caso de que ya hubieras corrido la versión vieja
+  de 016. Renombra la columna solo si existe y agrega el resto con
+  `if not exists`.
+- **`lib/resellers.ts`**: `monthlyCommission` → `monthlyDue` (lo que el
+  vendedor te paga), `monthlyRetail` (lo que él cobra) y `monthlyMargin`
+  (lo que le queda, que puede ser NEGATIVO y se muestra en rojo si
+  vendió por debajo del mayoreo — esconderlo sería esconder justo el
+  número que más le importa). Solo cuentan los negocios en estado
+  `active`: uno en prueba no te cuesta ni te paga.
+- **Panel del vendedor**: el Resumen ahora dice "Cobras a tus negocios /
+  Le pagas a bicho / Te queda", marca cuántos negocios activos no tienen
+  precio puesto, y cada negocio muestra su precio. En el detalle hay una
+  tarjeta para fijar el precio (`RetailPriceCard`) que enseña el margen
+  antes de guardar. El alta pide el precio de entrada, prellenado con su
+  precio sugerido.
+- **Panel interno**: la lista de vendedores pasó de "Comisiones al mes"
+  (un costo) a "Te pagan al mes" (un ingreso), con columnas "Te paga /
+  mes" y "Él cobra / mes"; el detalle muestra el día de corte y el
+  margen del vendedor; el formulario pide precio mayorista, día de cobro
+  y precio de venta sugerido. En el detalle de un negocio se ve cuánto
+  le cobra su vendedor.
+- `setTenantRetailPrice` (nueva Server Action) pasa por
+  `requireTenantManager`, así que un vendedor solo puede ponerle precio
+  a sus propios negocios.
+
+`tsc` limpio, 70 tests en verde (10 de precios/márgenes en
+`lib/resellers.test.ts`, incluido el caso de margen negativo).
+
+**Decisiones de Bruno para la parte de pagos** (todavía sin construir):
+1. El negocio le paga al vendedor **por fuera**; la plataforma no cobra
+   ni reparte. Nada de Stripe Connect ni marketplace por ahora.
+2. bicho le cobra al vendedor con **suscripción automática por
+   cantidad**: tarjeta guardada, y el día de corte se cobra
+   `negocios activos × precio mayorista`. Stripe lo hace nativo con
+   cantidad variable; Mercado Pago queda como alternativa local
+   (tarjeta, OXXO, SPEI).
+
+**Landing de bicho: blanco + morado, y un hero nuevo (2026-09-17, mismo
+día)**: Bruno pidió "unos tonos moraditos, deja el blanco como color
+principal", y a media pasada mandó una segunda referencia (un sitio
+editorial de cripto: campo de color saturado, titular gigantesco y
+centrado, tarjetas y flechas verdes rompiendo su borde, sello circular)
+diciendo "me encantó ese estilo, tienes libertad creativa". Después:
+"ese calendario morado de la primera parte no se ve bien".
+
+Lo importante de esta pasada es que **invirtió la página, no la
+recoloreó**. La paleta anterior era teal-dominante: 7 de 11 secciones
+eran una plancha oscura. Cambiar teal por morado habría dado una página
+morada — exactamente lo contrario de lo que pidió. Ahora el blanco es el
+suelo, el morado es el color estructural (CTAs, chips, el hero, dos
+bloques oscuros de puntuación) y el lime se queda tal cual: es el color
+literal del logo, se gasta como chispa y nunca como campo.
+
+- **`components/marketing/tokens.ts`** documenta la paleta nueva
+  (`violet #5B34E8`, `violetInk #1B1040`, `mist #F5F3FC`, `ink #140F2E`,
+  el lime intacto). Sigue sin estar conectada a `tailwind.config.ts` por
+  la misma razón de siempre: esos tokens son de los dashboards.
+- **Regla de contraste que ordenó medio cambio**: el lime NUNCA es texto
+  sobre blanco (~1.4:1). Donde era texto — la palabra acentuada del
+  titular, el nombre del plan, los checks de precios — pasó a morado
+  (6.7:1). Sobre blanco el lime solo existe como relleno con texto
+  oscuro encima. Y el morado necesita DOS grises claros distintos para
+  texto secundario: `#B9B1E6` sobre `violetInk` (8.8:1) pero solo 3.5:1
+  sobre el morado vivo, que por eso usa `#E3DEFA`.
+- **El logo era invisible**: `public/logo.png` son píxeles BLANCOS sobre
+  transparente (verificado muestreando el archivo, no supuesto), así que
+  sobre blanco no se veía nada. `BichoLogo` ganó `tone="ink"`, que lo
+  invierte con un filtro en vez de meter un segundo archivo.
+- **Hero reconstruido** (`Hero.tsx` + `HeroCards.tsx` + `Flourishes.tsx`):
+  campo morado con rejilla tenue, titular en `clamp(2.6rem, 11.5vw,
+  8.5rem)` uppercase, dos tarjetas de producto rotadas rompiendo el
+  borde del texto, dos flechas lime que anotan esas tarjetas, y un sello
+  circular giratorio ("PRUEBA 15 DÍAS · SIN TARJETA"). La sección de
+  abajo lo tapa con una hoja blanca de esquinas redondeadas y margen
+  negativo — eso es lo que hace que el blanco lea como la página y el
+  morado como su apertura.
+- **Se borró `HeroVisual.tsx`**, el mock de producto que llenaba la
+  mitad derecha. Era el "calendario morado" que Bruno señaló: a escala
+  de hero no se podía leer, y obligaba al layout estándar de "copy a la
+  izquierda, screenshot a la derecha". El producto sigue ahí, reducido a
+  dos tarjetas de una línea cada una.
+- **Regla de composición aprendida en el camino**: una tarjeta puede
+  romper el borde del titular, nunca tapar una letra. La primera versión
+  puso una encima de la A y la línea decía "GENDAR POR". Como el texto
+  va centrado, el espacio libre está en los márgenes exteriores junto a
+  las líneas CORTAS (la 1 arriba, la 3 abajo) — ahí van.
+- Títulos de sección a uppercase pesado con `clamp()`, igual que el
+  hero; la primera tarjeta de Funciones pasó de mist a blanca (estaba a
+  6 puntos de su propio fondo y no leía como tarjeta); `MarketingNav`
+  ganó `tone` porque ahora vive sobre morado (home) y sobre blanco
+  (legales), con el par de colores resuelto arriba en vez de
+  condicionales sueltos por el JSX.
+- **NO se pusieron flechas entre las tres tarjetas de Funciones**, que
+  es lo que hace la referencia: ahí las tarjetas son una secuencia
+  ("subscribe → choose → stake") y las de bicho son tres cosas
+  paralelas. Una flecha habría afirmado un orden que no existe.
+- Verificado en vivo a 1280px y a 375px: sin overflow horizontal
+  (`scrollWidth === clientWidth`), titular legible completo, menú móvil
+  blanco sobre el morado, y las tres bandas de color revisadas sección
+  por sección. `tsc` limpio, 97 tests en verde.
+
+**Ajustes del hero pedidos sobre la marcha (mismo día)**: cuatro
+correcciones de Bruno viendo la página ya montada, todas sobre el hero.
+
+- **"Sube los botones de CTA y quita el texto que está hasta abajo"**: el
+  párrafo de apoyo bajo el titular se eliminó y los CTAs subieron. En un
+  monitor ancho ese párrafo empujaba los botones fuera de la primera
+  pantalla — el titular ya dice qué es esto, y la sección de abajo existe
+  para explicarlo. Medido a 1440×900: los botones quedan en y=605 y el
+  hero completo mide 771px, así que titular + CTAs + sello caben en una
+  pantalla. El `pb` del hero bajó de `28/32/40` a `20/24/28`.
+- **"Un poco de glass se ve bien"**: las dos tarjetas del hero pasaron de
+  blanco sólido a `bg-white/70 + backdrop-blur-xl + ring-white/60`. El
+  70% es deliberado: el compuesto sobre el morado deja el texto oscuro
+  cerca de 10:1, mientras que un vidrio de verdad transparente lo tira
+  debajo de AA — y estas dos tarjetas llevan información real, no son
+  decoración.
+- **"Quita la línea verde de hasta arriba"**: `TopBar` (la franja lime con
+  el correo) eliminada de la home y de las páginas legales, y el archivo
+  borrado junto con `focusRingOnLime`, que solo existía para su link.
+  Nada de su contenido se perdió: el correo sigue en el hero y en el
+  footer, y "para peluquerías, spas, consultorios y gimnasios" ya lo dice
+  `TrustSection`. Ahora el morado arranca en el borde superior de la
+  página, con el nav encima, que es como se comporta la referencia.
+- **"Pon algunos elementos cool junto con el texto"**: dos glifos lime en
+  `Flourishes.tsx` — `Sparkle` (estrella de cuatro puntas con lados
+  cóncavos; un rombo de cuatro puntas recto se lee como un signo de más
+  en tamaño chico) y `AsteriskMark`. Van en las esquinas que las tarjetas
+  NO usan, y son la única decoración que sobrevive en teléfono, donde las
+  tarjetas y las flechas desaparecen. Verificado que no tocan el titular:
+  a 1440px el asterisco arranca en x=1194 contra una línea 2 que termina
+  en 1132, y la chispa termina en x=214 contra una línea 3 que arranca en
+  388.
+- **Mini calendario lime** (`MiniCalendar` en `HeroCards.tsx`), pedido
+  después: decoración que resulta ser cierta — esto es un producto de
+  reservas, así que el adorno del hero es un mes con días ya ocupados. Sin
+  nombre de mes ni fechas reales a propósito: un "Septiembre" hardcodeado
+  está mal once meses al año, y a ese tamaño no se lee un número de todas
+  formas; la fila de días de la semana es lo que lo hace legible como
+  calendario. **Tres vueltas de color** hasta quedar en celdas lime fuerte
+  sobre tarjeta violeta oscura: negro sobre lime no le gustó, blanco sobre
+  lime es 1.27:1 (se borraban), y lime sobre lime es invisible. Lime sobre
+  `#1B1040` da ~14:1 y además habla el mismo idioma que los mocks oscuros
+  del resto de la página.
+- **"WhatsApp" volvió a ser lime** en el titular. Esto solo es posible
+  porque el hero ya es morado: lime sobre `#5B34E8` es 5.3:1, pero sobre
+  blanco era 1.4:1 — que es justo por lo que esa palabra se había pasado a
+  morado cuando la página se volvió blanca.
+- **La tarjeta derecha se corrigió por el breakpoint más apretado, no por
+  el más holgado**: a 1024px exactos pisaba la P final de WHATSAPP. El par
+  de tarjetas ahora cuelga por debajo del bloque de tipografía
+  (`-bottom-6`) y en `lg` la derecha se empuja fuera del contenedor
+  (`-right-10`, la sección la recorta). Verificado numéricamente a 1024 y
+  1440: la tarjeta arranca después de donde termina la línea.
+- **La flecha derecha se quedó huérfana** al mover esa tarjeta: seguía
+  apuntando al hueco viejo y terminó encima de las letras de POR. Ahora
+  solo existe desde `xl` (`right-[6rem] top-[9rem]`, volteada): entre
+  1024 y 1279 no hay banda que libre el final de la línea 2 Y alcance la
+  tarjeta al mismo tiempo, y una anotación que aterriza sobre la palabra
+  que quería señalar es peor que ninguna anotación.
+- Esa esquina llegó a tener un aro lime (`Ring`) acompañando al
+  calendario; Bruno lo quitó en cuanto existió el bicho — dos objetos
+  redondos juntos y uno de ellos genérico. El componente se borró con él
+  en vez de quedar como código muerto: el bicho es el único redondo que
+  se queda ahí.
+- **Menú central en cápsula de vidrio** (`MarketingNav`): `bg-white/10` +
+  `backdrop-blur-xl` + radio completo, con cada link como su propia
+  pastilla — dentro de una cápsula tintada un hover que solo cambia el
+  color del texto casi no se nota. Su par para las páginas legales es un
+  susurro de morado, porque blanco sobre blanco desaparece. El header
+  pasó de `justify-between` a un grid `1fr auto 1fr`: con un logo
+  angosto de un lado y un botón ancho del otro, el elemento de en medio
+  quedaba 61px fuera del centro, cosa que nadie nota en links sueltos y
+  todos notan en una cápsula.
+- **`BichoBug`**: el bicho del wordmark (`public/o-bicho.png`, renombrado
+  de "o bicho.png" para no arrastrar un `%20` en las URLs) repetido tres
+  veces alrededor del titular, cada copia con una rotación distinta —
+  tres copias en el mismo ángulo se leen como un asset repetido, en
+  ángulos distintos como objetos dispersos. Es la única decoración del
+  hero que es de bicho (el asterisco, la chispa y el aro son formas que
+  podría usar cualquiera), y por eso es la única que se gana repetirse.
+  Dos de las tres solo existen desde `xl`: a 1024 la izquierda caería
+  sobre la A de AGENDAR y la derecha sobre POR.
+
+**Página de demo real, en vez de un `mailto:` (2026-09-17, mismo día)**:
+Bruno pidió "una página para el botón de agendar una demo". Todos los
+CTA de la landing eran `mailto:` — que en un teléfono abre una app que
+mucha gente no tiene configurada, entrega un mensaje en blanco que el
+visitante tiene que redactar, y deja la bandeja de Bruno como CRM.
+
+- **`app/demo/`**: `page.tsx` (encabezado morado con la misma hoja blanca
+  que lapa sobre él que la home, "Qué pasa después" y el formulario),
+  `DemoForm.tsx` (cliente) y `actions.ts`. En teléfono el formulario va
+  PRIMERO y los tres pasos debajo: son contexto, no una puerta.
+- **`db/019_demo_requests.sql`** (⚠️ pendiente de correr): tabla
+  `demo_requests` con RLS activo y CERO policies — mismo patrón que
+  `platform_admins` y `resellers`, porque estas filas tienen nombre,
+  teléfono y correo de una persona real. Los límites de longitud viven en
+  la base además de en el formulario: una Server Action es un POST real
+  al que se puede llamar sin cargar nunca la página.
+- **Diseño de la entrega, y la parte que importa**: la acción inserta en
+  la tabla Y manda correo (`lib/email/sendDemoRequestNotice.ts`). El
+  correo **reporta si entregó** (a diferencia de
+  `sendBookingConfirmation`, que nunca falla hacia afuera), porque si la
+  migración no está corrida es lo único que separa a un lead del
+  silencio. Si el insert falla pero el correo salió, el formulario dice
+  que sí — el lead no se perdió y no tiene sentido hacer que la persona
+  reescriba todo. Si fallan los dos, muestra el correo de contacto.
+  **Verificado en vivo exactamente en ese caso**: con la tabla ausente
+  (`PGRST205`) el envío terminó en éxito porque `RESEND_API_KEY` ya está
+  configurada — llegó un correo de prueba real a la bandeja de Bruno.
+- **Honeypot** (`website`) en vez de captcha: fuera de pantalla y no
+  `display:none`, porque hay bots que se saltan los campos ocultos. Si
+  viene lleno, la acción devuelve éxito y no guarda nada — decirle al bot
+  qué lo delató solo le ayuda a pasar la próxima vez.
+- **Todos los CTA de demo ahora van a `/demo`**; los de Precios llevan el
+  plan que el visitante estaba viendo (`/demo?plan=…`, validado contra la
+  lista real — lo que venga en el query string y no exista se ignora en
+  vez de reflejarse en la página y en el lead). Siguen siendo `mailto:`
+  a propósito los que dicen "escríbenos" y el de vendedores, que es otra
+  intención.
+- `PillLink` ahora usa `next/link` cuando el href empieza con `/`: un
+  `<a>` a una ruta interna cuesta una carga completa del documento en
+  cada CTA.
+- Verificado a 1280 y 375: sin overflow, campos a 16px (iOS hace zoom
+  debajo de eso), botón de 48px, y la marca del hero reubicada porque
+  dentro del bloque de texto aterrizaba sobre la palabra CON.
+
+**Vista de solicitudes en el panel (mismo día)**: `/admin/solicitudes`
+(`app/admin/(panel)/solicitudes/`), entrada nueva en el sidebar del
+admin. Lista de leads pensada para actuar, no para admirar: teléfono
+como link `tel:` (en un teléfono marca), correo como `mailto:` con
+asunto ya puesto, el mensaje de la persona, y botones de estado que
+dependen del estado actual — ofrecer las cuatro transiciones en cada
+fila convierte la lista en un muro de controles. Borrar sí pide
+confirmación, cambiar de estado no (es reversible de un clic, misma
+regla del resto del panel). Ambas Server Actions pasan por
+`requireAdmin()`: un vendedor no tiene por qué leer estos datos.
+
+- **Bug propio, encontrado por verificar y no por compilar**: `actions.ts`
+  exportaba `DEMO_STATUSES` como constante. En un módulo `'use server'`
+  **todo export tiene que ser una función async**, así que reventaba en
+  "module evaluation" al renderizar — `tsc` pasaba limpio. Las
+  constantes y el tipo viven ahora en `statuses.ts`.
+- Se separó `DemoRequestList.tsx` de la página para poder renderizarla
+  contra fixtures desde una ruta QA temporal (el panel está detrás de un
+  login que Claude no puede pasar). Verificados los tres estados, las
+  fechas en hora local y los botones por estado; ruta borrada al
+  terminar.
+
+`db/019_demo_requests.sql` **ya está aplicada**. Tardó dos intentos: la
+primera vez PostgREST sirvió la tabla para una sola consulta y después
+respondió `PGRST205` de forma consistente. Si vuelve a pasar con otra
+migración, `notify pgrst, 'reload schema';` en el SQL Editor fuerza la
+relectura del esquema.
+
+**Probado de punta a punta con la tabla ya viva**: se llenó el formulario
+real de `/demo?plan=Profesional`, la fila aterrizó en `demo_requests` con
+todos los campos (incluido el plan que venía en el query string), y
+`/admin/solicitudes` la mostró con sus contadores en 1/0/0 y la fecha en
+hora local. Fila de prueba borrada al terminar; la tabla quedó en cero.
+
+**Flujo de reserva reconstruido como proceso guiado de 5 pasos
+(2026-09-17, mismo día)**: Bruno mandó un brief largo de Product/UX
+pidiendo replantear la arquitectura completa del flujo del tenant, con
+una condición explícita: **plantilla reutilizable, sin identidad visual**
+— solo tokens neutros, porque la marca de cada negocio llega después
+como tema.
+
+**Bloqueo que había que resolver antes de escribir una línea**: en modo
+CLARO la página pública no definía `tenantColorCssVars`, solo en oscuro.
+Por eso el flujo viejo pintaba la marca con estilos inline. Ahora las
+variables se ligan en ambos modos (`reservar/page.tsx`), y por eso el
+flujo nuevo **no nombra un solo color**: todo es `primary` / `surface` /
+`paper` / `ink` / `muted` / `border` / `success` / `error`, y cada
+negocio lo retiñe sin tocar un archivo.
+
+Arquitectura (`components/booking/`, un archivo por familia de
+componentes: `types` · `chrome` · `cards` · `dates` · `review` ·
+`states` + el orquestador `BookingFlow`):
+- **5 pasos** (servicio → recurso → fecha → hora → datos) con encabezado
+  fijo, barra de progreso segmentada en móvil y con nombres en
+  escritorio, y "Paso X de N". **El paso de recurso desaparece** cuando
+  el negocio tiene uno solo: preguntar entre una opción es una pregunta
+  sin información. Verificado: `spa` (2 camas) muestra 5 pasos,
+  `test-salon` (1 silla) muestra 4.
+- **Resumen editable bajo el encabezado**: chips con lo ya decidido, cada
+  una abre su paso. Cambiar una decisión conserva las posteriores que
+  siguen siendo válidas — cambiar de servicio sí tira los horarios
+  (cambia la duración), cambiar de recurso conserva el día.
+- **La disponibilidad se carga para TODOS los recursos en paralelo**, no
+  para uno. Es lo que hace posible "cualquiera disponible": muestra la
+  unión de horarios libres, deduplicada por hora de inicio, y al
+  confirmar elige un recurso que de verdad tenga ese hueco. Antes el
+  flujo pedía los slots de un solo recurso, que es la razón por la que
+  esa opción no existía. Además cada recurso muestra su próxima
+  disponibilidad REAL (“Libre desde el miércoles 23 de septiembre”),
+  calculada de los datos, no inventada.
+- **Fecha**: franja de 14 días con disponibilidad por día, y el calendario
+  mensual pasó a ser un bottom sheet opcional con botón “Hoy”.
+- **Hora**: agrupada en “Más pronto” / Mañana / Tarde / Noche, tope de 9
+  visibles y “Ver N horarios más”. **No se llama “Recomendados”**: no
+  hay datos de ranking detrás y el rótulo afirmaría algo que el producto
+  no puede respaldar.
+- **Paso final partido en dos**: tarjeta “Tu reserva” (con Editar por
+  fila) y luego los datos. El formulario valida en vivo pero no muestra
+  errores antes de que toques el campo, el correo dice que es opcional y
+  explica para qué sirve, y las notas van tras un disclosure.
+- **Nada de política de cancelación inventada**: el negocio no tiene una
+  definida (está en los pendientes de este archivo), así que la tarjeta
+  dice lo que SÍ es cierto: que el enlace de la confirmación permite
+  cambiar o cancelar.
+- **Barra de acción fija** en móvil respetando `safe-area-inset-bottom`,
+  que en escritorio se convierte en **panel lateral pegajoso** con
+  resumen, total y acción. Un botón deshabilitado nunca va solo: al lado
+  dice qué falta.
+- **Estados diseñados**: cargando (con esqueletos), error de carga con
+  reintento, día sin horarios (con el siguiente día libre, volver a
+  fechas y pasar a “cualquiera” — nunca un callejón sin salida), horario
+  ocupado durante el proceso (recarga y devuelve al paso de hora),
+  catálogo vacío, y confirmación en pantalla propia con código, agregar
+  al calendario y gestionar la cita.
+- **La selección nunca depende solo del color**: todo control elegido
+  cambia tres cosas a la vez — marca de verificación, borde en `primary`
+  con anillo, y peso tipográfico.
+- `BlockRenderer` dejó de envolver el flujo en una segunda tarjeta (el
+  flujo ya trae su propia superficie) y ensancha a `max-w-4xl` desde
+  `lg`, donde el layout es de dos columnas.
+
+**Dos bugs propios atrapados al verificar**: `h-4.5` no existe en la
+escala de Tailwind (la clase no se genera y el ícono vuelve a su tamaño
+natural), y se me coló un `format()` de date-fns en la barra inferior,
+que formatea con el reloj del NAVEGADOR — exactamente la clase de bug de
+zona horaria que este archivo ya documenta. Ambos corregidos.
+
+Verificado en vivo recorriendo el flujo completo en `spa` a 375px y a
+1280px: los 5 pasos, el resumen editable, la franja de días, los grupos
+de horarios con su tope, la validación del formulario, y una reserva real
+creada y confirmada (código 634C1436) — borrada al terminar junto con su
+cliente. Sin overflow horizontal, botón de 48px, barra visible sin
+scroll. `tsc` limpio, 97 tests en verde.
+
+**Pendiente de decidir**: `resourceLabel` y `location` son props nuevas
+con valores por defecto (“Profesional”, sin ubicación) porque no existen
+en la base. Para `spa`, cuyos recursos se llaman “CAMA” y “CAMA 2”, lo
+correcto sería “Cabina” — hace falta una columna en `tenants` y un
+campo en el panel para que cada negocio elija cómo se llama lo que
+reserva.
+
+**La agenda del dueño ahora es editable (2026-09-17, mismo día)**: se le
+señalaron a Bruno tres huecos del lado del operador y pidió resolverlos.
+Son el mismo problema: el dueño podía mirar su agenda pero no tocarla,
+mientras el cliente final sí podía moverla desde su enlace.
+
+1. **Agendar a mano** (`createStaffBooking`): la clienta que llama o llega
+   al local. Sin esto el dueño lleva una libreta en paralelo, el sistema
+   ve medio día, y el siguiente visitante en línea reserva encima de una
+   cita real — que es justo lo único que el producto promete evitar.
+   Usa `create_booking` (la misma función atómica del flujo público, que
+   es `service_role` only), así que la acción **verifica membresía
+   explícitamente** con `requireTenantStaff` (`lib/auth/tenantStaff.ts`) y
+   comprueba que el recurso y el servicio sean de ESE negocio: la RPC
+   recibe el `tenant_id` por parámetro y se fía de él.
+2. **Bloqueos** (`db/020_schedule_blocks.sql`, ⚠️ pendiente de correr):
+   tabla `schedule_blocks` con `resource_id` nullable (NULL = todo el
+   negocio, para que un festivo sea una fila y no una por silla) y, lo
+   importante, **`get_available_slots` ahora también resta los bloqueos**.
+   Un bloqueo que la página pública no respetara no sería un bloqueo.
+3. **Reagendar desde el panel**: la lógica de mover una cita (futura,
+   confirmada, el constraint de exclusión, el correo de aviso) se extrajo
+   a `lib/bookings/reschedule.ts` y ahora la comparten el enlace público y
+   el dashboard, en vez de vivir duplicada — esa función ya había
+   producido un bug silencioso una vez (una cita cancelada "se movía" y
+   mandaba correo).
+
+- **`instantFromLocal`** (`lib/dates/tenantTime.ts`, con 4 tests): la
+  inversa de todo lo demás del archivo. El dueño teclea "25/12, 14:00" en
+  hora local y la columna es `timestamptz`; `new Date('...T14:00')` se
+  resolvería contra la zona del PROCESO — UTC en Vercel — y habría
+  guardado un bloqueo de 2pm como 8am, liberando exactamente las horas que
+  quería cerrar. Probado contra México y contra Madrid en invierno y
+  verano (cambio de horario).
+- **`SlotPicker`** (`components/tenant-dash/`) es compartido por agendar y
+  reagendar, y pregunta por los huecos libres a la MISMA función que la
+  página pública. Cualquier otro camino sería reintroducir el
+  doble-booking por la puerta de atrás.
+
+**Bug propio encontrado al verificar**: el `<select>` de día arrancaba en
+"hoy", pero un `<select>` cuyo value no coincide con ninguna opción
+muestra la PRIMERA — así que decía "23 de septiembre" mientras el
+componente seguía pensando que el día era hoy, y no aparecía ni un
+horario. Ahora, al cargar, cae en el primer día con huecos.
+
+Verificado con ruta QA temporal (borrada) contra los datos reales de
+`spa`: el formulario carga 18 horarios reales, arma "Vas a agendar el
+Miércoles 23 de septiembre, 10:00", y los bloqueos de ejemplo se leen
+como "Viernes 25 de diciembre, todo el día" y "Viernes 2 de octubre, de
+14:00 a 17:00" — o sea la conversión de zona horaria cuadra en los dos
+sentidos. `tsc` limpio, 101 tests en verde.
+
+`db/020_schedule_blocks.sql` **ya está aplicada y verificada de punta a
+punta** contra los datos reales de `spa`:
+- Bloqueo de todo el negocio por un día: 144 huecos → 126, exactamente
+  los 18 de ese día. Al borrar el bloqueo, vuelve a 144.
+- Bloqueo de UN solo recurso: CAMA 18→0, CAMA 2 17→17 — el alcance por
+  recurso funciona, no cierra el negocio entero.
+- Con el bloqueo puesto, la página pública marca ese día como "Sin
+  horarios" y no deja elegirlo; al quitarlo vuelve a estar disponible.
+- La tabla quedó en cero: los bloqueos de prueba se borraron.
+
+Lo único que NO se pudo probar con sesión real son las policies de RLS de
+`schedule_blocks` (las pruebas corrieron con `service_role`, que las
+salta). Siguen el mismo patrón que `resource_schedules`, ya probado.
+
+**WhatsApp como extra prendible por negocio (2026-09-18)**: Bruno pidió
+implementarlo como un extra que se active y desactive con un botón desde
+el panel de admin y el de vendedores. Antes calculamos el costo: tarifa
+de utilidad en México **MX$0.15–0.20 por mensaje**, así que un negocio con
+3–5 citas al día gasta **MX$25–50 al mes** solo en confirmaciones. Desde
+el **1-oct-2026** Meta también cobra las plantillas de utilidad dentro de
+la ventana de 24 h; para este caso de uso casi no cambia nada, porque las
+confirmaciones salen cuando el cliente no está chateando y ya se cobraban.
+
+- **`db/021_whatsapp_addon.sql`** (⚠️ pendiente de correr):
+  `tenants.whatsapp_enabled` (default **false**) y la tabla
+  `whatsapp_messages` — un renglón por intento, incluidos los fallidos y
+  los omitidos con su motivo. Sin ese registro, "WhatsApp" es una línea
+  en una factura que nadie puede justificar; con él, el panel dice cuántos
+  mensajes van este mes y cuánto cuestan. RLS sin policies (service_role
+  only): la tabla guarda teléfonos de clientes.
+- **`lib/whatsapp/send.ts`**: Cloud API directo, sin BSP. Tres guardas
+  antes de gastar un peso — el flag del negocio, las credenciales de la
+  plataforma, y un teléfono marcable — y cada una que corta deja el
+  motivo en el log. **Nunca lanza**: la cita ya existe en Postgres cuando
+  esto corre. `toE164Mx` normaliza lo que la gente teclea de verdad
+  ("618 123 4567", "+52…", el viejo prefijo 521) y devuelve null en vez
+  de mandar al vacío; 4 tests.
+- **El interruptor** (`components/tenant-setup/WhatsappToggle.tsx`) es el
+  mismo componente en los dos paneles, con una frase distinta según quién
+  mira ("Costo aprox. en Meta" para el equipo, "Te cuesta aprox." para el
+  vendedor). La acción `setTenantWhatsapp` pasa por `requireTenantManager`,
+  así que un vendedor solo puede prenderlo en los negocios que él trajo —
+  es un interruptor de cobro, no una preferencia.
+- **`/api/reservar`** lee el flag en una consulta aparte, para que una base
+  sin la migración se comporte como "extra apagado" en vez de tumbar cada
+  reserva. Verificado: con `db/021` sin correr, una reserva real se creó y
+  se confirmó igual.
+- **`WHATSAPP_SETUP.md`** (nuevo) tiene lo que no se puede automatizar:
+  verificación del negocio en Meta, número emisor, token de System User
+  (no el temporal de 24 h), y la plantilla con sus **cinco variables en
+  orden exacto** — el código las manda posicionalmente, así que si se
+  reordenan en Meta hay que reordenarlas en `send.ts`.
+- **Decisión documentada ahí**: un solo número de bicho para todos los
+  negocios (el nombre del negocio viaja como variable), y **nada de BSP**
+  por ahora: su cuota mensual por número (MX$500–1,000) cuesta más que
+  todos los mensajes juntos.
+
+Verificado con ruta QA temporal (borrada): las tres variantes del
+interruptor — apagado, activo con 212 mensajes y MX$42.40 estimados, y el
+aviso de migración faltante. `tsc` limpio, 105 tests en verde.
+
+`db/021_whatsapp_addon.sql` **ya está aplicada y el interruptor está
+probado de punta a punta** contra `spa`:
+- Con el extra **encendido**, una reserva real quedó confirmada y dejó un
+  renglón en `whatsapp_messages`: `kind=confirmation`,
+  `to_phone=526181112233` (normalizado desde "618 111 2233"),
+  `status=skipped`, `error="WhatsApp no configurado en la plataforma"`.
+  O sea: leyó el flag, normalizó el teléfono, se detuvo en la guarda de
+  credenciales y lo dejó explicado — sin tocar la reserva.
+- Con el extra **apagado**, otra reserva real no generó **ningún**
+  renglón. Un negocio que no paga el extra no acumula ni registros.
+- Datos de prueba borrados; `spa` quedó con el extra apagado.
+
+**Pendiente de vos**: lo de Meta que está en `WHATSAPP_SETUP.md`
+(verificación, número, token de System User y la plantilla). Hasta
+entonces cada envío queda como `skipped` con su motivo.
+
+**Lo que NO incluye esta pieza**: los recordatorios. Necesitan ejecución
+programada (un cron de Vercel que cada hora busque las citas de mañana),
+que es una pieza aparte con su propio riesgo — un cron mal hecho manda
+el mismo recordatorio dos veces, y eso son mensajes cobrados de más.
+
+**Plantillas: el editor hablaba en idioma de diseñador (2026-09-18)**:
+Bruno: "son 0 intuitivas, no se entiende nada", y el objetivo que lo
+ordena todo — **lo tiene que poder usar un vendedor**, que no ve código.
+Decidió expresamente conservar TODO el poder actual (composición,
+variantes, estilos): el problema no era el alcance, era que no se
+entendía.
+
+- **Vocabulario**. Los nombres eran los del sistema de layout:
+  "Llamada a la acción", "Lista de características", "Imagen + texto",
+  "Separador". Ahora dicen lo que la sección ES para el negocio:
+  "Invitación a reservar", "Por qué elegirnos", "Foto con texto al lado",
+  "Espacio en blanco". Y las variantes pasaron de jerga de dirección de
+  arte ("Editorial", "Minimal", "Overlay") a describir lo que vas a ver
+  ("Título enorme a la izquierda", "Foto de fondo con el texto encima").
+- **`BLOCK_HINTS`**: una línea bajo cada nombre, para saber qué hace una
+  sección ANTES de agregarla en vez de agregarla para averiguarlo.
+- **`BLOCK_GROUPS`**: la paleta pasó de quince opciones en una columna
+  plana a cuatro grupos por intención (Lo importante · Para convencer ·
+  Datos prácticos · Formato). Y los nombres dejaron de truncarse:
+  "Galería de imág…" no es un nombre.
+- **34 campos del inspector ganaron etiqueta persistente.** Llevaban su
+  nombre solo en el `placeholder`, que desaparece justo cuando escribes
+  — así que una sección a medio llenar era una pila de cajas anónimas.
+  Es el cambio que más pesa de todos.
+- **Portadas de la galería**: eran un emoji (💇 🦷 🎾) sobre una banda de
+  color, que repetía el giro que el nombre ya decía y no contaba nada de
+  cómo se ve la plantilla — que es lo único que estás eligiendo. Ahora la
+  tarjeta renderiza **una miniatura viva de la propia plantilla**, y
+  `db/022_template_cover.sql` (⚠️ pendiente) agrega `cover_image_url`
+  para poner una foto real cuando exista. Nada de fotos de stock: una
+  foto de desconocidos en la plantilla de un negocio real da a entender
+  que son sus clientes, y la miniatura además no se puede quedar vieja,
+  porque ES la plantilla.
+
+**Bug real que encontró Bruno y que estaba en las SEIS plantillas**: la
+vista previa del bloque de reserva mostraba "¿Qué te hacemos? / Corte de
+cabello / $300" — datos de peluquería quemados en `BlockRenderer`. En la
+plantilla de pádel se leía absurdo. Ahora la previa toma los servicios de
+la sección "Servicios y precios" **de esa misma página**, y si no hay
+ninguna cae en un marcador neutro ("Tu primer servicio · $—") en vez de
+inventarle un giro. El encabezado pasó de "¿Qué te hacemos?" (de
+peluquería) a "Elige un servicio".
+
+**Incidente durante el trabajo**: un `re.sub` para envolver los campos no
+matcheó nada porque el patrón usaba `[^>]*?`, y cada input tiene una
+función flecha en sus props — el `>` de `=>` cerraba la clase de
+caracteres. Al reintentar con la ruta mal escrita, el script corrió dos
+veces y duplicó un componente. Se restauró del respaldo que se había
+hecho ANTES de tocar el archivo (1727 líneas) y se rehizo con
+`.*?` + `re.DOTALL`. **Lección**: antes de correr un regex sobre un
+archivo grande, `cp` a un respaldo; y en un heredoc de bash, las rutas
+`/c/...` no existen para Python en Windows.
+
+Verificado en vivo contra las plantillas reales: la paleta agrupada, los
+nombres nuevos, las 34 etiquetas, las portadas con miniatura, y la previa
+de pádel ya sin "Corte de cabello". La página pública sigue intacta
+(`test-salon` carga su flujo con "Corte · 30 min · $300" real). `tsc`
+limpio, 105 tests en verde.
+
+**Pendiente de vos**: correr `db/022_template_cover.sql` si quieres poder
+poner fotos de portada. Sin eso la galería funciona igual, con la
+miniatura.

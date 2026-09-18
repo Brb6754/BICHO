@@ -4,6 +4,8 @@ import {
   lightenHex,
   toRgbTriplet,
   readableFgRgb,
+  tenantCtaStyle,
+  legibleBrandText,
   withAlpha,
   tenantGlassBackground,
   tenantColorCssVars,
@@ -59,6 +61,21 @@ describe('readableFgRgb', () => {
 
   it('picks white text for a dark background', () => {
     expect(readableFgRgb('#0E3B2C')).toBe('255 255 255');
+  });
+
+  it('picks near-black on a mid-tone color where white fails AA', () => {
+    // White on #DF4BE2 is ~3.5:1; near-black is ~6:1.
+    expect(readableFgRgb('#DF4BE2')).toBe('17 24 21');
+  });
+});
+
+describe('tenantCtaStyle', () => {
+  it('keeps the brand primary as ink when it is legible on the accent', () => {
+    expect(tenantCtaStyle('#0E3B2C', '#8FE24A').color).toBe('#0E3B2C');
+  });
+
+  it('falls back to a readable ink when primary and accent are both dark', () => {
+    expect(tenantCtaStyle('#0E3B2C', '#1E3A8A').color).toBe('rgb(255 255 255)');
   });
 });
 
@@ -134,56 +151,64 @@ describe('tenantColorCssVars', () => {
   });
 });
 
-describe('tenantDarkBase / tenantDarkModeCssVars — "darkest, except pure black"', () => {
-  it('anchors to the darkest color when none of them are pure black', () => {
-    // #0E3B2C is darker than #0A2E22... actually reverse this to be
-    // unambiguous: primary lighter, secondary darkest, accent lightest.
-    const base = tenantDarkBase('#EAD4AE', '#0E3B2C', '#445407');
-    // darkest of the three (excluding black) is the deep green primary
-    // shade — confirm it's anchored there, not to the lightest (cream)
-    // or the mid-tone (olive).
-    const vars = tenantDarkModeCssVars('#EAD4AE', '#0E3B2C', '#445407');
-    expect(vars['--tenant-dark-paper']).toBe(toRgbTriplet('#0E3B2C'));
-    expect(base).not.toBe('#EAD4AE');
+describe('tenantDarkModeCssVars — brand hue, not brand fill', () => {
+  const triplet = (v: string) => v.split(' ').map(Number) as [number, number, number];
+  const lum = ([r, g, b]: [number, number, number]) => (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+  const chroma = ([r, g, b]: [number, number, number]) => Math.max(r, g, b) - Math.min(r, g, b);
+
+  it('is a deep near-neutral, not the brand color as a solid fill', () => {
+    // Bruno rejected an olive tenant getting a flat olive screen.
+    const paper = triplet(tenantDarkModeCssVars('#EAD4AE', '#000000', '#445407')['--tenant-dark-paper']);
+    expect(paper).not.toEqual(triplet(toRgbTriplet('#445407')));
+    expect(lum(paper)).toBeLessThan(0.1);
+    expect(chroma(paper)).toBeLessThanOrEqual(8);
   });
 
-  it('skips pure black and anchors to the next-darkest color instead', () => {
-    // Real production case found this session: a tenant's secondary
-    // color was exactly #000000 — anchoring dark mode to flat black
-    // throws away all brand identity, so darkestOf() must skip it.
-    const vars = tenantDarkModeCssVars('#EAD4AE', '#000000', '#445407');
-    expect(vars['--tenant-dark-paper']).toBe(toRgbTriplet('#445407'));
-    expect(vars['--tenant-dark-paper']).not.toBe(toRgbTriplet('#000000'));
+  it('keeps the brand temperature: a warm brand gives a warmer dark than a cool one', () => {
+    const warm = triplet(tenantDarkModeCssVars('#C9A84C', '#4A5D23', '#C9A84C')['--tenant-dark-paper']);
+    const cool = triplet(tenantDarkModeCssVars('#1E3A8A', '#0F1E4A', '#3B82F6')['--tenant-dark-paper']);
+    expect(warm[0] - warm[2]).toBeGreaterThan(cool[0] - cool[2]);
   });
 
-  it('never renders as black, even if literally every assigned color is black', () => {
-    // Real ask this session: a tenant's dark mode must never show a
-    // black background, and must only ever be built from colors the
-    // tenant actually entered (no platform-default color standing in).
-    // With every input at or near #000000 there's no non-black color
-    // left to prefer, so floorDarkness() must lift the chosen base
-    // itself rather than pass through true black.
+  it('never renders as black, even if every assigned color is black', () => {
     const vars = tenantDarkModeCssVars('#000000', '#010101', '#000000');
-    const [r, g, b] = vars['--tenant-dark-paper'].split(' ').map(Number);
-    expect(Math.max(r, g, b)).toBeGreaterThanOrEqual(24);
+    expect(Math.max(...triplet(vars['--tenant-dark-paper']))).toBeGreaterThanOrEqual(18);
   });
 
-  it('floors a genuinely dark (but not pure black) tenant color too', () => {
-    // The more common real case: not literal #000000, just a very dark
-    // color a tenant actually picked (e.g. a near-black "premium" navy)
-    // — darkestOf() has no reason to skip it (it has real hue), but
-    // left completely unmodified it would still render as black on
-    // screen. floorDarkness() must lift it regardless.
-    const vars = tenantDarkModeCssVars('#EAD4AE', '#141008', '#445407');
-    const [r, g, b] = vars['--tenant-dark-paper'].split(' ').map(Number);
-    expect(Math.max(r, g, b)).toBeGreaterThanOrEqual(24);
+  it('lifts cards off the page by lightness: paper < surface = glass < elevated', () => {
+    const v = tenantDarkModeCssVars('#0E3B2C', '#0A2E22', '#8FE24A');
+    const L = (k: string) => lum(triplet(v[k]));
+    expect(L('--tenant-dark-paper')).toBeLessThan(L('--tenant-dark-surface'));
+    expect(v['--tenant-dark-glass']).toBe(v['--tenant-dark-surface']);
+    expect(L('--tenant-dark-surface')).toBeLessThan(L('--tenant-dark-elevated'));
   });
 
-  it('each step lightens progressively — paper < surface < elevated < glass', () => {
-    const vars = tenantDarkModeCssVars('#0E3B2C', '#0A2E22', '#8FE24A');
-    const sum = (triplet: string) => triplet.split(' ').reduce((a, b) => a + Number(b), 0);
-    expect(sum(vars['--tenant-dark-paper'])).toBeLessThan(sum(vars['--tenant-dark-surface']));
-    expect(sum(vars['--tenant-dark-surface'])).toBeLessThan(sum(vars['--tenant-dark-elevated']));
-    expect(sum(vars['--tenant-dark-elevated'])).toBeLessThan(sum(vars['--tenant-dark-glass']));
+  it('lights the ground with the accent: a green brand with a gold accent glows gold', () => {
+    const v = tenantDarkModeCssVars('#2C5E32', '#ACB07D', '#E2B93B');
+    const glow = triplet(v['--tenant-dark-glow']);
+    const paper = triplet(v['--tenant-dark-paper']);
+    expect(chroma(glow)).toBeGreaterThan(80);
+    expect(glow[0]).toBeGreaterThan(glow[2]); // gold, not blue
+    expect(paper[1]).toBeGreaterThanOrEqual(paper[0]); // ground keeps the green primary's hue
+  });
+
+  it('tenantDarkBase matches the elevated token', () => {
+    const v = tenantDarkModeCssVars('#EAD4AE', '#0E3B2C', '#445407');
+    expect(toRgbTriplet(tenantDarkBase('#EAD4AE', '#0E3B2C', '#445407'))).toBe(v['--tenant-dark-elevated']);
+  });
+});
+
+describe('legibleBrandText', () => {
+  it('uses the primary when it reads on the ground', () => {
+    expect(legibleBrandText('#0E3B2C', '#8FE24A', '#F7F6F3')).toBe('#0E3B2C');
+  });
+
+  it('skips a cream primary on a light page', () => {
+    // #EAD4AE on #F7F6F3 is ~1.3:1; the olive accent reads.
+    expect(legibleBrandText('#EAD4AE', '#445407', '#F7F6F3')).toBe('#445407');
+  });
+
+  it('falls back to the ink token when no brand color reads', () => {
+    expect(legibleBrandText('#3A2A20', '#4A3526', '#2E150A')).toBe('rgb(var(--color-ink))');
   });
 });

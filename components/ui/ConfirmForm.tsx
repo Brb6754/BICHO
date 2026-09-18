@@ -13,6 +13,7 @@ export function ConfirmForm({
   confirmTitle,
   confirmMessage,
   confirmLabel = 'Confirmar',
+  dismissLabel = 'Cancelar',
   triggerVariant = 'danger',
   triggerClassName = '',
   children,
@@ -21,6 +22,11 @@ export function ConfirmForm({
   confirmTitle: string;
   confirmMessage: string;
   confirmLabel?: string;
+  // The label of the button that closes the modal without acting. Pass
+  // something explicit when the action itself is a cancellation: a
+  // "Cancelar" button next to "Cancelar cita" makes the safe choice and
+  // the destructive one read the same.
+  dismissLabel?: string;
   triggerVariant?: 'primary' | 'secondary' | 'ghost' | 'ghost-inverse' | 'outline' | 'danger' | 'success';
   triggerClassName?: string;
   children: React.ReactNode;
@@ -39,7 +45,7 @@ export function ConfirmForm({
         <p className="text-sm text-muted">{confirmMessage}</p>
         <div className="mt-5 flex justify-end gap-2">
           <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
-            Cancelar
+            {dismissLabel}
           </Button>
           <Button
             type="button"

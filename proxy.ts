@@ -55,13 +55,28 @@ export async function proxy(request: NextRequest) {
   const subdomain = extractSubdomain(host);
   const { pathname } = request.nextUrl;
 
-  if (!subdomain || pathname.startsWith('/api')) {
+  // A path with a file extension is a static file from public/ (logo.png,
+  // robots.txt, ...), not a page. Rewriting those sent
+  // vendedores.dominio/logo.png to /vendedor/logo.png, which doesn't
+  // exist — the bicho wordmark was silently 404ing on every subdomain
+  // (the admin login too), showing an empty plaque. _next/* is already
+  // excluded by the matcher below; this covers the rest of public/.
+  const isStaticFile = /\.[a-zA-Z0-9]+$/.test(pathname);
+
+  if (!subdomain || isStaticFile || pathname.startsWith('/api')) {
     // API routes are shared infrastructure, not tenant pages — they stay
     // at their literal top-level path regardless of subdomain.
     return response;
   }
 
-  const rewritePath = subdomain === 'admin' ? `/admin${pathname}` : `/t/${subdomain}${pathname}`;
+  // Three kinds of subdomain: the internal team's panel, the sales-rep
+  // panel (db/016), and everything else, which is a business.
+  const rewritePath =
+    subdomain === 'admin'
+      ? `/admin${pathname}`
+      : subdomain === 'vendedores'
+        ? `/vendedor${pathname}`
+        : `/t/${subdomain}${pathname}`;
   const rewritten = NextResponse.rewrite(new URL(rewritePath, request.url), { request });
 
   // Carry over whatever session cookies got refreshed above onto the

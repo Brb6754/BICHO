@@ -76,14 +76,36 @@ function relativeLuminance(hex: string): number {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
 
+// WCAG contrast ratio between two colors (1 = identical, 21 = black on
+// white). 4.5 is the AA minimum for normal-size text.
+export function contrastRatio(a: string, b: string): number {
+  const la = relativeLuminance(a);
+  const lb = relativeLuminance(b);
+  return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+}
+
+const NEAR_BLACK = '#111815';
+
 // The readable foreground for text/icons sitting directly on `hex` —
 // "255 255 255" (white) or a near-black, as an "R G B" triplet ready
-// for a CSS var. 0.5 is a deliberately simple threshold (not full WCAG
-// contrast-ratio math against every possible background) — good enough
-// to pick the right side for any real brand color without needing to
-// know the exact alpha/blur it'll be composited through.
+// for a CSS var. Picks whichever of the two actually has the higher
+// contrast ratio. This used to be a flat "luminance > 0.5" split, which
+// put WHITE text on mid-tone brand colors — a magenta like #DF4BE2 got
+// 3.5:1 in white where near-black gives 6:1. The real crossover sits
+// near luminance 0.2, not 0.5.
 export function readableFgRgb(hex: string): string {
-  return relativeLuminance(hex) > 0.5 ? '17 24 21' : '255 255 255';
+  return contrastRatio(hex, NEAR_BLACK) >= contrastRatio(hex, '#FFFFFF') ? '17 24 21' : '255 255 255';
+}
+
+// A brand color to use as TEXT (a price, an eyebrow, an icon) on a given
+// ground. The tenant's primary is preferred, then its accent; if neither
+// reaches 4.5:1 it falls back to the page's ink token. Brand colors were
+// used as text unconditionally, so a cream primary made every price
+// invisible on a light page, and a brown one did the same on a dark page.
+export function legibleBrandText(primaryColor: string, accentColor: string, ground: string): string {
+  if (contrastRatio(primaryColor, ground) >= 4.5) return primaryColor;
+  if (contrastRatio(accentColor, ground) >= 4.5) return accentColor;
+  return 'rgb(var(--color-ink))';
 }
 
 // A translucent version of a hex color — the "tint" used for glass
@@ -130,7 +152,15 @@ export function tenantGlassBackground(
   level: 1 | 2 | 3 = 2,
   darkBase?: string
 ): string {
-  const tint = { 1: 0.05, 2: 0.07, 3: 0.09 }[level];
+  // Deliberately almost neutral. These values used to be 0.05/0.07/
+  // 0.09, which tinted every card on the page with the brand colour —
+  // and a surface that is 9% brand everywhere reads as a coloured
+  // page, not as a designed one. Colour now belongs to the things a
+  // visitor acts on (the CTA, the selected slot, the active step);
+  // surfaces are paper, separated by hairlines and one soft shadow.
+  // The trace of tint that remains is what keeps a white card from
+  // looking clinically detached from the tenant's palette.
+  const tint = { 1: 0.012, 2: 0.02, 3: 0.028 }[level];
   const blend = mixHex(primaryColor, accentColor, 0.6);
   return mixHex(blend, darkBase ?? '#FFFFFF', tint);
 }
@@ -138,9 +168,16 @@ export function tenantGlassBackground(
 // Same two-stop gradient + colored glow used for primary CTAs, built
 // from this tenant's own accent color instead of a fixed platform hue.
 export function tenantCtaStyle(primaryColor: string, accentColor: string): { background: string; color: string; boxShadow: string } {
+  const end = darkenHex(accentColor, 25);
+  // Text sits on a gradient, so check it against the darker end too.
+  // The tenant's primary is the preferred ink (it keeps the button
+  // on-brand), but only when it's actually legible on BOTH ends — two
+  // dark brand colors, or indigo on cyan, used to produce a button whose
+  // label you had to squint at. Otherwise fall back to black or white.
+  const onBrand = Math.min(contrastRatio(primaryColor, accentColor), contrastRatio(primaryColor, end)) >= 4.5;
   return {
-    background: `linear-gradient(135deg, ${accentColor}, ${darkenHex(accentColor, 25)})`,
-    color: primaryColor,
+    background: `linear-gradient(135deg, ${accentColor}, ${end})`,
+    color: onBrand ? primaryColor : `rgb(${readableFgRgb(mixHex(accentColor, end, 0.5))})`,
     boxShadow: `0 10px 26px ${withAlpha(accentColor, 0.35)}`,
   };
 }
@@ -171,78 +208,116 @@ export function tenantColorCssVars(
   };
 }
 
-// Whichever of a tenant's colors is visually darkest — used below to
-// pick which one anchors the dashboard's dark-mode page background.
-// Pure (or near-pure) black is skipped on purpose: a tenant's
-// "darkest" color is sometimes literally #000000 (a default/unset
-// pick, or just a genuine choice), and anchoring the whole page
-// background to flat black throws away the tenant's actual hue —
-// black has no identity of its own. Falls back to considering black
-// anyway only if it's truly the tenant's only color (all three would
-// otherwise be near-black), so this never crashes on an edge case.
-function darkestOf(colors: string[]): string {
-  const withHue = colors.filter((c) => relativeLuminance(c) > 0.005);
-  const pool = withHue.length > 0 ? withHue : colors;
-  return pool.reduce((darkest, c) => (relativeLuminance(c) < relativeLuminance(darkest) ? c : darkest));
+// ── DARK MODE ───────────────────────────────────────────────────────
+// Dark mode used to paint the page with the tenant's darkest brand color
+// as-is: an olive tenant got a flat olive screen, a purple one a flat
+// purple screen. A saturated color at full-page scale reads as a heavy
+// solid slab (Bruno: "no me gusta el color sólido"), and it fought every
+// piece of content on top of it.
+//
+// Now the brand gives dark mode its HUE, not its fill. The ground is a
+// deep, nearly neutral dark carrying a small amount of that hue (so an
+// olive business gets a warm charcoal, a navy one a cool charcoal), and
+// the brand color itself returns as a soft glow at the top of the page
+// (--tenant-dark-glow, drawn in globals.css). Still built only from the
+// tenant's own colors, still never black.
+
+function rgbToHsl([r, g, b]: [number, number, number]): [number, number, number] {
+  const rn = r / 255;
+  const gn = g / 255;
+  const bn = b / 255;
+  const max = Math.max(rn, gn, bn);
+  const min = Math.min(rn, gn, bn);
+  const l = (max + min) / 2;
+  if (max === min) return [0, 0, l];
+  const d = max - min;
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+  let h: number;
+  if (max === rn) h = (gn - bn) / d + (gn < bn ? 6 : 0);
+  else if (max === gn) h = (bn - rn) / d + 2;
+  else h = (rn - gn) / d + 4;
+  return [h * 60, s, l];
 }
 
-// The lowest we'll ever let a tenant's dark-mode base color go — dark
-// mode's whole background/card stack is built entirely from the
-// tenant's own primary/secondary/accent (never a platform default),
-// but nothing stops a tenant from actually picking near-black or pure
-// #000000 as one (or all) of those. Anchoring dark mode to that
-// unmodified would render as a literally black page, which reads as
-// broken/unstyled rather than "this tenant's own dark theme." Floors
-// the color's brightest channel here instead — an additive lighten
-// (same technique as lightenHex), so a dark navy stays a dark navy and
-// a dark green stays a dark green, just never black. 24 keeps it
-// solidly "dark mode" dark (comparable to common dark-UI paper colors
-// like #121212) while guaranteeing it never reads as pure black.
-const MIN_DARK_CHANNEL = 24;
-function floorDarkness(hex: string): string {
-  const rgb = parseHex(hex);
-  if (!rgb) return hex;
-  const maxChannel = Math.max(...rgb);
-  return maxChannel >= MIN_DARK_CHANNEL ? hex : lightenHex(hex, MIN_DARK_CHANNEL - maxChannel);
+function hslToRgb(h: number, s: number, l: number): [number, number, number] {
+  const c = (1 - Math.abs(2 * l - 1)) * s;
+  const hp = (((h % 360) + 360) % 360) / 60;
+  const x = c * (1 - Math.abs((hp % 2) - 1));
+  const [r1, g1, b1] =
+    hp < 1 ? [c, x, 0] : hp < 2 ? [x, c, 0] : hp < 3 ? [0, c, x] : hp < 4 ? [0, x, c] : hp < 5 ? [x, 0, c] : [c, 0, x];
+  const m = l - c / 2;
+  return [r1, g1, b1].map((v) => Math.round((v + m) * 255)) as [number, number, number];
 }
 
-// The tenant's own dark-mode "elevated" tone as a hex color — same
-// darkestOf() + lightenHex(24) as tenantDarkModeCssVars' own
-// --tenant-dark-elevated, exposed separately (as hex, not a triplet)
-// so other helpers that build a raw color string — tenantGlassBackground
-// below — can use the exact same anchor color instead of duplicating
-// this logic or drifting out of sync with it.
+function hslOf(color: string): [number, number, number] | null {
+  const rgb = parseHex(color);
+  if (!rgb) return null;
+  const hsl = rgbToHsl(rgb);
+  // Near-black, near-white and near-grey carry no usable hue.
+  return hsl[2] > 0.06 && hsl[2] < 0.94 && hsl[1] >= 0.1 ? hsl : null;
+}
+
+// The hue to build from: the color given as `preferred` when it has one
+// (the primary for the ground: it's the brand's identity color), else the
+// most saturated of the rest, else a neutral.
+function pickHue(preferred: string, others: string[]): [number, number, number] {
+  const own = hslOf(preferred);
+  if (own) return own;
+  const rest = others.map(hslOf).filter((h): h is [number, number, number] => h !== null);
+  if (rest.length === 0) return [0, 0, 0.5];
+  return rest.reduce((best, c) => (c[1] > best[1] ? c : best));
+}
+
+// How much of the brand survives in the ground. Enough to tell a warm
+// brand from a cool one side by side; not enough to read as "colored".
+const DARK_TINT_SATURATION = 0.14;
+
+type DarkPalette = { paper: string; surface: string; elevated: string; glass: string; glow: string };
+
+function tenantDarkPalette(primaryColor: string, secondaryColor: string, accentColor: string): DarkPalette {
+  // Ground from the primary (identity); glow from the accent, the color a
+  // brand already uses to highlight, so an olive spa with gold details
+  // gets a green-tinted charcoal lit in gold rather than one flat hue.
+  const [h, s] = pickHue(primaryColor, [secondaryColor, accentColor]);
+  const [gh, gs] = pickHue(accentColor, [primaryColor, secondaryColor]);
+  const tint = Math.min(s, DARK_TINT_SATURATION);
+  const tone = (l: number) => toRgbTriplet(`rgb(${hslToRgb(h, tint, l).join(', ')})`);
+  return {
+    paper: tone(0.085),
+    // Lists (bg-surface) and Cards (glass) are the same kind of thing, a
+    // card on the page, so they share one tone. Modals and dropdowns
+    // (elevated) sit a step above both.
+    surface: tone(0.13),
+    glass: tone(0.13),
+    elevated: tone(0.165),
+    // The glow keeps real color, capped so a neon brand doesn't blaze.
+    glow: toRgbTriplet(`rgb(${hslToRgb(gh, Math.min(gs, 0.62), 0.5).join(', ')})`),
+  };
+}
+
+// The dark-mode "elevated" tone as a color string, for helpers that build
+// a raw color instead of reading a CSS var (tenantGlassBackground's cards
+// on the public page). Same palette, so the two can never drift apart.
 export function tenantDarkBase(primaryColor: string, secondaryColor: string, accentColor: string): string {
-  return lightenHex(floorDarkness(darkestOf([primaryColor, secondaryColor, accentColor])), 24);
+  return `rgb(${tenantDarkPalette(primaryColor, secondaryColor, accentColor).elevated.split(' ').join(', ')})`;
 }
 
-// Overrides for --color-paper/-surface/-elevated/-glass-base, but
-// ONLY consumed under `.dark .tenant-shell` in globals.css — never in
-// light mode. Dark mode's paper/surface/elevated/glass are otherwise a
-// fixed platform navy (see :root/.dark in globals.css), which was
-// never meant to be tenant-aware. That's fine for the platform's own
-// indigo/violet, but once a tenant's own darkest color is, say, a deep
-// forest green, the fixed navy reads as an unrelated "off-brand" grey
-// dropped on top of their glass panels instead of a shade of their own
-// identity. Anchoring the page AND card backgrounds to the tenant's
-// own darkest assigned color (primary/secondary/accent, skipping pure
-// black — see darkestOf()) instead fixes that — same idea as
-// tenantColorCssVars, one more layer down. Each step lightens a bit
-// more than the last, preserving the same layered-depth feel `.dark`
-// already had (paper darkest, then surface, elevated, glass — glass is
-// the lightest since Card's default "raised" elevation is a translucent
-// .glass-2 panel that needs to visibly lift off the page behind it).
+// Consumed only under `.dark .tenant-shell` in globals.css, so light mode
+// and the admin panel (which never carries that class) are untouched.
+// paper < surface = glass < elevated: cards lift off the ground by
+// lightness alone, with no saturated fill doing the work.
 export function tenantDarkModeCssVars(
   primaryColor: string,
   secondaryColor: string,
   accentColor: string
 ): Record<string, string> {
-  const base = floorDarkness(darkestOf([primaryColor, secondaryColor, accentColor]));
+  const p = tenantDarkPalette(primaryColor, secondaryColor, accentColor);
   return {
-    '--tenant-dark-paper': toRgbTriplet(base),
-    '--tenant-dark-surface': toRgbTriplet(lightenHex(base, 14)),
-    '--tenant-dark-elevated': toRgbTriplet(lightenHex(base, 24)),
-    '--tenant-dark-glass': toRgbTriplet(lightenHex(base, 32)),
+    '--tenant-dark-paper': p.paper,
+    '--tenant-dark-surface': p.surface,
+    '--tenant-dark-elevated': p.elevated,
+    '--tenant-dark-glass': p.glass,
+    '--tenant-dark-glow': p.glow,
   };
 }
 

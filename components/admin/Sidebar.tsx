@@ -3,24 +3,40 @@
 import { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Building2, LayoutTemplate, Settings, Sparkles, X } from 'lucide-react';
+import { Building2, Inbox, LayoutTemplate, Settings, Users, X } from 'lucide-react';
 import { Text } from '@/components/ui/Text';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
-import { PLATFORM_PRIMARY, PLATFORM_SECONDARY } from '@/lib/branding/colors';
+import { BichoLogo } from '@/components/marketing/BichoLogo';
 import SignOutButton from './SignOutButton';
 
-// Solid, fully opaque platform gradient — part of the 2026 move away
-// from glassmorphism (translucent + backdrop-blur) toward the flat,
-// soft-shadow card language in Bruno's reference set.
-const SIDEBAR_GRADIENT = `linear-gradient(to bottom, ${PLATFORM_PRIMARY}, ${PLATFORM_SECONDARY})`;
+// Built from the CSS variables rather than imported hex constants, so
+// the panel's palette lives in exactly one place (the `.admin-shell`
+// token block in globals.css) — including the one-step lightening the
+// brand fills get in dark mode, which a baked-in hex would miss.
+const SIDEBAR_GRADIENT =
+  'linear-gradient(to bottom, rgb(var(--color-primary)), rgb(var(--color-primary-dark)))';
 
 const NAV_ITEMS = [
-  { href: '/tenants', label: 'Tenants', icon: Building2 },
+  { href: '/tenants', label: 'Negocios', icon: Building2 },
+  { href: '/solicitudes', label: 'Solicitudes', icon: Inbox },
+  { href: '/vendedores', label: 'Vendedores', icon: Users },
   { href: '/templates', label: 'Plantillas', icon: LayoutTemplate },
   { href: '/settings', label: 'Configuración', icon: Settings },
 ];
 
-export function Sidebar({ email, open, onClose }: { email: string; open: boolean; onClose: () => void }) {
+export function Sidebar({
+  email,
+  open,
+  onClose,
+  collapsed = false,
+}: {
+  email: string;
+  open: boolean;
+  onClose: () => void;
+  // Desktop-only: pulls the rail out of the layout entirely so the
+  // canvas editor gets the width back. Mobile keeps using `open`.
+  collapsed?: boolean;
+}) {
   const pathname = usePathname();
   const initials = email.slice(0, 2).toUpperCase();
 
@@ -38,17 +54,20 @@ export function Sidebar({ email, open, onClose }: { email: string; open: boolean
 
       <aside
         style={{ background: SIDEBAR_GRADIENT }}
-        className={`fixed inset-y-4 left-4 z-40 flex w-64 shrink-0 flex-col overflow-hidden rounded-[28px] border border-white/15 text-white shadow-[0_20px_56px_rgba(30,27,75,0.35)] transition-transform duration-200 lg:static lg:my-4 lg:ml-4 lg:translate-x-0 ${
-          open ? 'translate-x-0' : '-translate-x-[120%]'
-        }`}
+        className={`fixed inset-y-4 left-4 z-40 flex w-64 shrink-0 flex-col overflow-hidden rounded-[28px] border border-white/15 text-white shadow-[0_20px_56px_rgba(30,27,75,0.35)] transition-transform duration-200 ${
+          collapsed ? 'lg:hidden' : 'lg:static lg:my-4 lg:ml-4 lg:translate-x-0'
+        } ${open ? 'translate-x-0' : '-translate-x-[120%]'}`}
       >
-        <div className="flex items-center gap-2.5 px-6 pb-2 pt-6">
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-accent text-primary-dark">
-            <Sparkles className="h-4 w-4" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold tracking-tight">Reservas SaaS</p>
-            <Text variant="label" as="p" className="text-white/40">
+        <div className="flex items-start gap-3 px-6 pb-2 pt-6">
+          {/* The real logo file, same mark the marketing site uses —
+              this panel is bicho's own, so it should say so.
+              items-start matters: BichoLogo is a block element sized by
+              aspect-ratio from its height, and a stretched flex child
+              gets width:100% instead, which throws the pixel crop
+              completely out of frame (the mark disappears). */}
+          <div className="flex min-w-0 flex-1 flex-col items-start">
+            <BichoLogo className="h-6" />
+            <Text variant="label" as="p" className="mt-1.5 text-white/45">
               Panel interno
             </Text>
           </div>

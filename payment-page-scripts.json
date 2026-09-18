@@ -1,0 +1,24 @@
+{
+  "_comment": "PCI DSS 4.0.1 req. 6.4.3 — inventario de los scripts que corren en una página donde se captura una tarjeta. En este proyecto esa página es una sola: /vendedor/suscripcion (el panel del vendedor, donde guarda su tarjeta para la suscripción mayorista). El control real es REVISAR este archivo cada vez que se agregue un script a esa página; el archivo por sí solo no cumple nada. La captura de la tarjeta ocurre dentro del iframe de Stripe Elements, así que bicho nunca ve el PAN (alcance SAQ-A).",
+  "payment_pages": [
+    "/vendedor/suscripcion"
+  ],
+  "scripts": [
+    {
+      "src": "https://js.stripe.com/v3",
+      "justification": "Stripe.js — carga Stripe Elements (Payment Element) y tokeniza la tarjeta dentro de un iframe de Stripe. Sin él no hay forma de guardar una tarjeta sin que el PAN pase por nuestro servidor.",
+      "loaded_by": "loadStripe() en components/reseller/CardSetupForm.tsx",
+      "authorised_by": "Bruno Rueda Betancourt (dueño de bicho)",
+      "authorised_at": "2026-09-17",
+      "integrity": null,
+      "integrity_note": "Stripe.js NO admite subresource integrity: se actualiza continuamente y un hash fijo rompería los pagos. Stripe documenta esta excepción y PCI la contempla para el script del propio proveedor. Cargarlo desde una copia propia está explícitamente prohibido por Stripe."
+    }
+  ],
+  "review_log": [
+    {
+      "date": "2026-09-17",
+      "reviewer": "Bruno Rueda Betancourt",
+      "note": "Inventario inicial creado junto con la integración de Stripe (PagoKit). Un único script externo en la página de pago."
+    }
+  ]
+}

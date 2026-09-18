@@ -1,21 +1,59 @@
+import type { Metadata, Viewport } from 'next';
 import { createClient } from '@/lib/supabase/server';
 import { BlockRenderer } from '@/components/blocks/BlockRenderer';
-import BookingFlow from '@/components/booking/BookingFlow';
 import { googleFontsHref, isFontKey, FONT_OPTIONS, type FontKey } from '@/lib/branding/fonts';
 import {
   PLATFORM_PRIMARY,
   PLATFORM_SECONDARY,
   PLATFORM_ACCENT,
-  tenantGlassBackground,
   tenantColorCssVars,
   tenantDarkModeCssVars,
   tenantDarkBase,
-  withAlpha,
 } from '@/lib/branding/colors';
-import type { Block } from '@/lib/templates/blocks';
+import type { Block, TemplateDesign } from '@/lib/templates/blocks';
+import { createDefaultBlock, normalizeDesign, templateDesignCssVars } from '@/lib/templates/blocks';
 
 function resolveFontKey(value: unknown): FontKey {
   return typeof value === 'string' && isFontKey(value) ? value : 'inter';
+}
+
+// The tab and the link preview a customer sees when the page is shared
+// on WhatsApp. Was the platform's own "Reservas SaaS" for every business.
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const supabase = await createClient();
+  const { data: tenant } = await supabase.from('tenants').select('name').eq('slug', slug).maybeSingle();
+  if (!tenant?.name) return { title: 'Reservar cita' };
+  return {
+    title: `${tenant.name} · Reserva tu cita`,
+    description: `Elige servicio, día y hora para tu cita en ${tenant.name}.`,
+  };
+}
+
+// The color a phone paints its own browser bar and status area with.
+// Without it Safari and Chrome show a default grey or white strip above a
+// page that's cream or dark brown, and the page looks framed by someone
+// else's chrome. With it the page runs to the top edge of the phone.
+export async function generateViewport({ params }: { params: Promise<{ slug: string }> }): Promise<Viewport> {
+  const { slug } = await params;
+  const supabase = await createClient();
+  const [{ data: colors }, { data: mode }] = await Promise.all([
+    supabase
+      .from('tenants')
+      .select('primary_color, secondary_color, accent_color, background_color')
+      .eq('slug', slug)
+      .maybeSingle(),
+    supabase.from('tenants').select('theme_mode').eq('slug', slug).maybeSingle(),
+  ]);
+  if (mode?.theme_mode === 'dark') {
+    const paper = tenantDarkModeCssVars(
+      colors?.primary_color ?? PLATFORM_PRIMARY,
+      colors?.secondary_color ?? PLATFORM_SECONDARY,
+      colors?.accent_color ?? PLATFORM_ACCENT
+    )['--tenant-dark-paper'];
+    return { themeColor: `rgb(${paper.split(' ').join(', ')})`, colorScheme: 'dark' };
+  }
+  return { themeColor: colors?.background_color ?? '#F7F6F3', colorScheme: 'light' };
 }
 
 export default async function ReservarPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -29,7 +67,7 @@ export default async function ReservarPage({ params }: { params: Promise<{ slug:
   // tenant lookup down with it.
   const { data: tenant } = await supabase
     .from('tenants')
-    .select('id, name, vertical')
+    .select('id, name, vertical, timezone')
     .eq('slug', slug)
     .single();
 
@@ -73,6 +111,62 @@ export default async function ReservarPage({ params }: { params: Promise<{ slug:
     .eq('vertical', tenant?.vertical ?? 'general')
     .maybeSingle();
 
+  // `design` is queried separately from `blocks` for the same reason
+  // theme_mode is: a column that may not exist yet in a given
+  // environment must never be able to take down the query that fetches
+  // the actual page content. If db/014 hasn't been applied, this comes
+  // back null and normalizeDesign() falls through to the defaults.
+  const { data: templateDesignRow } = await supabase
+    .from('templates')
+    .select('design')
+    .eq('vertical', tenant?.vertical ?? 'general')
+    .maybeSingle();
+
+  // The tenant's OWN page, snapshotted from its template when the
+  // tenant was created (db/015). Separate select for the usual
+  // defensive reason: on an environment without db/015 this errors and
+  // comes back null, and the page falls back to the shared template —
+  // which is exactly the pre-015 behaviour.
+  const { data: tenantPage } = await supabase
+    .from('tenants')
+    .select('page_blocks, page_design')
+    .eq('slug', slug)
+    .maybeSingle();
+
+  // A template is a starting point, not a live dependency: once a
+  // tenant has its own copy, editing the template must not touch this
+  // page. Only tenants created before db/015 (or on a vertical with no
+  // template) still read the shared row.
+  const ownBlocks = (tenantPage?.page_blocks ?? null) as Block[] | null;
+  const templateBlocks = (template?.blocks ?? null) as Block[] | null;
+
+  // No page of its own and no template for its vertical (a "General (sin
+  // plantilla)" tenant). This used to be a separate hand-built layout:
+  // a 512px column with a big rounded header card and a second card for
+  // the flow, so these tenants got an older, different-looking page than
+  // everyone else. Now they get the same two blocks any new page starts
+  // from, drawn by the same renderer: identity header, then booking.
+  const minimalPage = (): Block[] => {
+    const hero = createDefaultBlock('hero');
+    const booking = createDefaultBlock('booking');
+    if (hero.type === 'hero') {
+      hero.props = { ...hero.props, title: tenant?.name ?? '', subtitle: 'Elige tu servicio y horario.' };
+    }
+    return [hero, booking];
+  };
+
+  const pageBlocks =
+    ownBlocks && ownBlocks.length > 0
+      ? ownBlocks
+      : templateBlocks && templateBlocks.length > 0
+        ? templateBlocks
+        : minimalPage();
+
+  const design = normalizeDesign(
+    (tenantPage?.page_design as Partial<TemplateDesign> | null) ??
+      (templateDesignRow?.design as Partial<TemplateDesign> | null)
+  );
+
   const headingKey = resolveFontKey(branding_raw?.font_heading);
   const bodyKey = resolveFontKey(branding_raw?.font_body);
 
@@ -81,6 +175,7 @@ export default async function ReservarPage({ params }: { params: Promise<{ slug:
     businessName: tenant?.name,
     services: services ?? [],
     resources: resources ?? [],
+    timezone: tenant?.timezone ?? null,
   };
 
   // Back to reading the tenant's own primary_color/accent_color: a fixed
@@ -130,10 +225,20 @@ export default async function ReservarPage({ params }: { params: Promise<{ slug:
             ? ({
                 ...tenantColorCssVars(branding.primaryColor, secondaryColor, branding.accentColor),
                 ...tenantDarkModeCssVars(branding.primaryColor, secondaryColor, branding.accentColor),
+                ...templateDesignCssVars(design),
                 fontFamily: FONT_OPTIONS[bodyKey].family,
                 '--font-heading': FONT_OPTIONS[headingKey].family,
               } as React.CSSProperties)
             : ({
+                // Light mode gets the tenant's colour vars too, not just
+                // dark. Without them `bg-primary` / `text-primary` inside
+                // this page resolve to the PLATFORM's indigo, which is why
+                // the booking flow used to paint brand colour through
+                // inline styles instead. With the vars bound here the flow
+                // can be written against semantic tokens only, and each
+                // business's identity arrives as a theme.
+                ...tenantColorCssVars(branding.primaryColor, secondaryColor, branding.accentColor),
+                ...templateDesignCssVars(design),
                 backgroundColor: branding_raw?.background_color ?? '#F7F6F3',
                 color: branding_raw?.text_color ?? '#1A1A1A',
                 fontFamily: FONT_OPTIONS[bodyKey].family,
@@ -141,65 +246,18 @@ export default async function ReservarPage({ params }: { params: Promise<{ slug:
               } as React.CSSProperties)
         }
       >
-        {/* Ambient depth behind the page content — built from THIS
-            tenant's own brand colors, same idea as the platform's own
-            .ambient-glow but parameterized, since .ambient-glow's colors
-            are baked into the stylesheet and can't take a runtime color.
-            Fixed so it doesn't scroll away; content sits above it. */}
-        <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden="true">
-          <div
-            className="absolute -left-[18%] -top-[14%] h-[68vw] w-[80vw]"
-            style={{ background: withAlpha(branding.primaryColor, 0.08), clipPath: 'polygon(0 0, 55% 0, 22% 100%, 0 100%)' }}
-          />
-          <div
-            className="absolute -bottom-[18%] -right-[14%] h-[62vw] w-[75vw]"
-            style={{ background: withAlpha(branding.accentColor, 0.07), clipPath: 'polygon(100% 0, 100% 100%, 40% 100%, 68% 0)' }}
-          />
-        </div>
-
+        {/* No ambient shapes.
+            This used to be two large clip-path wedges tinted with the
+            tenant's colours. They cut a hard diagonal seam across the
+            page that read as a rendering artefact rather than as
+            design, and they put brand colour everywhere — which is
+            exactly what makes a page look cheap: colour spread thin
+            over everything instead of spent in one place.
+            The ground is now a quiet neutral and the tenant's colour
+            is saved for the things you act on (the CTA, the selected
+            slot, the active step). */}
         <div className="relative z-10">
-          {template?.blocks && (template.blocks as Block[]).length > 0 ? (
-            <BlockRenderer blocks={template.blocks as Block[]} bookingData={bookingData} branding={branding} />
-          ) : (
-            // No template matched this tenant's vertical (e.g. "General
-            // (sin plantilla)" in the tenant-creation form) — no content
-            // blocks, but still the same premium treatment: gradient
-            // header + glass booking card, not a bare unstyled page.
-            <div className="mx-auto max-w-lg px-6 py-14">
-              <div
-                className={`relative overflow-hidden rounded-[32px] border border-border px-8 py-10 text-center shadow-card`}
-                style={{ background: tenantGlassBackground(branding.primaryColor, branding.accentColor, 3, branding.darkBase) }}
-              >
-                <div
-                  aria-hidden="true"
-                  className="pointer-events-none absolute -right-10 -top-16 h-40 w-40 opacity-20"
-                  style={{ backgroundColor: branding.accentColor, clipPath: 'polygon(100% 0, 100% 100%, 0 100%, 45% 0)' }}
-                />
-                {branding.logoUrl && (
-                  <span className="relative mx-auto mb-4 inline-block max-w-[240px]">
-                    <img
-                      src={branding.logoUrl}
-                      alt={tenant?.name}
-                      className="h-16 w-auto max-w-full object-contain"
-                    />
-                  </span>
-                )}
-                <h1
-                  className="relative text-3xl font-bold tracking-tight text-ink sm:text-4xl"
-                  style={{ fontFamily: 'var(--font-heading)' }}
-                >
-                  {tenant?.name}
-                </h1>
-                <p className="relative mt-2 text-muted">Elige tu servicio y horario en unos segundos.</p>
-              </div>
-              <div
-                className={`mt-8 rounded-[32px] border border-border p-6 shadow-card sm:p-8`}
-                style={{ background: tenantGlassBackground(branding.primaryColor, branding.accentColor, 3, branding.darkBase) }}
-              >
-                <BookingFlow {...bookingData} accentColor={branding.accentColor} primaryColor={branding.primaryColor} />
-              </div>
-            </div>
-          )}
+          <BlockRenderer blocks={pageBlocks} bookingData={bookingData} branding={branding} />
         </div>
       </main>
     </>

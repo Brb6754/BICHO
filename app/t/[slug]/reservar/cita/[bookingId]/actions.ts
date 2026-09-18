@@ -2,8 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { sendBookingConfirmation } from '@/lib/email/sendBookingConfirmation';
-import { tenantManageBookingUrl } from '@/lib/urls';
+import { rescheduleBooking } from '@/lib/bookings/reschedule';
 
 // Both actions here are reachable with NO login — the booking's own
 // UUID (unguessable, 128 bits) is the only thing standing in for auth,
@@ -26,7 +25,8 @@ export async function cancelPublicBooking(bookingId: string, slug: string) {
     .update({ status: 'cancelled' })
     .eq('id', bookingId)
     .eq('tenant_id', tenant.id)
-    .eq('status', 'confirmed'); // can't "cancel" something already cancelled/completed
+    .eq('status', 'confirmed') // can't "cancel" something already cancelled/completed
+    .gt('starts_at', new Date().toISOString()); // ...or an appointment that already happened
   if (error) throw new Error('No se pudo cancelar la cita.');
 
   revalidatePath(`/t/${slug}/reservar/cita/${bookingId}`);
@@ -38,60 +38,14 @@ export async function reschedulePublicBooking(
   newStartsAt: string,
   newEndsAt: string
 ): Promise<{ error: string | null }> {
-  const admin = createAdminClient();
-  const { data: tenant } = await admin
-    .from('tenants')
-    .select('id, name, accent_color')
-    .eq('slug', slug)
-    .single();
-  if (!tenant) return { error: 'Negocio no encontrado.' };
-
-  const { error } = await admin
-    .from('bookings')
-    .update({ starts_at: newStartsAt, ends_at: newEndsAt })
-    .eq('id', bookingId)
-    .eq('tenant_id', tenant.id)
-    .eq('status', 'confirmed');
-
-  if (error) {
-    // 23P01 = exclusion_violation — same anti-double-booking constraint
-    // used everywhere else (db/001_schema.sql) also protects a
-    // reschedule landing on a slot someone else already took.
-    if (error.code === '23P01') {
-      return { error: 'Ese horario ya no está disponible, elige otro.' };
-    }
-    return { error: 'No se pudo cambiar la cita.' };
+  // The rules (future only, still confirmed, the exclusion constraint,
+  // the "moved" email) are identical whether the customer moves their own
+  // appointment or the business moves it from the dashboard, so they live
+  // in one place — lib/bookings/reschedule.ts — instead of in two copies
+  // that drift.
+  const result = await rescheduleBooking({ bookingId, slug, newStartsAt, newEndsAt });
+  if (!result.error) {
+    revalidatePath(`/t/${slug}/reservar/cita/${bookingId}`);
   }
-
-  // Best-effort — a customer noticed this was missing (the original
-  // /api/reservar confirmation email exists, but rescheduling silently
-  // didn't send an updated one). Never blocks the reschedule itself:
-  // it already succeeded above by the time this runs, and
-  // sendBookingConfirmation swallows its own failures anyway.
-  const { data: booking } = await admin
-    .from('bookings')
-    .select('customer_id, service_type_id, customers(name, email)')
-    .eq('id', bookingId)
-    .single();
-  const customer = booking?.customers as unknown as { name: string; email: string | null } | null;
-  if (customer?.email) {
-    const { data: service } = await admin
-      .from('service_types')
-      .select('name')
-      .eq('id', booking!.service_type_id)
-      .single();
-    await sendBookingConfirmation({
-      customerEmail: customer.email,
-      customerName: customer.name,
-      businessName: tenant.name,
-      serviceName: service?.name ?? '',
-      startsAt: newStartsAt,
-      manageUrl: tenantManageBookingUrl(slug, bookingId),
-      accentColor: tenant.accent_color ?? undefined,
-      kind: 'rescheduled',
-    });
-  }
-
-  revalidatePath(`/t/${slug}/reservar/cita/${bookingId}`);
-  return { error: null };
+  return result;
 }

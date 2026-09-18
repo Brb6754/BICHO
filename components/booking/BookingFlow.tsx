@@ -1,407 +1,669 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
-import { Check, ChevronLeft, CalendarPlus, RotateCcw } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
-import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Label } from '@/components/ui/Label';
-import { tenantCtaStyle } from '@/lib/branding/colors';
-import { AvailabilityCalendar } from './AvailabilityCalendar';
+import { addDaysKey, appointmentWhen, dayKey, formatTime, longDate } from '@/lib/dates/tenantTime';
+import { tenantManageBookingUrl } from '@/lib/urls';
+import {
+  SelectionSummary,
+  SidePanel,
+  StepHeader,
+  StickyActionBar,
+  type SummaryItem,
+} from './chrome';
+import { ResourceCard, ServiceCard, ShowMore, TimeGroup, TimeSlot } from './cards';
+import { CalendarSheet, DateStrip, type StripDay } from './dates';
+import { BookingSummary, ConfirmationScreen, CustomerForm, type CustomerFields } from './review';
+import { EmptyCatalog, ErrorState, LoadingSlots, NoSlotsState } from './states';
+import {
+  ANY_RESOURCE,
+  formatDuration,
+  formatPrice,
+  stepsFor,
+  type Resource,
+  type ResourceChoice,
+  type Service,
+  type Slot,
+  type StepId,
+} from './types';
 
-type Service = { id: string; name: string; duration_minutes: number; price_cents: number };
-type Resource = { id: string; name: string };
-type Slot = { slot_start: string; slot_end: string };
-type Step = 'service' | 'date' | 'time' | 'details' | 'done';
+// Rebuilt as a guided five-step process instead of one long page.
+//
+// What changed structurally, and why each one:
+//
+//  - Five explicit steps with a persistent header. The old flow was a
+//    page you scrolled: nothing said where you were or how much was left.
+//  - A summary of decisions under the header, editable in place. Choosing
+//    a service used to make it disappear; by the form you could no longer
+//    see what you were booking.
+//  - Availability is loaded for EVERY resource at once, which is what
+//    makes "cualquiera disponible" possible — it shows the union of all
+//    their free times, so the visitor sees more hours, not fewer.
+//  - Going back never resets. Editing one decision keeps the ones after
+//    it that are still valid and only re-asks what genuinely changed.
+//  - A sticky action bar, so the way forward is never below the fold.
+//  - A review block before confirming, and a separate success screen.
+//
+// Colour: this file names none. Everything is a semantic token, and the
+// tenant's palette arrives through the CSS variables the page binds. That
+// is what makes this a template rather than one business's booking page.
 
-const STEPS: { key: Step; label: string }[] = [
-  { key: 'service', label: 'Servicio' },
-  { key: 'date', label: 'Fecha' },
-  { key: 'time', label: 'Hora' },
-  { key: 'details', label: 'Datos' },
-  { key: 'done', label: 'Confirmación' },
-];
+const STRIP_DAYS = 14;
+const INITIAL_SLOTS_SHOWN = 9;
 
-export default function BookingFlow({
-  slug,
-  businessName,
-  services,
-  resources,
-  accentColor = '#8FE24A',
-  primaryColor = '#0E3B2C',
-}: {
+type Props = {
   slug: string;
   businessName?: string;
   services: Service[];
   resources: Resource[];
   accentColor?: string;
   primaryColor?: string;
-}) {
-  const ctaStyle = tenantCtaStyle(primaryColor, accentColor);
+  timezone?: string | null;
+  // What this business calls the thing you book with. A salon picks
+  // "profesional", a padel court "cancha", a clinic "consultorio".
+  resourceLabel?: string;
+  // Shown in the summary and the confirmation when the business has one.
+  location?: string | null;
+};
 
-  const [step, setStep] = useState<Step>('service');
+export default function BookingFlow({
+  slug,
+  businessName = 'este negocio',
+  services,
+  resources,
+  accentColor = '#8FE24A',
+  timezone,
+  resourceLabel = 'Profesional',
+  location,
+}: Props) {
+  const steps = useMemo(
+    () => stepsFor(resources.length, resourceLabel),
+    [resources.length, resourceLabel]
+  );
+
+  const [stepIndex, setStepIndex] = useState(0);
   const [service, setService] = useState<Service | null>(null);
-  const [resourceId, setResourceId] = useState<string | null>(resources.length === 1 ? resources[0].id : null);
-  const [allSlots, setAllSlots] = useState<Slot[]>([]);
-  const [loadingSlots, setLoadingSlots] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [resourceChoice, setResourceChoice] = useState<ResourceChoice | null>(
+    resources.length === 1 ? resources[0].id : null
+  );
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
-  const [notes, setNotes] = useState('');
+  const [customer, setCustomer] = useState<CustomerFields>({ name: '', phone: '', email: '', notes: '' });
+
+  const [slotsByResource, setSlotsByResource] = useState<Record<string, Slot[]>>({});
+  const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [bookingId, setBookingId] = useState<string | null>(null);
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const [showAllTimes, setShowAllTimes] = useState(false);
+  const [showFormErrors, setShowFormErrors] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  async function loadAvailability(svc: Service, resId: string) {
-    setLoadingSlots(true);
-    setError(null);
+  const currentStep = steps[stepIndex]?.id ?? 'service';
+  const today = dayKey(new Date(), timezone);
 
-    const supabase = createClient();
-    const from = format(new Date(), 'yyyy-MM-dd');
-    const toDate = new Date();
-    toDate.setDate(toDate.getDate() + 60);
-    const to = format(toDate, 'yyyy-MM-dd');
+  // ── availability ──────────────────────────────────────────────────
+  const loadAvailability = useCallback(
+    async (svc: Service) => {
+      setLoading(true);
+      setLoadError(null);
+      const supabase = createClient();
+      const from = dayKey(new Date(), timezone);
+      const to = addDaysKey(from, 60);
 
-    const { data, error: rpcError } = await supabase.rpc('get_available_slots', {
-      p_resource_id: resId,
-      p_service_type_id: svc.id,
-      p_from: from,
-      p_to: to,
-    });
+      // One call per resource, in parallel. The old flow asked for a
+      // single resource's slots, which is why "cualquiera" couldn't exist.
+      const results = await Promise.all(
+        resources.map(async (r) => {
+          const { data, error } = await supabase.rpc('get_available_slots', {
+            p_resource_id: r.id,
+            p_service_type_id: svc.id,
+            p_from: from,
+            p_to: to,
+          });
+          return { id: r.id, slots: (data as Slot[]) ?? [], error };
+        })
+      );
 
-    setLoadingSlots(false);
+      setLoading(false);
+      if (results.every((r) => r.error)) {
+        setLoadError('No pudimos cargar los horarios.');
+        return;
+      }
+      setSlotsByResource(Object.fromEntries(results.map((r) => [r.id, r.slots])));
+    },
+    [resources, timezone]
+  );
 
-    if (rpcError) {
-      setError('No se pudo cargar la disponibilidad.');
+  // Slots for the current choice. For "cualquiera" it's the union across
+  // resources, deduped by start time — two free stylists at 15:30 is one
+  // appointment offered, not two identical buttons.
+  const activeSlots = useMemo(() => {
+    if (!resourceChoice) return [] as Slot[];
+    if (resourceChoice !== ANY_RESOURCE) return slotsByResource[resourceChoice] ?? [];
+    const seen = new Map<string, Slot>();
+    for (const list of Object.values(slotsByResource)) {
+      for (const s of list) if (!seen.has(s.slot_start)) seen.set(s.slot_start, s);
+    }
+    return [...seen.values()].sort((a, b) => a.slot_start.localeCompare(b.slot_start));
+  }, [resourceChoice, slotsByResource]);
+
+  const availableDayKeys = useMemo(() => {
+    const set = new Set<string>();
+    for (const s of activeSlots) set.add(dayKey(s.slot_start, timezone));
+    return set;
+  }, [activeSlots, timezone]);
+
+  const slotsForDay = useMemo(
+    () => (selectedDay ? activeSlots.filter((s) => dayKey(s.slot_start, timezone) === selectedDay) : []),
+    [activeSlots, selectedDay, timezone]
+  );
+
+  const stripDays: StripDay[] = useMemo(() => {
+    const out: StripDay[] = [];
+    for (let i = 0; i < STRIP_DAYS; i++) {
+      const key = addDaysKey(today, i);
+      // Noon avoids the DST edge where midnight doesn't exist.
+      const date = new Date(`${key}T12:00:00Z`);
+      out.push({
+        key,
+        weekday: new Intl.DateTimeFormat('es-MX', { weekday: 'short', timeZone: 'UTC' }).format(date).replace('.', ''),
+        dayNumber: String(Number(key.slice(8, 10))),
+        available: availableDayKeys.has(key),
+        isToday: i === 0,
+      });
+    }
+    return out;
+  }, [today, availableDayKeys]);
+
+  const nextAvailableDay = useMemo(() => {
+    const sorted = [...availableDayKeys].sort();
+    return sorted.find((k) => !selectedDay || k > selectedDay) ?? null;
+  }, [availableDayKeys, selectedDay]);
+
+  // Soonest three, then the rest by part of the day. Not called
+  // "recomendados": there is no ranking data behind it, and a label that
+  // implies one would be a claim the product can't back.
+  const timeGroups = useMemo(() => {
+    if (slotsForDay.length === 0) return [];
+    const groups: { label: string; slots: Slot[] }[] = [];
+    if (slotsForDay.length > INITIAL_SLOTS_SHOWN) {
+      groups.push({ label: 'Más pronto', slots: slotsForDay.slice(0, 3) });
+    }
+    const rest = slotsForDay.length > INITIAL_SLOTS_SHOWN ? slotsForDay.slice(3) : slotsForDay;
+    const buckets: Record<string, Slot[]> = { Mañana: [], Tarde: [], Noche: [] };
+    for (const s of rest) {
+      const hour = Number(formatTime(s.slot_start, timezone).slice(0, 2));
+      buckets[hour < 12 ? 'Mañana' : hour < 19 ? 'Tarde' : 'Noche'].push(s);
+    }
+    for (const [label, slots] of Object.entries(buckets)) {
+      if (slots.length > 0) groups.push({ label, slots });
+    }
+    return groups;
+  }, [slotsForDay, timezone]);
+
+  const visibleGroups = useMemo(() => {
+    if (showAllTimes) return timeGroups;
+    let budget = INITIAL_SLOTS_SHOWN;
+    const out: { label: string; slots: Slot[] }[] = [];
+    for (const g of timeGroups) {
+      if (budget <= 0) break;
+      out.push({ label: g.label, slots: g.slots.slice(0, budget) });
+      budget -= Math.min(budget, g.slots.length);
+    }
+    return out;
+  }, [timeGroups, showAllTimes]);
+
+  const hiddenCount = slotsForDay.length - visibleGroups.reduce((n, g) => n + g.slots.length, 0);
+
+  // ── navigation ────────────────────────────────────────────────────
+  const goTo = useCallback((id: StepId) => {
+    setStepIndex(steps.findIndex((s) => s.id === id));
+    requestAnimationFrame(() => scrollRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' }));
+  }, [steps]);
+
+  function handleService(svc: Service) {
+    const changed = svc.id !== service?.id;
+    setService(svc);
+    if (changed) {
+      // A different service means different durations, so every slot
+      // computed for the old one is meaningless. The resource choice
+      // survives — it's still the same person or room.
+      setSelectedSlot(null);
+      setSelectedDay(null);
+      setSlotsByResource({});
+      loadAvailability(svc);
+    }
+  }
+
+  function handleResource(choice: ResourceChoice) {
+    setResourceChoice(choice);
+    // The day survives if that resource still has something free on it;
+    // only the exact time is always re-asked, since it's per resource.
+    setSelectedSlot(null);
+  }
+
+  function handleDay(key: string) {
+    setSelectedDay(key);
+    setSelectedSlot(null);
+    setShowAllTimes(false);
+  }
+
+  // Keep a day that stopped being available after another choice changed.
+  useEffect(() => {
+    if (selectedDay && availableDayKeys.size > 0 && !availableDayKeys.has(selectedDay)) {
+      setSelectedDay(null);
+      setSelectedSlot(null);
+    }
+  }, [availableDayKeys, selectedDay]);
+
+  // Warn before leaving with data typed in. Only once there IS something
+  // to lose — a confirm dialog on an empty form is just noise.
+  useEffect(() => {
+    const dirty = !bookingId && (customer.name || customer.phone || selectedSlot);
+    if (!dirty) return;
+    const handler = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [customer.name, customer.phone, selectedSlot, bookingId]);
+
+  // ── summary ───────────────────────────────────────────────────────
+  const resourceName =
+    resourceChoice === ANY_RESOURCE
+      ? `Cualquier ${resourceLabel.toLowerCase()}`
+      : (resources.find((r) => r.id === resourceChoice)?.name ?? '');
+
+  const summaryItems: SummaryItem[] = [];
+  if (service) summaryItems.push({ id: 'service', label: 'servicio', value: service.name });
+  if (resourceChoice && resources.length > 1)
+    summaryItems.push({ id: 'resource', label: resourceLabel.toLowerCase(), value: resourceName });
+  if (selectedDay && !selectedSlot)
+    summaryItems.push({ id: 'date', label: 'fecha', value: longDate(`${selectedDay}T12:00:00Z`, timezone) });
+  if (selectedSlot)
+    summaryItems.push({ id: 'time', label: 'horario', value: appointmentWhen(selectedSlot.slot_start, timezone) });
+
+  const sidePanelRows: { label: string; value: string }[] = [];
+  if (service) {
+    sidePanelRows.push({ label: 'Servicio', value: service.name });
+    sidePanelRows.push({ label: 'Duración', value: formatDuration(service.duration_minutes) });
+  }
+  if (resourceChoice && resources.length > 1)
+    sidePanelRows.push({ label: 'Atiende', value: resourceName });
+  if (selectedSlot)
+    sidePanelRows.push({ label: 'Cuándo', value: appointmentWhen(selectedSlot.slot_start, timezone) });
+  else if (selectedDay)
+    sidePanelRows.push({ label: 'Día', value: longDate(`${selectedDay}T12:00:00Z`, timezone) });
+
+  // ── submit ────────────────────────────────────────────────────────
+  const formValid =
+    customer.name.trim().length > 0 && customer.phone.replace(/\D/g, '').length >= 10;
+
+  async function submitBooking() {
+    if (!service || !selectedSlot || !resourceChoice) return;
+    if (!formValid) {
+      setShowFormErrors(true);
+      return;
+    }
+    // With "cualquiera", pick a resource that actually has this exact
+    // slot free. Postgres' exclusion constraint is still the last word if
+    // someone else takes it in the meantime.
+    const resourceId =
+      resourceChoice === ANY_RESOURCE
+        ? Object.entries(slotsByResource).find(([, list]) =>
+            list.some((s) => s.slot_start === selectedSlot.slot_start)
+          )?.[0]
+        : resourceChoice;
+
+    if (!resourceId) {
+      setSubmitError('Ese horario acaba de ocuparse. Elige otro, por favor.');
       return;
     }
 
-    setAllSlots((data as Slot[]) ?? []);
-    setStep('date');
-  }
-
-  function handleSelectService(svc: Service) {
-    setService(svc);
-    if (resourceId) {
-      loadAvailability(svc, resourceId);
-    }
-  }
-
-  function handleSelectResource(resId: string) {
-    setResourceId(resId);
-    if (service) {
-      loadAvailability(service, resId);
-    }
-  }
-
-  const availableDateKeys = useMemo(() => {
-    const set = new Set<string>();
-    for (const s of allSlots) set.add(format(new Date(s.slot_start), 'yyyy-MM-dd'));
-    return set;
-  }, [allSlots]);
-
-  const slotsForSelectedDate = useMemo(() => {
-    if (!selectedDate) return [];
-    const key = format(selectedDate, 'yyyy-MM-dd');
-    return allSlots.filter((s) => format(new Date(s.slot_start), 'yyyy-MM-dd') === key);
-  }, [allSlots, selectedDate]);
-
-  async function submitBooking() {
-    if (!service || !resourceId || !selectedSlot || !name || !phone) return;
     setSubmitting(true);
-    setError(null);
+    setSubmitError(null);
 
-    const res = await fetch('/api/reservar', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        slug,
-        resource_id: resourceId,
-        service_type_id: service.id,
-        starts_at: selectedSlot.slot_start,
-        ends_at: selectedSlot.slot_end,
-        customer_name: name,
-        customer_phone: phone,
-        customer_email: email || undefined,
-        notes: notes || undefined,
-      }),
-    });
+    try {
+      const res = await fetch('/api/reservar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          slug,
+          resource_id: resourceId,
+          service_type_id: service.id,
+          starts_at: selectedSlot.slot_start,
+          ends_at: selectedSlot.slot_end,
+          customer_name: customer.name,
+          customer_phone: customer.phone,
+          customer_email: customer.email || undefined,
+          notes: customer.notes || undefined,
+        }),
+      });
+      const body = await res.json();
+      setSubmitting(false);
 
-    const body = await res.json();
-    setSubmitting(false);
-
-    if (res.ok) {
-      setBookingId(body.bookingId);
-      setStep('done');
-    } else {
-      // loadAvailability() resets error to null at its start (it's also
-      // used for the normal, non-error load path) — so it has to run
-      // and finish BEFORE setting the message here, or this gets wiped
-      // the instant it's set.
+      if (res.ok) {
+        setBookingId(body.bookingId);
+        return;
+      }
+      // The slot went while they were typing: reload, drop it, and send
+      // them back to pick again instead of leaving a dead button.
       setSelectedSlot(null);
-      await loadAvailability(service, resourceId);
-      setError(body.error ?? 'No se pudo agendar la cita.');
+      await loadAvailability(service);
+      setSubmitError(body.error ?? 'No se pudo agendar la cita.');
+      goTo('time');
+    } catch {
+      setSubmitting(false);
+      setSubmitError('Se cayó la conexión. Revisa tu internet e inténtalo otra vez.');
     }
   }
 
   function resetFlow() {
-    setStep('service');
+    setStepIndex(0);
     setService(null);
-    setResourceId(resources.length === 1 ? resources[0].id : null);
-    setAllSlots([]);
-    setSelectedDate(undefined);
+    setResourceChoice(resources.length === 1 ? resources[0].id : null);
+    setSelectedDay(null);
     setSelectedSlot(null);
-    setName('');
-    setPhone('');
-    setEmail('');
-    setNotes('');
-    setError(null);
+    setCustomer({ name: '', phone: '', email: '', notes: '' });
+    setSlotsByResource({});
     setBookingId(null);
+    setSubmitError(null);
+    setShowFormErrors(false);
   }
 
   function googleCalendarUrl() {
     if (!selectedSlot || !service) return '#';
-    const toGoogleDate = (iso: string) => new Date(iso).toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
-    const text = encodeURIComponent(`${service.name}${businessName ? ` — ${businessName}` : ''}`);
-    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${text}&dates=${toGoogleDate(
-      selectedSlot.slot_start
-    )}/${toGoogleDate(selectedSlot.slot_end)}`;
+    const stamp = (iso: string) => new Date(iso).toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+    const params = new URLSearchParams({
+      action: 'TEMPLATE',
+      text: `${service.name} — ${businessName}`,
+      dates: `${stamp(selectedSlot.slot_start)}/${stamp(selectedSlot.slot_end)}`,
+    });
+    return `https://calendar.google.com/calendar/render?${params.toString()}`;
   }
 
-  const currentStepIndex = STEPS.findIndex((s) => s.key === step);
+  // ── confirmation ──────────────────────────────────────────────────
+  if (bookingId && service && selectedSlot) {
+    return (
+      <div className="overflow-hidden border-y border-border bg-surface sm:rounded-3xl sm:border sm:shadow-[0_1px_2px_rgba(16,24,40,0.04),0_12px_32px_-12px_rgba(16,24,40,0.14)]">
+        <ConfirmationScreen
+          businessName={businessName}
+          service={service}
+          when={appointmentWhen(selectedSlot.slot_start, timezone)}
+          resourceName={resourceName}
+          showResource={resources.length > 1}
+          location={location}
+          bookingId={bookingId}
+          manageUrl={tenantManageBookingUrl(slug, bookingId)}
+          calendarUrl={googleCalendarUrl()}
+          emailed={Boolean(customer.email)}
+          onBookAnother={resetFlow}
+        />
+      </div>
+    );
+  }
+
+  if (services.length === 0 || resources.length === 0) {
+    return (
+      <div className="rounded-3xl border border-border bg-surface p-5">
+        <EmptyCatalog what={services.length === 0 ? 'servicios para reservar' : 'horarios configurados'} />
+      </div>
+    );
+  }
+
+  // ── per-step content and action ───────────────────────────────────
+  const canContinue =
+    currentStep === 'service'
+      ? Boolean(service)
+      : currentStep === 'resource'
+        ? Boolean(resourceChoice)
+        : currentStep === 'date'
+          ? Boolean(selectedDay)
+          : currentStep === 'time'
+            ? Boolean(selectedSlot)
+            : formValid;
+
+  const missingHelper =
+    currentStep === 'details' && showFormErrors && !formValid
+      ? 'Falta tu nombre o un teléfono de 10 dígitos.'
+      : undefined;
+
+  const actionLabel =
+    currentStep === 'details'
+      ? 'Confirmar reserva'
+      : currentStep === 'time' && selectedSlot
+        ? 'Continuar'
+        : 'Continuar';
+
+  function onAction() {
+    if (currentStep === 'details') {
+      submitBooking();
+      return;
+    }
+    if (stepIndex < steps.length - 1) goTo(steps[stepIndex + 1].id);
+  }
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col items-center gap-2">
-        <div className="flex items-center">
-          {STEPS.map((s, i) => (
-            <div key={s.key} className="flex items-center">
-              <span
-                className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold transition-all duration-300 ${
-                  i <= currentStepIndex ? '' : 'bg-ink/5 text-ink/35'
-                }`}
-                style={i <= currentStepIndex ? { backgroundColor: accentColor, color: primaryColor } : undefined}
-              >
-                {i < currentStepIndex ? <Check className="h-3 w-3" /> : i + 1}
-              </span>
-              {i < STEPS.length - 1 && (
-                <span
-                  className={`mx-1 h-px w-5 transition-colors duration-300 sm:w-8 ${i < currentStepIndex ? '' : 'bg-ink/10'}`}
-                  style={i < currentStepIndex ? { backgroundColor: accentColor } : undefined}
+    <div
+      ref={scrollRef}
+      className="overflow-hidden border-y border-border bg-surface sm:rounded-3xl sm:border sm:shadow-[0_1px_2px_rgba(16,24,40,0.04),0_12px_32px_-12px_rgba(16,24,40,0.14)]"
+    >
+      <StepHeader
+        businessName={businessName}
+        steps={steps}
+        currentIndex={stepIndex}
+        canGoBack={stepIndex > 0}
+        onBack={() => goTo(steps[stepIndex - 1].id)}
+      />
+
+      <SelectionSummary items={summaryItems} onEdit={goTo} />
+
+      {/* Desktop is two columns: the step on the left, a panel on the
+          right that keeps the booking and the action in view. Below lg
+          it collapses to one column and the action moves to the bar
+          pinned at the bottom. */}
+      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start lg:gap-6 lg:px-6 lg:py-6">
+      <div className="px-5 py-5 sm:px-6 lg:p-0">
+        {currentStep === 'service' && (
+          <>
+            <h2 className="text-base font-semibold text-ink">Elige un servicio</h2>
+            <p className="mt-1 text-[13px] text-muted">
+              Después eliges cuándo. Puedes cambiarlo en cualquier momento.
+            </p>
+            <div className="mt-4 flex flex-col gap-2.5">
+              {services.map((s) => (
+                <ServiceCard
+                  key={s.id}
+                  service={s}
+                  selected={service?.id === s.id}
+                  onSelect={() => handleService(s)}
+                />
+              ))}
+            </div>
+          </>
+        )}
+
+        {currentStep === 'resource' && (
+          <>
+            <h2 className="text-base font-semibold text-ink">
+              ¿Con quién prefieres reservar?
+            </h2>
+            <p className="mt-1 text-[13px] text-muted">
+              Si te da igual, elige cualquiera: vas a ver más horarios libres.
+            </p>
+            <div className="mt-4 flex flex-col gap-2.5">
+              <ResourceCard
+                name={`Cualquier ${resourceLabel.toLowerCase()} disponible`}
+                meta="La opción con más horarios"
+                recommended
+                selected={resourceChoice === ANY_RESOURCE}
+                onSelect={() => handleResource(ANY_RESOURCE)}
+              />
+              {resources.map((r) => {
+                const slots = slotsByResource[r.id] ?? [];
+                const next = slots[0];
+                return (
+                  <ResourceCard
+                    key={r.id}
+                    name={r.name}
+                    meta={
+                      loading
+                        ? 'Buscando horarios…'
+                        : next
+                          ? `Libre desde el ${longDate(next.slot_start, timezone)}`
+                          : 'Sin horarios en los próximos 60 días'
+                    }
+                    selected={resourceChoice === r.id}
+                    onSelect={() => handleResource(r.id)}
+                  />
+                );
+              })}
+            </div>
+          </>
+        )}
+
+        {currentStep === 'date' && (
+          <>
+            <h2 className="text-base font-semibold text-ink">¿Qué día te acomoda?</h2>
+            <p className="mt-1 text-[13px] text-muted">
+              Solo aparecen los días con horarios libres.
+            </p>
+            <div className="mt-4">
+              {loading ? (
+                <LoadingSlots label="Revisando la agenda" />
+              ) : loadError ? (
+                <ErrorState
+                  title="No pudimos cargar la agenda"
+                  message={loadError}
+                  onRetry={() => service && loadAvailability(service)}
+                />
+              ) : availableDayKeys.size === 0 ? (
+                <EmptyCatalog what="horarios libres en los próximos dos meses" />
+              ) : (
+                <DateStrip
+                  days={stripDays}
+                  selectedKey={selectedDay}
+                  onSelect={handleDay}
+                  onOpenCalendar={() => setCalendarOpen(true)}
                 />
               )}
             </div>
-          ))}
-        </div>
-        <p className="text-xs font-medium text-muted">{STEPS[currentStepIndex].label}</p>
+          </>
+        )}
+
+        {currentStep === 'time' && (
+          <>
+            <h2 className="text-base font-semibold text-ink">Elige tu horario</h2>
+            <p className="mt-1 text-[13px] text-muted">
+              {selectedDay ? longDate(`${selectedDay}T12:00:00Z`, timezone) : ''}
+            </p>
+            <div className="mt-4">
+              {loading ? (
+                <LoadingSlots />
+              ) : slotsForDay.length === 0 ? (
+                <NoSlotsState
+                  nextDayLabel={nextAvailableDay ? longDate(`${nextAvailableDay}T12:00:00Z`, timezone) : null}
+                  onNextDay={() => nextAvailableDay && handleDay(nextAvailableDay)}
+                  onBackToDates={() => goTo('date')}
+                  onAnyResource={
+                    resources.length > 1 && resourceChoice !== ANY_RESOURCE
+                      ? () => {
+                          handleResource(ANY_RESOURCE);
+                          goTo('time');
+                        }
+                      : undefined
+                  }
+                />
+              ) : (
+                <>
+                  {visibleGroups.map((group) => (
+                    <TimeGroup key={group.label} label={group.label} count={group.slots.length}>
+                      {group.slots.map((slot) => (
+                        <TimeSlot
+                          key={slot.slot_start}
+                          label={formatTime(slot.slot_start, timezone)}
+                          state={selectedSlot?.slot_start === slot.slot_start ? 'selected' : 'available'}
+                          onSelect={() => setSelectedSlot(slot)}
+                        />
+                      ))}
+                    </TimeGroup>
+                  ))}
+                  <ShowMore hidden={hiddenCount} onClick={() => setShowAllTimes(true)} />
+                </>
+              )}
+            </div>
+          </>
+        )}
+
+        {currentStep === 'details' && service && selectedSlot && (
+          <div className="flex flex-col gap-4">
+            <BookingSummary
+              service={service}
+              resourceName={resourceName}
+              when={appointmentWhen(selectedSlot.slot_start, timezone)}
+              location={location}
+              onEdit={goTo}
+              showResourceRow={resources.length > 1}
+            />
+            {submitError && (
+              <ErrorState
+                title="No se pudo confirmar"
+                message={submitError}
+                onRetry={() => setSubmitError(null)}
+                retryLabel="Entendido"
+              />
+            )}
+            <CustomerForm
+              values={customer}
+              onChange={(next) => setCustomer((c) => ({ ...c, ...next }))}
+              showErrors={showFormErrors}
+            />
+          </div>
+        )}
       </div>
 
-      {error && step !== 'done' && (
-        <p className="animate-fade-in rounded-2xl bg-error-soft px-4 py-3 text-center text-sm text-error">
-          {error}
-        </p>
-      )}
+        <SidePanel
+          rows={sidePanelRows}
+          total={service ? formatPrice(service.price_cents) : undefined}
+          helper={missingHelper}
+          actionLabel={actionLabel}
+          onAction={onAction}
+          disabled={!canContinue && currentStep !== 'details'}
+          loading={submitting}
+          footnote={
+            currentStep === 'details'
+              ? 'Puedes cambiar o cancelar tu cita después, desde el enlace que te llega.'
+              : undefined
+          }
+        />
+      </div>
 
-      {step === 'service' && (
-        <div className="animate-fade-in flex flex-col gap-3">
-          <p className="text-sm font-medium text-muted">Elige un servicio</p>
-          {services.map((s) => (
-            <Card
-              key={s.id}
-              padded={false}
-              hoverable
-              className="flex items-center justify-between px-5 py-4"
-            >
-              <div>
-                <p className="font-medium text-ink">{s.name}</p>
-                <p className="text-sm text-muted">{s.duration_minutes} min</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <p className="font-semibold text-ink">${(s.price_cents / 100).toFixed(2)} MXN</p>
-                <Button
-                  type="button"
-                  className="px-4 py-1.5 text-xs"
-                  disabled={loadingSlots}
-                  isLoading={loadingSlots && service?.id === s.id}
-                  onClick={() => handleSelectService(s)}
-                  style={ctaStyle}
-                >
-                  Seleccionar
-                </Button>
-              </div>
-            </Card>
-          ))}
+      <div className="lg:hidden">
+      <StickyActionBar
+        hint={
+          currentStep === 'details' && service && selectedSlot
+            ? `${formatTime(selectedSlot.slot_start, timezone)} · ${service.name}`
+            : undefined
+        }
+        helper={missingHelper}
+        actionLabel={actionLabel}
+        onAction={onAction}
+        disabled={!canContinue && currentStep !== 'details'}
+        loading={submitting}
+      />
+      </div>
 
-          {service && resources.length > 1 && !resourceId && (
-            <div className="mt-2">
-              <p className="mb-2 text-sm font-medium text-muted">¿Con quién?</p>
-              <div className="flex flex-wrap gap-2">
-                {resources.map((r) => (
-                  <button
-                    key={r.id}
-                    type="button"
-                    onClick={() => handleSelectResource(r.id)}
-                    className="rounded-full border border-border bg-surface px-4 py-2 text-sm text-ink transition hover:border-primary/30 active:scale-[0.98]"
-                  >
-                    {r.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {step === 'date' && service && (
-        <div className="animate-fade-in flex flex-col gap-3">
-          <button
-            type="button"
-            onClick={() => setStep('service')}
-            className="flex items-center gap-1 self-start text-xs text-muted hover:text-ink hover:underline"
-          >
-            <ChevronLeft className="h-3.5 w-3.5" />
-            Cambiar servicio
-          </button>
-          <p className="text-sm font-medium text-muted">Selecciona una fecha</p>
-          <Card className="flex justify-center">
-            <AvailabilityCalendar
-              selected={selectedDate}
-              onSelect={(date) => {
-                setSelectedDate(date);
-                if (date) setStep('time');
-              }}
-              availableDateKeys={availableDateKeys}
-              accentColor={accentColor}
-            />
-          </Card>
-          {availableDateKeys.size === 0 && (
-            <p className="text-center text-sm text-muted">No hay horarios disponibles en los próximos 60 días.</p>
-          )}
-        </div>
-      )}
-
-      {step === 'time' && selectedDate && (
-        <div className="animate-fade-in flex flex-col gap-3">
-          <button
-            type="button"
-            onClick={() => setStep('date')}
-            className="flex items-center gap-1 self-start text-xs text-muted hover:text-ink hover:underline"
-          >
-            <ChevronLeft className="h-3.5 w-3.5" />
-            Cambiar fecha
-          </button>
-          <p className="text-sm font-medium text-muted">
-            Horarios para el {format(selectedDate, 'd MMMM', { locale: es })}
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {slotsForSelectedDate.map((slot) => {
-              const isSelected = selectedSlot?.slot_start === slot.slot_start;
-              return (
-                <button
-                  key={slot.slot_start}
-                  type="button"
-                  onClick={() => {
-                    setSelectedSlot(slot);
-                    setStep('details');
-                  }}
-                  className={`rounded-full border px-4 py-2 text-sm font-medium transition active:scale-[0.97] ${
-                    isSelected ? '' : 'border-border bg-surface text-ink'
-                  }`}
-                  style={isSelected ? { ...ctaStyle, borderColor: 'transparent' } : undefined}
-                >
-                  {format(new Date(slot.slot_start), 'h:mm a', { locale: es })}
-                </button>
-              );
-            })}
-            {slotsForSelectedDate.length === 0 && (
-              <p className="text-sm text-muted">Sin horarios ese día.</p>
-            )}
-          </div>
-        </div>
-      )}
-
-      {step === 'details' && selectedSlot && service && (
-        <div className="animate-fade-in flex flex-col gap-4">
-          <button
-            type="button"
-            onClick={() => setStep('time')}
-            className="flex items-center gap-1 self-start text-xs text-muted hover:text-ink hover:underline"
-          >
-            <ChevronLeft className="h-3.5 w-3.5" />
-            Cambiar hora
-          </button>
-          <Card padded={false} className="px-5 py-4">
-            <p className="font-medium text-ink">{service.name}</p>
-            <p className="text-sm text-muted">
-              {format(new Date(selectedSlot.slot_start), 'd MMMM, h:mm a', { locale: es })}
-            </p>
-          </Card>
-          <div>
-            <Label>Tu nombre</Label>
-            <Input type="text" value={name} onChange={(e) => setName(e.target.value)} required className="w-full" />
-          </div>
-          <div>
-            <Label>Tu teléfono</Label>
-            <Input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} required className="w-full" />
-          </div>
-          <div>
-            <Label>Correo (opcional)</Label>
-            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full" />
-          </div>
-          <div>
-            <Label>Notas (opcional)</Label>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={2}
-              className="w-full rounded-2xl border border-border bg-glass/55 backdrop-blur-md px-4 py-2.5 text-sm text-ink placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-            />
-          </div>
-          <Button
-            type="button"
-            onClick={submitBooking}
-            disabled={submitting || !name || !phone}
-            isLoading={submitting}
-            style={ctaStyle}
-          >
-            {submitting ? 'Agendando...' : 'Confirmar cita'}
-          </Button>
-        </div>
-      )}
-
-      {step === 'done' && service && selectedSlot && (
-        <Card className="animate-fade-in flex flex-col items-center gap-3 text-center">
-          <span
-            className="animate-pop-in flex h-12 w-12 items-center justify-center rounded-full"
-            style={{ backgroundColor: accentColor, color: primaryColor }}
-          >
-            <Check className="h-6 w-6" strokeWidth={3} />
-          </span>
-          <p className="text-xl font-semibold text-ink">¡Cita confirmada!</p>
-          <p className="text-ink">{service.name}</p>
-          <p className="text-muted">
-            {format(new Date(selectedSlot.slot_start), "EEEE d 'de' MMMM, h:mm a", { locale: es })}
-          </p>
-          {bookingId && <p className="text-xs text-muted">Referencia: {bookingId.slice(0, 8)}</p>}
-          <div className="mt-3 flex flex-wrap justify-center gap-2">
-            <a href={googleCalendarUrl()} target="_blank" rel="noreferrer">
-              <Button type="button" variant="ghost" className="text-xs">
-                <CalendarPlus className="h-3.5 w-3.5" />
-                Agregar al calendario
-              </Button>
-            </a>
-            <Button type="button" variant="ghost" className="text-xs" onClick={resetFlow}>
-              <RotateCcw className="h-3.5 w-3.5" />
-              Volver al inicio
-            </Button>
-          </div>
-        </Card>
-      )}
+      <CalendarSheet
+        open={calendarOpen}
+        onClose={() => setCalendarOpen(false)}
+        selected={selectedDay ? new Date(`${selectedDay}T12:00:00`) : undefined}
+        onSelect={(date) => date && handleDay(format(date, 'yyyy-MM-dd'))}
+        availableDateKeys={availableDayKeys}
+        accentColor={accentColor}
+        onToday={() => handleDay(today)}
+      />
     </div>
   );
 }

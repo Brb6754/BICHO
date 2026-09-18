@@ -2,18 +2,41 @@
 
 import { revalidatePath } from 'next/cache';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { requireAdmin, requireTenantManager } from '@/lib/auth/access';
+import { syncSubscriptionForTenant } from '@/lib/payments/resellerSubscription';
 
 // Real writes, no redirect() involved — safe from the Server-Action
 // redirect-bypasses-middleware issue documented in CLAUDE.md.
 
+// Lifecycle (suspend/reactivate) and plan stay with the internal team:
+// a sales rep manages the business's page and access, not its account
+// standing with the platform.
 export async function setTenantStatus(tenantId: string, status: string) {
+  await requireAdmin();
   const admin = createAdminClient();
   await admin.from('tenants').update({ status }).eq('id', tenantId);
+
+  // This line is the whole reason billing stays correct. bicho charges
+  // each rep for their ACTIVE businesses, so suspending or reactivating
+  // one is a change to somebody's bill. syncSubscriptionForTenant
+  // recomputes the count from the database and sends the new quantity to
+  // Stripe; it resolves the rep itself and does nothing for a business
+  // that came in directly (reseller_id is null).
+  //
+  // Awaited, not fired and forgotten: on Vercel nothing is guaranteed to
+  // keep running once the response is sent, so a floating promise here
+  // would silently skip the resync on exactly the deploys that matter.
+  // It never throws — a Stripe outage must not stop the internal team
+  // from suspending a business.
+  await syncSubscriptionForTenant(tenantId);
+
   revalidatePath(`/admin/tenants/${tenantId}`);
   revalidatePath('/admin/tenants');
+  revalidatePath('/admin/vendedores');
 }
 
 export async function setTenantPlan(tenantId: string, formData: FormData) {
+  await requireAdmin();
   const plan = formData.get('plan') as string;
   const admin = createAdminClient();
   await admin.from('tenants').update({ plan }).eq('id', tenantId);
@@ -42,6 +65,7 @@ export type TenantBranding = {
 // Called directly from the client (BrandEditor.tsx) via
 // .bind(null, tenantId), same pattern as updateTemplateBlocks.
 export async function updateTenantBranding(tenantId: string, branding: TenantBranding) {
+  await requireTenantManager(tenantId);
   const admin = createAdminClient();
   const { error } = await admin.from('tenants').update(branding).eq('id', tenantId);
   if (error) {
@@ -77,6 +101,10 @@ export async function createTenantOwner(
   if (!password || password.length < 10) {
     return { ok: false, error: 'La contraseña debe tener al menos 10 caracteres.' };
   }
+
+  // Creating a login is the most powerful thing in this file: gate it
+  // before touching the auth admin API.
+  await requireTenantManager(tenantId);
 
   const admin = createAdminClient();
 
@@ -120,4 +148,61 @@ export async function createTenantOwner(
 
   revalidatePath(`/admin/tenants/${tenantId}`);
   return { ok: true, email, reused };
+}
+
+// Saves THIS business's own page. Writes to tenants.page_blocks, never
+// to templates.blocks — that separation (db/015) is the whole point:
+// a template is a starting point, and a business editing its own page
+// must not reach back and rewrite the page of every other business on
+// the same vertical.
+export async function updateTenantPage(tenantId: string, blocks: unknown) {
+  await requireTenantManager(tenantId);
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from('tenants')
+    .update({ page_blocks: blocks })
+    .eq('id', tenantId)
+    .select('slug')
+    .single();
+  if (error) {
+    // Surfaced, not swallowed — the silent-save bug this codebase
+    // already hit once with BrandEditor.
+    throw new Error('No se pudo guardar la página: ' + error.message);
+  }
+  revalidatePath('/admin/tenants/' + tenantId);
+  // The customer-facing page is the thing that actually changed.
+  // revalidatePath takes the real file route, not the rewritten
+  // public URL — see the note in CLAUDE.md.
+  if (data?.slug) revalidatePath('/t/' + data.slug + '/reservar');
+}
+
+// The WhatsApp add-on switch. Guarded by requireTenantManager, so the
+// internal team can flip it for anyone and a reseller only for the
+// businesses they brought — the same rule that governs branding and the
+// owner's login.
+//
+// This is a billing switch, not a preference: while it is on, every
+// confirmation costs real money (see db/021_whatsapp_addon.sql), so it
+// has to be impossible to turn on for someone else's business.
+export async function setTenantWhatsapp(tenantId: string, enabled: boolean) {
+  await requireTenantManager(tenantId);
+
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from('tenants')
+    .update({ whatsapp_enabled: enabled })
+    .eq('id', tenantId)
+    .select('id');
+
+  if (error) {
+    // 42703 = column missing: db/021 hasn't been run in this environment.
+    if (error.code === '42703') {
+      throw new Error('Falta correr db/021_whatsapp_addon.sql en Supabase.');
+    }
+    throw new Error(`No se pudo cambiar WhatsApp: ${error.message}`);
+  }
+  if (!data || data.length === 0) throw new Error('Ese negocio ya no existe.');
+
+  revalidatePath(`/admin/tenants/${tenantId}`);
+  revalidatePath(`/vendedor/negocios/${tenantId}`);
 }

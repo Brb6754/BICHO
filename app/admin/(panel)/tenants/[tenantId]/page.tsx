@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { CalendarDays, CalendarRange, Users, XCircle } from 'lucide-react';
 import { createAdminClient } from '@/lib/supabase/admin';
@@ -14,11 +15,19 @@ import {
   setTenantStatus,
   setTenantPlan,
   updateTenantBranding,
+  updateTenantPage,
   createTenantOwner,
+  setTenantWhatsapp,
   type TenantBranding,
 } from './actions';
 import { BrandEditor } from './BrandEditor';
+import { ResellerPicker } from '../../vendedores/ResellerPicker';
+import { WhatsappToggle } from '@/components/tenant-setup/WhatsappToggle';
+import { getWhatsappAddon } from '@/lib/whatsapp/addonStatus';
+import { formatMxn, isMissingResellersTable } from '@/lib/resellers';
 import { OwnerCreator } from './OwnerCreator';
+import { TemplateBuilder } from '../../templates/[templateId]/TemplateBuilder';
+import { createDefaultBlock, type Block } from '@/lib/templates/blocks';
 
 // This page has no dynamic API call of its own (createAdminClient has
 // no cookies()/headers() dependency, unlike the tenant-facing Supabase
@@ -123,6 +132,45 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ t
     payments?.filter((p) => p.status === 'succeeded').reduce((sum, p) => sum + p.amount_cents, 0) ?? 0;
 
   const chartData = weekBuckets((bookings ?? []).map((b) => b.starts_at), 8);
+
+  // What the canvas editor below starts from, in order of preference:
+  // this business's own page, then its vertical's template, then a
+  // bare-minimum page. The last case is real — a tenant on a vertical
+  // with no template row (e.g. "general") has neither — and it still
+  // needs exactly one booking block, since that is what makes the page
+  // function at all.
+  const { data: verticalTemplate } = await admin
+    .from('templates')
+    .select('blocks')
+    .eq('vertical', tenant.vertical)
+    .maybeSingle();
+
+  // Who is credited with this business. Queried on its own and
+  // tolerant of db/016 missing, so the whole detail page never breaks on
+  // an environment that hasn't run that migration yet.
+  const { data: resellerRows, error: resellersError } = await admin
+    .from('resellers')
+    .select('id, name, active')
+    .order('name');
+  const resellersAvailable = !isMissingResellersTable(resellersError);
+  const resellers = (resellerRows ?? []) as { id: string; name: string; active: boolean }[];
+  const currentReseller = resellers.find((r) => r.id === tenant.reseller_id) ?? null;
+
+  const ownPage = tenant.page_blocks as Block[] | null;
+  const fromTemplate = (verticalTemplate?.blocks ?? null) as Block[] | null;
+  const tenantPageBlocks: Block[] =
+    ownPage && ownPage.length > 0
+      ? ownPage
+      : fromTemplate && fromTemplate.length > 0
+        ? fromTemplate
+        : [createDefaultBlock('hero'), createDefaultBlock('booking')];
+
+  const savePage = updateTenantPage.bind(null, tenant.id);
+
+
+  // Read in its own call so a database without db/021 renders the
+  // section as "falta la migración" instead of taking the page down.
+  const whatsapp = await getWhatsappAddon(tenant.id);
 
   return (
     <div>
@@ -234,6 +282,83 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ t
 
       <section className="mt-10">
         <OwnerCreator currentOwnerEmail={ownerEmail} onCreate={createTenantOwner.bind(null, tenant.id)} />
+      </section>
+
+      <section className="mt-10">
+        <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+          <p className="text-sm font-semibold text-ink">Extras</p>
+          <p className="text-xs text-muted">Se activan y se apagan por negocio.</p>
+        </div>
+        {whatsapp.available ? (
+          <WhatsappToggle
+            enabled={whatsapp.enabled}
+            sentThisMonth={whatsapp.sentThisMonth}
+            onToggle={setTenantWhatsapp.bind(null, tenant.id)}
+            audience="admin"
+          />
+        ) : (
+          <Card className="max-w-xl">
+            <p className="text-sm font-medium text-ink">Falta correr la migración</p>
+            <p className="mt-1.5 text-sm leading-relaxed text-muted">
+              El extra de WhatsApp necesita{' '}
+              <code className="font-mono text-xs">db/021_whatsapp_addon.sql</code> en el SQL Editor
+              de Supabase.
+            </p>
+          </Card>
+        )}
+      </section>
+
+
+      {resellersAvailable && (
+        <section className="mt-10">
+          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+            <p className="text-sm font-semibold text-ink">Vendedor</p>
+            <p className="text-xs text-muted">
+              {currentReseller
+                ? 'Este negocio se le cobra a su vendedor, no al negocio.'
+                : 'Sin vendedor: nadie te paga por este negocio.'}
+            </p>
+          </div>
+          <Card className="flex flex-col gap-3">
+            <ResellerPicker
+              tenantId={tenant.id}
+              currentResellerId={(tenant.reseller_id as string | null) ?? null}
+              resellers={resellers}
+            />
+            {currentReseller && tenant.retail_price_mxn != null && (
+              <p className="text-sm text-muted">
+                Él le cobra {formatMxn(tenant.retail_price_mxn as number)} al mes a este negocio.
+              </p>
+            )}
+            {currentReseller && (
+              <Link
+                href={`/vendedores/${currentReseller.id}`}
+                className="self-start text-sm text-muted hover:text-ink hover:underline"
+              >
+                Ver a {currentReseller.name}
+              </Link>
+            )}
+          </Card>
+        </section>
+      )}
+
+      {/* This business's OWN page — the same canvas editor the template
+          gallery uses, but saving to tenants.page_blocks. Editing here
+          cannot touch the template or any other business (db/015). */}
+      <section className="mt-10">
+        <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+          <p className="text-sm font-semibold text-ink">Página de reservas de este negocio</p>
+          <p className="text-xs text-muted">
+            {tenant.page_blocks
+              ? 'Copia propia — editar la plantilla ya no la afecta.'
+              : 'Aún sin copia propia: se está mostrando la plantilla de su vertical. Al guardar aquí, este negocio pasa a tener la suya.'}
+          </p>
+        </div>
+        <TemplateBuilder
+          accentColor={tenant.accent_color ?? undefined}
+          initialBlocks={tenantPageBlocks}
+          onSave={savePage}
+        />
       </section>
 
       <section className="mt-10">

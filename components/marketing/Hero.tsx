@@ -124,6 +124,16 @@ export function Hero() {
               Agenda una demo
             </PillLink>
 
+            {/* The other kind of demo: not "déjanos tus datos y te
+                llamamos", but the software itself, open right now. It
+                sits second because the form is the one that produces a
+                lead — but a visitor who isn't ready to hand over a
+                phone number can still see the product instead of
+                bouncing. */}
+            <PillLink href="/plataforma" tone="outlineOnDark">
+              Ver la plataforma
+            </PillLink>
+
             <a
               href="mailto:nonameynk@gmail.com"
               className="group flex items-center gap-3 text-left"

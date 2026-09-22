@@ -33,6 +33,10 @@ export function FinalCta() {
                 Agenda una demo
               </PillLink>
 
+              <PillLink href="/plataforma" tone="outlineOnDark">
+                Ver la plataforma
+              </PillLink>
+
               <a
                 href="mailto:nonameynk@gmail.com"
                 className="group inline-flex items-center gap-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-75"

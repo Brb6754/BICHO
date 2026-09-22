@@ -65,6 +65,28 @@ type Props = {
   resourceLabel?: string;
   // Shown in the summary and the confirmation when the business has one.
   location?: string | null;
+
+  // ── Injection points, both optional ──────────────────────────────
+  // A real tenant page passes neither and gets the real behaviour:
+  // availability from the get_available_slots RPC, booking through
+  // /api/reservar. They exist so the public platform demo
+  // (app/plataforma) can run this EXACT component against fixtures —
+  // the demo has to be the real flow, not a lookalike, and it must not
+  // read or write a live business's data. Defaults live below, so
+  // nothing that renders this today changes at all.
+  loadSlots?: (service: Service) => Promise<Record<string, Slot[]>>;
+  // Where the confirmation's "Ver, cambiar o cancelar mi cita" goes.
+  // Defaults to the tenant's own subdomain URL for that booking; the
+  // demo overrides it because that URL would 404 for a business that
+  // doesn't exist, and a dead link on the last screen of a demo is the
+  // worst possible place to have one.
+  manageUrl?: string;
+  onSubmitBooking?: (payload: {
+    resourceId: string;
+    service: Service;
+    slot: Slot;
+    customer: CustomerFields;
+  }) => Promise<{ ok: true; bookingId: string } | { ok: false; error: string }>;
 };
 
 export default function BookingFlow({
@@ -76,6 +98,9 @@ export default function BookingFlow({
   timezone,
   resourceLabel = 'Profesional',
   location,
+  loadSlots,
+  onSubmitBooking,
+  manageUrl,
 }: Props) {
   const steps = useMemo(
     () => stepsFor(resources.length, resourceLabel),
@@ -110,6 +135,22 @@ export default function BookingFlow({
     async (svc: Service) => {
       setLoading(true);
       setLoadError(null);
+
+      // Injected source (the demo) short-circuits the whole Supabase
+      // path — including the client creation, so a page with no
+      // Supabase keys configured can still run this flow.
+      if (loadSlots) {
+        try {
+          const bySource = await loadSlots(svc);
+          setLoading(false);
+          setSlotsByResource(bySource);
+        } catch {
+          setLoading(false);
+          setLoadError('No pudimos cargar los horarios.');
+        }
+        return;
+      }
+
       const supabase = createClient();
       const from = dayKey(new Date(), timezone);
       const to = addDaysKey(from, 60);
@@ -135,7 +176,7 @@ export default function BookingFlow({
       }
       setSlotsByResource(Object.fromEntries(results.map((r) => [r.id, r.slots])));
     },
-    [resources, timezone]
+    [resources, timezone, loadSlots]
   );
 
   // Slots for the current choice. For "cualquiera" it's the union across
@@ -326,6 +367,20 @@ export default function BookingFlow({
     setSubmitError(null);
 
     try {
+      // Injected submit (the demo) never touches /api/reservar, so a
+      // visitor playing with the public demo can't land a real row in a
+      // real business's calendar.
+      if (onSubmitBooking) {
+        const result = await onSubmitBooking({ resourceId, service, slot: selectedSlot, customer });
+        setSubmitting(false);
+        if (result.ok) {
+          setBookingId(result.bookingId);
+        } else {
+          setSubmitError(result.error);
+        }
+        return;
+      }
+
       const res = await fetch('/api/reservar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -396,7 +451,7 @@ export default function BookingFlow({
           showResource={resources.length > 1}
           location={location}
           bookingId={bookingId}
-          manageUrl={tenantManageBookingUrl(slug, bookingId)}
+          manageUrl={manageUrl ?? tenantManageBookingUrl(slug, bookingId)}
           calendarUrl={googleCalendarUrl()}
           emailed={Boolean(customer.email)}
           onBookAnother={resetFlow}

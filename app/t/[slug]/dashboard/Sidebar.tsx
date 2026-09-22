@@ -48,6 +48,9 @@ export function Sidebar({
   role,
   primaryColor,
   logoUrl,
+  navBase = '',
+  bookingHref,
+  footer,
 }: {
   tenantName: string;
   slug: string;
@@ -55,6 +58,16 @@ export function Sidebar({
   role: string;
   primaryColor: string;
   logoUrl?: string | null;
+  // Prefix for the nav hrefs. Empty for a real tenant, where proxy.ts
+  // serves the dashboard at the subdomain root and NAV_ITEMS are
+  // already the public paths. The public platform demo lives at a plain
+  // path instead (/plataforma/panel), so it passes that prefix and gets
+  // the same nav without a second copy of this component.
+  navBase?: string;
+  // Same reason: the demo's booking page isn't on a tenant subdomain.
+  bookingHref?: string;
+  // Defaults to the real sign-out. The demo has no session to end.
+  footer?: React.ReactNode;
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -126,12 +139,13 @@ export function Sidebar({
 
         <nav aria-label="Secciones" className="mt-2 flex flex-1 flex-col gap-0.5 px-3">
           {NAV_ITEMS.map((item) => {
-            const isActive = item.exact ? pathname === item.href : (pathname?.startsWith(item.href) ?? false);
+            const href = `${navBase}${item.href}`;
+            const isActive = item.exact ? pathname === href : (pathname?.startsWith(href) ?? false);
             const Icon = item.icon;
             return (
               <Link
-                key={item.href}
-                href={item.href}
+                key={href}
+                href={href}
                 aria-current={isActive ? 'page' : undefined}
                 className={`relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
                   isActive
@@ -154,7 +168,7 @@ export function Sidebar({
           <div className="my-3 h-px bg-border" aria-hidden="true" />
 
           <a
-            href={tenantBookingPageUrl(slug)}
+            href={bookingHref ?? tenantBookingPageUrl(slug)}
             target="_blank"
             rel="noreferrer"
             className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted transition-colors hover:bg-ink/[0.035] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
@@ -178,7 +192,7 @@ export function Sidebar({
             </div>
             <ThemeToggle className="text-muted hover:bg-ink/[0.06] hover:text-ink" />
           </div>
-          <SignOutButton />
+          {footer ?? <SignOutButton />}
         </div>
       </aside>
     </>

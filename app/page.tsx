@@ -1,66 +1,38 @@
 import type { Metadata } from 'next';
-import { Hero } from '@/components/marketing/Hero';
-import { ProblemSection } from '@/components/marketing/ProblemSection';
-import { TrustSection } from '@/components/marketing/TrustSection';
-import { FeaturesSection } from '@/components/marketing/FeaturesSection';
-import { HowItWorksSection } from '@/components/marketing/HowItWorksSection';
-import { StatsBar } from '@/components/marketing/StatsBar';
-import { ResellerSection } from '@/components/marketing/ResellerSection';
-import { PricingSection } from '@/components/marketing/PricingSection';
-import { FinalCta } from '@/components/marketing/FinalCta';
-import { MarketingFooter } from '@/components/marketing/MarketingFooter';
+import { Hero } from '@/components/central/Hero';
+import { ServicesSection } from '@/components/central/ServicesSection';
+import { PortfolioSection } from '@/components/central/PortfolioSection';
+import { WhySection } from '@/components/central/WhySection';
+import { CentralFinalCta } from '@/components/central/CentralFinalCta';
+import { CentralFooter } from '@/components/central/CentralFooter';
 
 export const metadata: Metadata = {
-  title: 'bicho — Software & AI Solutions',
+  title: 'bicho — estudio de software, IA y datos',
   description:
-    'bicho es la plataforma de reservas de citas para peluquerías, spas, consultorios y gimnasios: página de reservas con tu marca, disponibilidad en tiempo real y confirmación automática.',
+    'Estudio en Durango: SaaS a la medida, páginas y apps web, agentes de IA y data science para finanzas y marketing. Trabajo en producción, no maquetas.',
 };
 
-// The apex/root domain (no tenant subdomain) serves this marketing site —
-// see proxy.ts's extractSubdomain(): a bare host or one that doesn't
-// match `{slug}.${ROOT_DOMAIN}` returns `null` and is left un-rewritten,
-// landing here. `admin.*` and `{slug}.*` rewrite to /admin and /t/[slug]
-// respectively and never reach this file.
+// The apex/root domain serves the STUDIO's home; bicho reservas is one
+// of its services and lives at /reservas (see that file's header).
 //
-// The page is white-grounded (see tokens.ts): sections own their own
-// bg, and the two dark violet blocks are punctuation, not the field.
-// The outer div still needs an explicit white bg, not just "no bg":
-// the shared <body> (layout.tsx) carries the app-wide `bg-paper` token,
-// which is near-black in dark mode, and would otherwise show through
-// around/behind the nav.
+// Dark for the page's full length, not white-with-a-dark-hero — that
+// second pattern is bicho reservas' own, and reusing it here made this
+// page read as "the other bicho" no matter what the palette did. The
+// accent (#3B00FF) is sampled from Bruno's real logo file, not chosen.
 //
-// Deliberately not using the shared bg-paper/text-ink tokens for this,
-// though — those are CSS-var-backed and theme-toggle-aware (see
-// globals.css), which is right for the admin/tenant apps but wrong
-// here: bicho's identity doesn't have a light/dark-mode variant and
-// shouldn't flip with a visitor's leftover dashboard theme preference.
-export default function MarketingHomePage() {
+// Order is deliberate: the suite first (what bicho does), then proof
+// (what it shipped), then how it works, then the ask.
+export default function CentralHomePage() {
   return (
-    <div className="bg-white text-[#140F2E]">
+    <div className="bg-[#05091C]">
       <main>
-        {/* Hero renders the nav itself — see the comment in Hero.tsx.
-            It has to, so the full-bleed visual can run up behind the
-            nav to the page's top edge instead of starting under it. */}
-        {/* The rhythm is now white-dominant, and the banding is what
-            separates sections: white (hero) → mist (problem) → white
-            (who it's for, what it does) → mist (how it works) → the
-            one dark violet block (vendedores) → white (precios, CTA)
-            → dark footer. Only two surfaces on the whole page are
-            dark violet — the stats panel and the vendedores band —
-            and they're what keeps a white page from going flat.
-            StatsBar's panel still has to sit BETWEEN two light
-            sections: it has no vertical padding of its own. */}
         <Hero />
-        <ProblemSection />
-        <TrustSection />
-        <FeaturesSection />
-        <StatsBar />
-        <HowItWorksSection />
-        <ResellerSection />
-        <PricingSection />
-        <FinalCta />
+        <ServicesSection />
+        <PortfolioSection />
+        <WhySection />
+        <CentralFinalCta />
       </main>
-      <MarketingFooter />
+      <CentralFooter />
     </div>
   );
 }

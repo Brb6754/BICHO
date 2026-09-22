@@ -58,7 +58,7 @@ export default async function DemoPage({
 
         <div className="relative mx-auto max-w-7xl px-6 pb-24 pt-4 sm:pb-28">
           <Link
-            href="/"
+            href="/reservas"
             className="inline-flex items-center gap-2 rounded-full text-sm font-medium text-white/70 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4F23A] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
           >
             <ArrowLeft className="h-4 w-4" aria-hidden="true" />

@@ -10,20 +10,22 @@ export function MarketingFooter() {
           <BichoTagline className="mt-2 text-[10px]" />
         </div>
 
-        {/* Root-relative (`/#id`), not a bare `#id`: this footer also
-            renders on /privacidad and /terminos, where those section
-            ids don't exist — a bare hash would just do nothing there. */}
+        {/* Root-relative to /reservas (not bare `#id`, and not `/#id`
+            since that now points at bicho central instead): this footer
+            also renders on /privacidad and /terminos, where these
+            section ids don't exist — same reasoning as before, updated
+            for the route move (2026-09-18). */}
         <div className="flex flex-wrap gap-x-10 gap-y-4 text-sm text-[#B9B1E6]">
-          <a href="/#funciones" className={`rounded-sm transition-colors hover:text-white ${focusRingOnDark}`}>
+          <a href="/reservas#funciones" className={`rounded-sm transition-colors hover:text-white ${focusRingOnDark}`}>
             Funciones
           </a>
-          <a href="/#como-funciona" className={`rounded-sm transition-colors hover:text-white ${focusRingOnDark}`}>
+          <a href="/reservas#como-funciona" className={`rounded-sm transition-colors hover:text-white ${focusRingOnDark}`}>
             Cómo funciona
           </a>
-          <a href="/#precios" className={`rounded-sm transition-colors hover:text-white ${focusRingOnDark}`}>
+          <a href="/reservas#precios" className={`rounded-sm transition-colors hover:text-white ${focusRingOnDark}`}>
             Precios
           </a>
-          <a href="/#vendedores" className={`rounded-sm transition-colors hover:text-white ${focusRingOnDark}`}>
+          <a href="/reservas#vendedores" className={`rounded-sm transition-colors hover:text-white ${focusRingOnDark}`}>
             Vendedores
           </a>
           <a href="mailto:nonameynk@gmail.com" className={`rounded-sm transition-colors hover:text-white ${focusRingOnDark}`}>

@@ -69,7 +69,7 @@ export function MarketingNav({ tone = 'onLight' }: { tone?: 'onViolet' | 'onLigh
           collapses to zero, and the row reads as logo + actions. */}
       <div className="mx-auto grid max-w-7xl grid-cols-[1fr_auto_1fr] items-center gap-6 px-6 py-5">
         <a
-          href="/#top"
+          href="/reservas#top"
           onClick={scrollToSection('top', close)}
           className={`shrink-0 rounded-sm ${ring}`}
         >
@@ -82,7 +82,7 @@ export function MarketingNav({ tone = 'onLight' }: { tone?: 'onViolet' | 'onLigh
           {LINKS.map((link) => (
             <a
               key={link.id}
-              href={`/#${link.id}`}
+              href={`/reservas#${link.id}`}
               onClick={scrollToSection(link.id)}
               className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${linkTone} ${ring}`}
             >
@@ -118,7 +118,7 @@ export function MarketingNav({ tone = 'onLight' }: { tone?: 'onViolet' | 'onLigh
           {LINKS.map((link) => (
             <a
               key={link.id}
-              href={`/#${link.id}`}
+              href={`/reservas#${link.id}`}
               onClick={scrollToSection(link.id, close)}
               className={`block rounded-xl px-4 py-3 text-sm font-medium text-[#140F2E]/75 transition-colors hover:bg-[#5B34E8]/[0.06] hover:text-[#140F2E] ${focusRingOnLight}`}
             >

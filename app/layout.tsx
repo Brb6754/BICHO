@@ -1,19 +1,28 @@
 import type { Metadata } from 'next';
-import { Inter, Baloo_2 } from 'next/font/google';
+import { Inter, Baloo_2, Space_Grotesk } from 'next/font/google';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
-// Display face for the bicho marketing site's own headlines only (see
-// components/marketing/*.tsx's `font-[family-name:var(--font-display)]`
-// usage) — a bold, rounded geometric sans that echoes the actual logo's
-// own rounded-bug-mascot character (the thick ring "o", the soft
-// ellipse antennae), instead of leaning on Inter for both body text AND
-// display type everywhere, which was flattening the brand's personality.
-// Declared here (next/font needs a build-time import) but the variable
-// is only ever referenced by marketing components — the admin panel
-// and tenant dashboard keep reading plain `font-sans` (Inter), untouched.
+// Display face for the bicho reservas marketing site's own headlines
+// only (see components/marketing/*.tsx's
+// `font-[family-name:var(--font-display)]` usage) — a bold, rounded
+// geometric sans that echoes the actual logo's own rounded-bug-mascot
+// character (the thick ring "o", the soft ellipse antennae), instead of
+// leaning on Inter for both body text AND display type everywhere,
+// which was flattening the brand's personality. Declared here (next/font
+// needs a build-time import) but the variable is only ever referenced
+// by marketing components — the admin panel and tenant dashboard keep
+// reading plain `font-sans` (Inter), untouched.
 const displayFont = Baloo_2({ subsets: ['latin'], weight: ['600', '700', '800'], variable: '--font-display' });
+
+// Display face for bicho CENTRAL (components/central/*.tsx) only — a
+// separate variable, not a reuse of --font-display, on purpose: the two
+// bicho identities need to read as related but distinct (see
+// components/central/tokens.ts), and sharing a display face would blur
+// that. Space Grotesk is a geometric-but-technical sans, sentence case
+// rather than Baloo's rounded/uppercase treatment.
+const centralFont = Space_Grotesk({ subsets: ['latin'], weight: ['500', '600', '700'], variable: '--font-central' });
 
 export const metadata: Metadata = {
   title: 'Reservas SaaS',

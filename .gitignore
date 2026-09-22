@@ -30,3 +30,11 @@ next-env.d.ts
 
 .vercel
 .env*
+
+# Claude Code / impeccable
+# The design-detector engine is a 15MB windows-x64 binary that the tool
+# re-downloads on first run — platform-specific, regenerable, and exactly
+# the kind of thing git should never be asked to remember. Same for the
+# hook wiring, which impeccable itself documents as machine-local.
+.claude/skills/impeccable/scripts/bin/
+.claude/settings.local.json

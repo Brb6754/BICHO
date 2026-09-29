@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Inter, Baloo_2, Space_Grotesk } from 'next/font/google';
+import { Inter, Baloo_2, Space_Grotesk, Archivo } from 'next/font/google';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
@@ -24,6 +24,14 @@ const displayFont = Baloo_2({ subsets: ['latin'], weight: ['600', '700', '800'],
 // rather than Baloo's rounded/uppercase treatment.
 const centralFont = Space_Grotesk({ subsets: ['latin'], weight: ['500', '600', '700'], variable: '--font-central' });
 
+// Display face for the campaign landing (/ia) only. A third variable
+// rather than reusing --font-display or --font-central on purpose: that
+// page is a READING surface, and Baloo's rounded display voice and Space
+// Grotesk's technical one both fight a page of running prose. Archivo is
+// a plain, sturdy grotesque with the weights a headline needs and proper
+// Spanish diacritics.
+const iaFont = Archivo({ subsets: ['latin'], weight: ['500', '600', '700'], variable: '--font-ia' });
+
 export const metadata: Metadata = {
   title: 'Reservas SaaS',
 };
@@ -42,7 +50,11 @@ const THEME_INIT_SCRIPT = `
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" className={`${inter.variable} ${displayFont.variable}`} suppressHydrationWarning>
+    <html
+      lang="es"
+      className={`${inter.variable} ${displayFont.variable} ${iaFont.variable}`}
+      suppressHydrationWarning
+    >
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>

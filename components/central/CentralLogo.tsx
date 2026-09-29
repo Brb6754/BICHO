@@ -24,7 +24,21 @@ const CROP = {
 
 // Sized by the caller's height class only (`h-7`, `h-9`…); width follows
 // from the measured aspect ratio, so there's one asset at every size.
-export function CentralLogo({ className = 'h-7' }: { className?: string }) {
+//
+// `tone` exists for the same reason BichoLogo has one: the pixels in the
+// file are WHITE, so on the paper ground of /ia the mark would render as
+// nothing at all. `ink` flattens it to black with a filter instead of
+// shipping a second asset. It does cost the violet on the "i" slash and
+// the "o" bug — brightness(0) takes every channel to zero — but a
+// monochrome wordmark reads, and an invisible one does not. Default is
+// unchanged, so every existing caller renders exactly as before.
+export function CentralLogo({
+  className = 'h-7',
+  tone = 'light',
+}: {
+  className?: string;
+  tone?: 'light' | 'ink';
+}) {
   return (
     <span
       className={`relative block overflow-hidden ${className}`}
@@ -46,6 +60,7 @@ export function CentralLogo({ className = 'h-7' }: { className?: string }) {
           left: `${CROP.leftPct}%`,
           top: `${CROP.topPct}%`,
           maxWidth: 'none',
+          filter: tone === 'ink' ? 'brightness(0)' : undefined,
         }}
       />
     </span>

@@ -494,7 +494,12 @@
   animation: ticker-crawl var(--ticker-duration, 16s) linear infinite;
   will-change: transform;
 }
-.ticker-shell:hover .ticker-track {
+/* Pausing on focus, not just hover, because the portfolio crawl carries
+   real buttons: without this, tabbing to one starts a chase — the target
+   keeps sliding while the focus ring sits on it. The hero's ticker is
+   text only, so the extra selector costs it nothing. */
+.ticker-shell:hover .ticker-track,
+.ticker-shell:focus-within .ticker-track {
   animation-play-state: paused;
 }
 

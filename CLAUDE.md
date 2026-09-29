@@ -3437,3 +3437,154 @@ limpio, 105 tests en verde.
 **Pendiente de vos**: correr `db/022_template_cover.sql` si quieres poder
 poner fotos de portada. Sin eso la galería funciona igual, con la
 miniatura.
+
+**Cuatro huecos del panel del negocio (2026-09-22)**: Bruno pidió reparar
+cuatro de los cinco pendientes que le listé. El quinto (subir imágenes)
+quedó fuera porque necesita un bucket de Supabase Storage creado por él.
+
+**1. Una cita ya puede terminar en algo.** `AgendaList` leía `completed`
+desde hacía meses —atenuaba la fila y le ponía un check— pero **nada en
+todo el producto lo escribía nunca**. La columna tenía tres valores y la
+app solo podía producir dos.
+- `db/023_booking_attendance.sql` (⚠️ pendiente) agrega `no_show` al
+  check. **No es lo mismo que `cancelled`**: cancelada devuelve el
+  horario a la venta, no-show significa que el horario se consumió y
+  nadie llegó. El `exclude` constraint filtra `status <> 'cancelled'`,
+  así que `completed` y `no_show` siguen ocupando su hueco — correcto, y
+  hay un comentario en la migración para que nadie lo "arregle".
+- `markBookingAttendance(bookingId, slug, attended)` pasa por
+  `requireTenantStaff`, rechaza una cita cancelada con una frase en vez
+  de dejar que el constraint truene, y traduce el `23514` a «Falta
+  correr la migración 023».
+- `AttendanceButtons` solo aparece en citas **ya terminadas**: "¿vino?"
+  no es una pregunta que se pueda contestar sobre mañana. La agenda
+  ahora ramifica — futura → Cambiar hora / Cancelar; pasada → Vino / No
+  vino. Antes eran cuatro botones en una fila de teléfono, y ofrecía
+  "cancelar" una hora que ya ocurrió.
+- El badge de no-show es **el único estado que NO se atenúa**: alguien
+  revisando la semana busca exactamente esas filas.
+
+**2. Vista de clientes** (`/dashboard/customers`). El hallazgo que la
+ordena todo: **`create_booking` inserta una fila NUEVA en `customers` en
+cada reserva** (db/010) y no hay unicidad por teléfono, así que la tabla
+es «una fila por cita» disfrazada. Leerla directo mostraría a la misma
+clienta cinco veces.
+- `lib/customers/roster.ts` agrupa por teléfono normalizado (solo
+  dígitos) al LEER, con el nombre como respaldo. **No se hizo migración
+  de datos** a propósito: fusionar dos personas que comparten un número
+  (una pareja, el teléfono del local tecleado por el staff) no es
+  reversible; agrupar en lectura sí. Si algún día se agrega la unicidad,
+  esta vista sigue funcionando igual.
+- **Una cita pasada en `confirmed` cuenta como visita.** Nada podía
+  escribir `completed` antes de db/023, así que contar solo eso habría
+  mostrado a toda la clientela histórica como desconocidos. De ahí que
+  `visits` y `completed` sean campos distintos.
+- 18 tests en `lib/customers/roster.test.ts`.
+- La demo pública ganó su propia `/plataforma/panel/customers` con el
+  MISMO `buildRoster`, y las fixtures ganaron historial (offsets
+  negativos, que las otras dos pantallas filtran) — sin él cada cliente
+  leería «Nuevo · 1 visita», que es justo la pantalla que hace que una
+  demo parezca vacía.
+
+**3. `resource_label` y `location` por negocio**
+(`db/024_tenant_labels.sql`, ⚠️ pendiente). `BookingFlow` aceptaba ambas
+props desde que se reconstruyó; nadie podía llenarlas nunca.
+- Campos nuevos en `BrandEditor` (los dos paneles). `resource_label` es
+  un `<input list>` con sugerencias, no un `<select>`: un giro que no
+  se nos ocurrió tiene que poder escribir su palabra.
+- **La pregunta del paso también se adapta**, que era el punto: el flujo
+  decía «¿Con quién prefieres reservar?» fijo, absurdo para una cancha.
+  Ahora `resourceLabel` ya NO tiene default en el destructure — el
+  componente distingue «el negocio eligió una palabra» de «está en el
+  respaldo», y solo en el primer caso cambia a «¿Qué cancha prefieres?».
+  Un negocio que no configuró nada lee exactamente lo de antes.
+- `updateTenantBranding` **reintenta sin las dos columnas** ante un
+  42703: una migración pendiente cuesta los dos campos nuevos, no todos
+  los colores del formulario. Mismo patrón defensivo de `page_blocks` y
+  `reseller_id`. Verificado en vivo **con db/024 sin correr**: la página
+  pública de `test-salon` renderiza igual.
+- «Ver mi cita» por fin puede responder «¿dónde voy?» — la dirección
+  enlaza a Google Maps, y la fila «Te atiende» usa la palabra del
+  negocio.
+
+**4. `npm run lint` reparado.** `next lint` desapareció en Next 16 y el
+script apuntaba a una carpeta llamada `lint`. Ahora es `eslint .` con
+`eslint.config.mjs` (flat config; ESLint 10 no lee `.eslintrc.json`, que
+se borró). **Hubo que bajar eslint de 10 a 9**: el `>=9.0.0` de los
+peers de `eslint-config-next@16` es optimista — sus plugins de React y
+TypeScript son de la generación de ESLint 9 y revientan con 10
+(`contextOrFilename.getFilename is not a function`, luego
+`scopeManager.addGlobals is not a function`).
+
+**Bug encontrado al verificar, que yo mismo había enviado la sesión
+pasada**: **todos los enlaces del menú de la demo pública eran 404.**
+`navBase` del `Sidebar` se CONCATENABA (`/plataforma/panel` +
+`/dashboard/calendar` = `/plataforma/panel/dashboard/calendar`) cuando
+las rutas reales son `/plataforma/panel/calendar`. Ahora **sustituye** el
+segmento `/dashboard` en vez de prefijarlo. Los 8 destinos verificados en
+200. Se descubrió porque agregar "Clientes" al menú me hizo mirar los
+hrefs renderizados, no porque nada fallara visiblemente — la demo se veía
+bien y era inservible más allá de la primera pantalla.
+
+**Hallazgos del lint que NO se arreglaron** (nunca se habían visto porque
+el comando llevaba meses roto): 9 errores de `react-hooks`, todos reales
+— 5 `set-state-in-effect` (ThemeToggle, Sidebar, BookingFlow,
+SlotPicker, ResellerShell), 2 `static-components` (ServicesTicker define
+`Row` dentro del componente), 1 `purity`, 1 `refs`. Son refactors de
+código que funciona, así que `npm run lint` sale en rojo hasta que se
+hagan. Los 3 enlaces crudos que marcaba `next` sí se resolvieron: uno era
+un bug real (recarga completa al ir a `/reservas`), los otros dos son
+anclas de la misma página con su `eslint-disable` y su motivo.
+
+**Pendiente de vos**: correr `db/023_booking_attendance.sql` y
+`db/024_tenant_labels.sql` en el SQL Editor. Hasta entonces «Vino»
+funciona (`completed` ya era legal) y «No vino» muestra el mensaje de
+migración pendiente — verificado contra la base real.
+
+**Choose en el portafolio + el portafolio pasa a marquesina (2026-09-22,
+mismo día)**: Bruno mandó la captura de Choose (plataforma de orientación
+vocacional, Django + Next.js + React) para agregarla, y después pidió que
+las tarjetas fueran todas iguales, desfilaran «como el banner de arriba»
+y llevaran una flechita.
+
+- `public/portfolio/choose.webp` (2000×1318) + entrada nueva en
+  `projects.ts`. **El stack dice exactamente Django · Next.js · React**:
+  Django trae Postgres por defecto, pero él no lo dijo y un chip en un
+  portafolio es una afirmación técnica, no una suposición.
+- **La marquesina reutiliza el mecanismo del ticker del hero**, no uno
+  nuevo: `.ticker-shell` + `.ticker-track` de `globals.css`, con
+  `--ticker-duration: 60s` (contra los 16s del hero — aquí no son cuatro
+  palabras, son tarjetas de 480px con captura y párrafo). La lista se
+  renderiza dos veces y el keyframe mueve exactamente -50%, así que el
+  ciclo no salta.
+- **La copia va `aria-hidden` Y `inert`.** Aquí importa más que en el
+  hero: estas tarjetas llevan botones reales, y sin `inert` el Tab
+  aterrizaría en un duplicado del enlace que el visitante ya pasó.
+  Verificado: solo 2 enlaces tabulables en toda la sección.
+- **`.ticker-shell:focus-within` también pausa** (regla nueva en
+  `globals.css`, beneficia a los dos tickers): sin eso, tabular a un
+  botón arranca una persecución — el objetivo sigue deslizándose con el
+  anillo de foco encima. El hover ya pausaba.
+- **La flechita es un `<span aria-hidden>`, no un enlace**, por la misma
+  regla de anclas anidadas que ya causó un error de hidratación real en
+  el hero: la tarjeta es un contenedor con hasta dos acciones en el pie,
+  así que un tercer enlace encima sería un ancla dentro de otra. La
+  flecha es affordance; los destinos siguen siendo los botones.
+- El aviso «pasa el cursor para detenerlo» está oculto en teléfono — ahí
+  no hay cursor, sería una instrucción que nadie puede seguir.
+- Se probó primero una variante con la primera tarjeta a ancho completo
+  (para que 3 tarjetas no dejaran una huérfana en una rejilla de dos
+  columnas); Bruno la descartó — «déjalos todos así». La marquesina
+  resuelve el mismo problema mejor, porque con N tarjetas nunca hay
+  fila incompleta.
+
+Verificado a 1280 y 375px: 6 tarjetas (3 + copia) de 480×595 y 308×568,
+sin overflow, pausa por hover confirmada (`animationPlayState: paused`),
+consola limpia. `tsc` limpio, 123 tests en verde.
+
+**Hueco de honestidad que esto destapa**: el subtítulo de la sección dice
+«Entra y pruébalos», pero **2 de las 3 tarjetas no tienen enlace**
+(Choose y Nova Solar siguen con `href: '#portafolio'` y su TODO). Con
+una de tres se disimulaba; con dos de tres el subtítulo promete algo que
+la sección no cumple. Hace falta la URL pública de las dos, o cambiar
+esa frase.

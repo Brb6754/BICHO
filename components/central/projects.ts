@@ -36,6 +36,18 @@ export const PROJECTS: Project[] = [
     demoHref: '/plataforma',
   },
   {
+    slug: 'choose',
+    name: 'Choose',
+    tag: 'Plataforma EdTech',
+    blurb:
+      'Orientación vocacional para estudiantes de preparatoria: un test que perfila intereses y aptitudes, y cruza el resultado con carreras y universidades reales.',
+    stack: ['Django', 'Next.js', 'React'],
+    image: '/portfolio/choose.webp',
+    // TODO(Bruno): mismo caso que Nova Solar — pásame la URL pública y
+    // la cambio por el link real (con external: true).
+    href: '#portafolio',
+  },
+  {
     slug: 'nova-solar',
     name: 'Nova Solar Durango',
     tag: 'Sitio a medida',

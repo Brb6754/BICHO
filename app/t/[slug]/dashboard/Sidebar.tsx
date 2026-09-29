@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, CalendarDays, Tag, Users, Clock3, Menu, X, ArrowUpRight } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, Contact, Tag, Users, Clock3, Menu, X, ArrowUpRight } from 'lucide-react';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { BusinessMark } from '@/components/tenant-dash/BusinessMark';
 import { tenantBookingPageUrl } from '@/lib/urls';
@@ -19,9 +19,15 @@ import SignOutButton from './SignOutButton';
 // all day, the weekly hours almost never), and labelled with the SAME
 // words as each page's own title. The menu used to say "Recursos" and
 // "Calendario" for pages titled "Quién atiende" and "Agenda".
+// The segment navBase swaps out. NAV_ITEMS all start with it.
+const DASHBOARD_ROOT = '/dashboard';
+
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Resumen', icon: LayoutDashboard, exact: true },
   { href: '/dashboard/calendar', label: 'Agenda', icon: CalendarDays },
+  // Above the catalogue on purpose: services and hours are setup, changed
+  // a few times a year. Customers is something an owner looks up.
+  { href: '/dashboard/customers', label: 'Clientes', icon: Contact },
   { href: '/dashboard/services', label: 'Servicios', icon: Tag },
   { href: '/dashboard/resources', label: 'Quién atiende', icon: Users },
   { href: '/dashboard/schedule', label: 'Horario', icon: Clock3 },
@@ -58,11 +64,17 @@ export function Sidebar({
   role: string;
   primaryColor: string;
   logoUrl?: string | null;
-  // Prefix for the nav hrefs. Empty for a real tenant, where proxy.ts
-  // serves the dashboard at the subdomain root and NAV_ITEMS are
-  // already the public paths. The public platform demo lives at a plain
-  // path instead (/plataforma/panel), so it passes that prefix and gets
-  // the same nav without a second copy of this component.
+  // What stands in for "/dashboard" in the nav hrefs. Empty for a real
+  // tenant, where proxy.ts serves the dashboard at the subdomain root
+  // and NAV_ITEMS are already the public paths. The public platform
+  // demo lives at a plain path instead (/plataforma/panel), so it
+  // passes that and gets the same nav without a second copy of this
+  // component.
+  //
+  // It REPLACES the segment rather than prefixing it. Prefixing is what
+  // this prop did when it was written, and it produced
+  // /plataforma/panel/dashboard/calendar — every link in the demo's
+  // menu was a 404 from the day it shipped.
   navBase?: string;
   // Same reason: the demo's booking page isn't on a tenant subdomain.
   bookingHref?: string;
@@ -139,7 +151,7 @@ export function Sidebar({
 
         <nav aria-label="Secciones" className="mt-2 flex flex-1 flex-col gap-0.5 px-3">
           {NAV_ITEMS.map((item) => {
-            const href = `${navBase}${item.href}`;
+            const href = navBase ? `${navBase}${item.href.slice(DASHBOARD_ROOT.length)}` : item.href;
             const isActive = item.exact ? pathname === href : (pathname?.startsWith(href) ?? false);
             const Icon = item.icon;
             return (

@@ -29,7 +29,9 @@ export const DEMO = {
   accentColor: '#C98A5E',
   ownerEmail: 'hola@estudioaurora.mx',
   location: 'Av. 20 de Noviembre 810, Centro, Durango',
-  resourceLabel: 'Profesional',
+  // Not 'Profesional': the demo should show what db/024 buys a business,
+  // and a salon calling its people estilistas is the whole point.
+  resourceLabel: 'Estilista',
 } as const;
 
 export const DEMO_SERVICES: Service[] = [
@@ -72,6 +74,12 @@ export const DEMO_WEEKDAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueve
 // Appointments already on the books, as offsets from today — so the
 // agenda always has something in it, today always has a "next", and the
 // booking flow always shows some hours taken.
+// History, so "Clientes" has something to be a list OF. The panel and
+// the agenda both filter to today onward, so none of these negative
+// offsets show up there — they exist to make the roster real: Lucía is
+// a regular, Óscar stopped coming months ago, and Renata has missed one.
+// Without history every customer would read "Nuevo · 1 visita", which is
+// exactly the screen that makes a demo look empty.
 const BOOKED: {
   dayOffset: number;
   time: string;
@@ -91,6 +99,25 @@ const BOOKED: {
   { dayOffset: 2, time: '10:30', resourceId: 'res-daniela', serviceId: 'svc-color', customer: 'Sofía Carrillo', phone: '618 907 4412' },
   { dayOffset: 3, time: '12:30', resourceId: 'res-marco', serviceId: 'svc-barba', customer: 'Emilio Tapia', phone: '618 553 2277' },
   { dayOffset: 4, time: '17:30', resourceId: 'res-daniela', serviceId: 'svc-corte', customer: 'Ana Villareal', phone: '618 240 9938' },
+
+  // ── Past ──────────────────────────────────────────────────────────
+  // Lucía: the regular. Same phone throughout, which is what lets the
+  // roster collapse six separate customers rows into one person.
+  { dayOffset: -28, time: '10:00', resourceId: 'res-daniela', serviceId: 'svc-corte', customer: 'Lucía Fernández', phone: '618 114 2290', status: 'completed' },
+  { dayOffset: -56, time: '10:00', resourceId: 'res-daniela', serviceId: 'svc-corte', customer: 'Lucía Fernández', phone: '618 114 2290', status: 'completed' },
+  { dayOffset: -84, time: '11:00', resourceId: 'res-daniela', serviceId: 'svc-color', customer: 'Lucía Fernández', phone: '618 114 2290', status: 'completed' },
+  // Renata: comes back, but missed one — the case the no-show status exists for.
+  { dayOffset: -21, time: '12:00', resourceId: 'res-daniela', serviceId: 'svc-color', customer: 'Renata Ibáñez', phone: '618 220 7741', status: 'completed' },
+  { dayOffset: -49, time: '12:00', resourceId: 'res-daniela', serviceId: 'svc-color', customer: 'Renata Ibáñez', phone: '618 220 7741', status: 'no_show' },
+  { dayOffset: -63, time: '13:00', resourceId: 'res-marco', serviceId: 'svc-barba', customer: 'Óscar Medina', phone: '618 455 1183', status: 'completed' },
+  // Teresa: came twice, hasn't been back in four months, nothing booked.
+  // She is the reason the "Sin venir" count exists — the one row on this
+  // screen that suggests picking up the phone.
+  { dayOffset: -118, time: '11:00', resourceId: 'res-daniela', serviceId: 'svc-tratamiento', customer: 'Teresa Arellano', phone: '618 447 3021', status: 'completed' },
+  { dayOffset: -160, time: '11:00', resourceId: 'res-daniela', serviceId: 'svc-color', customer: 'Teresa Arellano', phone: '618 447 3021', status: 'completed' },
+  // Same person, phone typed differently on an earlier visit. The roster
+  // has to see through the formatting, and it does.
+  { dayOffset: -35, time: '16:30', resourceId: 'res-daniela', serviceId: 'svc-corte', customer: 'Paulina Ruvalcaba', phone: '(618) 309-6620', status: 'completed' },
 ];
 
 function serviceById(id: string) {

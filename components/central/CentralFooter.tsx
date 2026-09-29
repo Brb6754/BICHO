@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { CentralLogo } from './CentralLogo';
 import { focusRingOnDark } from './Primitives';
 
@@ -13,15 +14,22 @@ export function CentralFooter() {
         </div>
 
         <div className="flex flex-wrap gap-x-10 gap-y-4 text-sm text-[#8C9BC9]">
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages --
+              this footer only renders on the home page, so these are
+              anchors within the current document, not navigations. */}
           <a href="/#servicios" className={`rounded-sm transition-colors hover:text-white ${focusRingOnDark}`}>
             Servicios
           </a>
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- same-page anchor */}
           <a href="/#nosotros" className={`rounded-sm transition-colors hover:text-white ${focusRingOnDark}`}>
             Cómo trabajamos
           </a>
-          <a href="/reservas" className={`rounded-sm transition-colors hover:text-white ${focusRingOnDark}`}>
+          {/* The only cross-page link in this row: a <Link> so it
+              client-navigates instead of reloading the whole app. The
+              two above it are hash anchors into THIS page. */}
+          <Link href="/reservas" className={`rounded-sm transition-colors hover:text-white ${focusRingOnDark}`}>
             bicho reservas
-          </a>
+          </Link>
           <a
             href="mailto:nonameynk@gmail.com"
             className={`rounded-sm transition-colors hover:text-white ${focusRingOnDark}`}

@@ -44,6 +44,9 @@ export function CentralNav({ tone = 'onDeep' }: { tone?: 'onDeep' | 'onLight' })
   return (
     <header className="relative z-30">
       <div className="mx-auto grid max-w-7xl grid-cols-[1fr_auto_1fr] items-center gap-6 px-6 py-5">
+        {/* eslint-disable-next-line @next/next/no-html-link-for-pages --
+            scrollToSection handles this in-page; the href is only the
+            fallback for the pages where #top doesn't exist. */}
         <a
           href="/#top"
           onClick={scrollToSection('top', close)}

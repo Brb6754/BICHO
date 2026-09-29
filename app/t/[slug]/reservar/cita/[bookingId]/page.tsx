@@ -81,7 +81,14 @@ export default async function BookingDetailPage({
     notFound();
   }
 
-  const [{ data: brandingRow }, { data: themeRow }, { data: pageRow }, { data: templateRow }, { data: bookingRaw }] =
+  const [
+    { data: brandingRow },
+    { data: themeRow },
+    { data: labelsRow },
+    { data: pageRow },
+    { data: templateRow },
+    { data: bookingRaw },
+  ] =
     await Promise.all([
       admin
         .from('tenants')
@@ -89,6 +96,8 @@ export default async function BookingDetailPage({
         .eq('id', tenant.id)
         .maybeSingle(),
       admin.from('tenants').select('theme_mode').eq('id', tenant.id).maybeSingle(),
+      // db/024, on its own query like every other late column here.
+      admin.from('tenants').select('resource_label, location').eq('id', tenant.id).maybeSingle(),
       admin.from('tenants').select('page_design').eq('id', tenant.id).maybeSingle(),
       admin.from('templates').select('design').eq('vertical', tenant.vertical ?? 'general').maybeSingle(),
       admin
@@ -220,7 +229,7 @@ export default async function BookingDetailPage({
                   </div>
                   {booking.resources?.name && (
                     <div className="flex items-baseline justify-between gap-6 py-3">
-                      <dt className="text-muted">Te atiende</dt>
+                      <dt className="text-muted">{labelsRow?.resource_label || 'Te atiende'}</dt>
                       <dd className="text-right font-medium text-ink">{booking.resources.name}</dd>
                     </div>
                   )}
@@ -228,6 +237,28 @@ export default async function BookingDetailPage({
                     <div className="flex items-baseline justify-between gap-6 py-3">
                       <dt className="text-muted">A nombre de</dt>
                       <dd className="text-right font-medium text-ink">{booking.customers.name}</dd>
+                    </div>
+                  )}
+                  {/* "Where do I go" — the one question this page could
+                      never answer, because until db/024 a business had
+                      nowhere to put its address. Links to Maps: on a
+                      phone that opens the app with directions, which is
+                      what someone reading this actually wants. */}
+                  {labelsRow?.location && (
+                    <div className="flex items-baseline justify-between gap-6 py-3">
+                      <dt className="text-muted">Dónde</dt>
+                      <dd className="text-right font-medium text-ink">
+                        <a
+                          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                            labelsRow.location
+                          )}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="rounded-sm underline decoration-ink/25 underline-offset-4 hover:decoration-ink"
+                        >
+                          {labelsRow.location}
+                        </a>
+                      </dd>
                     </div>
                   )}
                 </dl>

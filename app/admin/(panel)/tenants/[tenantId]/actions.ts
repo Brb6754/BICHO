@@ -60,6 +60,10 @@ export type TenantBranding = {
   favicon_url: string | null;
   cover_image_url: string | null;
   profile_image_url: string | null;
+  // db/024. Nullable because a business that sets neither keeps exactly
+  // the old behaviour ("Profesional", no address line).
+  resource_label: string | null;
+  location: string | null;
 };
 
 // Called directly from the client (BrandEditor.tsx) via
@@ -67,7 +71,17 @@ export type TenantBranding = {
 export async function updateTenantBranding(tenantId: string, branding: TenantBranding) {
   await requireTenantManager(tenantId);
   const admin = createAdminClient();
-  const { error } = await admin.from('tenants').update(branding).eq('id', tenantId);
+  let { error } = await admin.from('tenants').update(branding).eq('id', tenantId);
+
+  // 42703 is "column does not exist": db/024 hasn't been run yet. Retry
+  // without the two columns it adds, so a pending migration costs the
+  // two new fields rather than every colour on the form. Same fallback
+  // this project already uses for page_blocks and reseller_id.
+  if (error?.code === '42703') {
+    const { resource_label: _rl, location: _loc, ...rest } = branding;
+    ({ error } = await admin.from('tenants').update(rest).eq('id', tenantId));
+  }
+
   if (error) {
     // Was silently swallowed before — BrandEditor would show "Guardado ✓"
     // even when the write never happened, which is exactly how this bug

@@ -96,16 +96,21 @@ export default function BookingFlow({
   resources,
   accentColor = '#8FE24A',
   timezone,
-  resourceLabel = 'Profesional',
+  resourceLabel,
   location,
   loadSlots,
   onSubmitBooking,
   manageUrl,
 }: Props) {
-  const steps = useMemo(
-    () => stepsFor(resources.length, resourceLabel),
-    [resources.length, resourceLabel]
-  );
+  // "Profesional" is the fallback, not a value a business picked. The
+  // difference matters one place below: a salon that never configured
+  // anything keeps reading "¿Con quién prefieres reservar?", which is
+  // friendlier than the generic phrasing — but a padel court that set
+  // "Cancha" must not be asked "¿con quién?" about a slab of concrete.
+  const label = resourceLabel?.trim() || 'Profesional';
+  const hasOwnLabel = Boolean(resourceLabel?.trim());
+
+  const steps = useMemo(() => stepsFor(resources.length, label), [resources.length, label]);
 
   const [stepIndex, setStepIndex] = useState(0);
   const [service, setService] = useState<Service | null>(null);
@@ -314,13 +319,13 @@ export default function BookingFlow({
   // ── summary ───────────────────────────────────────────────────────
   const resourceName =
     resourceChoice === ANY_RESOURCE
-      ? `Cualquier ${resourceLabel.toLowerCase()}`
+      ? `Cualquier ${label.toLowerCase()}`
       : (resources.find((r) => r.id === resourceChoice)?.name ?? '');
 
   const summaryItems: SummaryItem[] = [];
   if (service) summaryItems.push({ id: 'service', label: 'servicio', value: service.name });
   if (resourceChoice && resources.length > 1)
-    summaryItems.push({ id: 'resource', label: resourceLabel.toLowerCase(), value: resourceName });
+    summaryItems.push({ id: 'resource', label: label.toLowerCase(), value: resourceName });
   if (selectedDay && !selectedSlot)
     summaryItems.push({ id: 'date', label: 'fecha', value: longDate(`${selectedDay}T12:00:00Z`, timezone) });
   if (selectedSlot)
@@ -543,14 +548,14 @@ export default function BookingFlow({
         {currentStep === 'resource' && (
           <>
             <h2 className="text-base font-semibold text-ink">
-              ¿Con quién prefieres reservar?
+              {hasOwnLabel ? `¿Qué ${label.toLowerCase()} prefieres?` : '¿Con quién prefieres reservar?'}
             </h2>
             <p className="mt-1 text-[13px] text-muted">
               Si te da igual, elige cualquiera: vas a ver más horarios libres.
             </p>
             <div className="mt-4 flex flex-col gap-2.5">
               <ResourceCard
-                name={`Cualquier ${resourceLabel.toLowerCase()} disponible`}
+                name={`Cualquier ${label.toLowerCase()} disponible`}
                 meta="La opción con más horarios"
                 recommended
                 selected={resourceChoice === ANY_RESOURCE}

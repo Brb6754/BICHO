@@ -17,6 +17,22 @@ const COLOR_FIELDS = [
   ['text_color', 'Texto'],
 ] as const;
 
+// Not an enum and not a <select>: these are the words that come up most
+// often, offered as a datalist so a business whose vocabulary we haven't
+// thought of ("Terapeuta", "Tatuador", "Pista") can still type its own.
+const RESOURCE_LABEL_SUGGESTIONS = [
+  'Profesional',
+  'Estilista',
+  'Doctor',
+  'Doctora',
+  'Terapeuta',
+  'Cabina',
+  'Consultorio',
+  'Cancha',
+  'Mesa',
+  'Silla',
+];
+
 const IMAGE_FIELDS = [
   ['logo_url', 'Logo (URL)'],
   ['logo_mobile_url', 'Logo móvil (URL)'],
@@ -173,6 +189,49 @@ export function BrandEditor({
           rows={2}
           className="w-full rounded-2xl border border-border bg-surface px-4 py-2.5 text-sm text-ink focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
         />
+      </div>
+
+      {/* Words, not colours — but this is the only place the team can
+          configure a business, so they live here rather than behind a
+          second editor nobody would find. */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
+          <Label>Cómo le llama a quien (o a lo que) atiende</Label>
+          <Input
+            list="resource-label-suggestions"
+            value={form.resource_label ?? ''}
+            onChange={(e) => set('resource_label', e.target.value || null)}
+            placeholder="Profesional"
+            maxLength={40}
+            className="w-full"
+          />
+          <datalist id="resource-label-suggestions">
+            {RESOURCE_LABEL_SUGGESTIONS.map((word) => (
+              <option key={word} value={word} />
+            ))}
+          </datalist>
+          <p className="mt-1 text-xs text-muted">
+            En singular. El paso de la reserva va a preguntar «
+            {form.resource_label?.trim()
+              ? `¿Qué ${form.resource_label.trim().toLowerCase()} prefieres?`
+              : '¿Con quién prefieres reservar?'}
+            ». Vacío = «Profesional».
+          </p>
+        </div>
+        <div>
+          <Label>Dirección</Label>
+          <Input
+            value={form.location ?? ''}
+            onChange={(e) => set('location', e.target.value || null)}
+            placeholder="Av. 20 de Noviembre 810, Centro, Durango"
+            maxLength={200}
+            className="w-full"
+          />
+          <p className="mt-1 text-xs text-muted">
+            Aparece en el resumen de la reserva y en la confirmación. Vacío = no se muestra esa
+            línea.
+          </p>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

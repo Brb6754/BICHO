@@ -39,6 +39,10 @@ type BookingData = {
   services: { id: string; name: string; duration_minutes: number; price_cents: number }[];
   resources: { id: string; name: string }[];
   timezone?: string | null;
+  // db/024. Optional so the template editor's preview — which has no
+  // tenant behind it — keeps rendering exactly as it does today.
+  resourceLabel?: string;
+  location?: string | null;
 };
 
 // isDark/darkBase are optional so every existing caller (template
@@ -481,6 +485,8 @@ function BlockItem({
               accentColor={branding.accentColor}
               primaryColor={branding.primaryColor}
               timezone={bookingData.timezone}
+              resourceLabel={bookingData.resourceLabel}
+              location={bookingData.location}
             />
           </div>
         </div>

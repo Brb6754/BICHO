@@ -91,6 +91,15 @@ export default async function ReservarPage({ params }: { params: Promise<{ slug:
     .maybeSingle();
   const isDark = theme_mode_raw?.theme_mode === 'dark';
 
+  // db/024, queried on its own for the reason every new column on this
+  // page is: if it doesn't exist yet, the cost is the two words it
+  // carries — "Profesional" and no address — not the whole page.
+  const { data: labels_raw } = await supabase
+    .from('tenants')
+    .select('resource_label, location')
+    .eq('slug', slug)
+    .maybeSingle();
+
   const { data: services } = await supabase
     .from('service_types')
     .select('id, name, duration_minutes, price_cents')
@@ -176,6 +185,11 @@ export default async function ReservarPage({ params }: { params: Promise<{ slug:
     services: services ?? [],
     resources: resources ?? [],
     timezone: tenant?.timezone ?? null,
+    // `|| undefined` and not `?? undefined`: an empty string saved from
+    // the panel has to fall through to BookingFlow's default too, not
+    // ask "¿Con qué ?".
+    resourceLabel: labels_raw?.resource_label || undefined,
+    location: labels_raw?.location || null,
   };
 
   // Back to reading the tenant's own primary_color/accent_color: a fixed

@@ -180,6 +180,11 @@ export default async function ResellerBusinessPage({ params }: { params: Promise
               favicon_url: tenant.favicon_url,
               cover_image_url: tenant.cover_image_url,
               profile_image_url: tenant.profile_image_url,
+              // ?? null and not just the value: before db/024 runs these
+              // columns don't come back from select('*') at all, and an
+              // undefined would make the inputs uncontrolled.
+              resource_label: tenant.resource_label ?? null,
+              location: tenant.location ?? null,
             }}
             onSave={updateTenantBranding.bind(null, tenant.id) as (b: TenantBranding) => Promise<void>}
           />

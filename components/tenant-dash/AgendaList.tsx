@@ -1,4 +1,4 @@
-import { Check, X } from 'lucide-react';
+import { Check, UserX, X } from 'lucide-react';
 import { dayKey, dayLabel, formatTime, groupByDay, minutesBetween } from '@/lib/dates/tenantTime';
 
 export type AgendaBooking = {
@@ -91,8 +91,12 @@ export function AgendaList({
               {day.items.map((b, i) => {
                 const cancelled = b.status === 'cancelled';
                 const completed = b.status === 'completed';
+                // Settled: the appointment has an outcome and nothing
+                // more is going to happen to it. Kept as one name
+                // because three places below ask the same question.
+                const noShow = b.status === 'no_show';
                 const past = isToday && new Date(b.ends_at) <= now;
-                const dim = cancelled || past || completed;
+                const dim = (cancelled || past || completed) && !noShow;
                 return (
                   <li key={b.id} className={i > 0 && !(showNow && i === nowIndex) ? 'border-t border-border' : ''}>
                     {showNow && i === nowIndex && (
@@ -138,7 +142,18 @@ export function AgendaList({
                             <span className="sr-only sm:not-sr-only">Completada</span>
                           </span>
                         )}
-                        {!cancelled && !completed && renderAction?.(b)}
+                        {/* A no-show is the one outcome that is NOT
+                            dimmed into the background: an owner looking
+                            back over the week is looking for exactly
+                            these, so the row keeps its colour and the
+                            label is the only one that isn't grey. */}
+                        {noShow && (
+                          <span className="flex items-center gap-1.5 rounded-full bg-warning-soft p-1 text-xs font-medium text-warning sm:px-2.5 sm:py-0.5">
+                            <UserX className="h-3.5 w-3.5 sm:hidden" aria-hidden="true" />
+                            <span className="sr-only sm:not-sr-only">No vino</span>
+                          </span>
+                        )}
+                        {!cancelled && !completed && !noShow && renderAction?.(b)}
                       </div>
                     </div>
                   </li>

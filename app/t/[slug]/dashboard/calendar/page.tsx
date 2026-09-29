@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { cancelBooking } from './actions';
 import { NewBookingForm } from './NewBookingForm';
 import { RescheduleButton } from './RescheduleButton';
+import { AttendanceButtons } from './AttendanceButtons';
 import { ConfirmForm } from '@/components/ui/ConfirmForm';
 import { PageHeader } from '@/components/tenant-dash/PageHeader';
 import { AgendaList, type AgendaBooking } from '@/components/tenant-dash/AgendaList';
@@ -81,35 +82,53 @@ export default async function CalendarPage({ params }: { params: Promise<{ slug:
           now={now}
           emptyTitle="No hay citas próximas"
           emptyHint="En cuanto un cliente reserve desde tu página, va a aparecer aquí agrupada por día."
-          renderAction={(b) => (
-            <div className="flex flex-wrap items-center gap-2">
-            {b.status === 'confirmed' &&
-              new Date(b.starts_at) > now &&
-              b.service_type_id &&
-              b.resource_id && (
-              <RescheduleButton
-                bookingId={b.id}
-                slug={slug}
-                serviceId={b.service_type_id}
-                serviceName={b.service_types?.name ?? 'La cita'}
-                resourceId={b.resource_id}
-                currentStart={b.starts_at}
-                timezone={tz}
-              />
-              )}
-            <ConfirmForm
-              action={cancelBooking.bind(null, b.id, slug)}
-              confirmTitle="Cancelar cita"
-              confirmMessage={`¿Cancelar ${b.service_types?.name ?? 'la cita'} de ${
-                b.customers?.name ?? 'este cliente'
-              }? El horario quedará libre de nuevo.`}
-              confirmLabel="Cancelar cita"
-              triggerClassName="px-3 py-1.5 text-xs"
-            >
-              Cancelar
-            </ConfirmForm>
-            </div>
-          )}
+          renderAction={(b) => {
+            // An appointment that has already ended asks a different
+            // question than one that hasn't. Before it happens the
+            // owner may need to move or call it off; after it happens
+            // the only thing left to record is whether the customer
+            // turned up. Showing both sets at once put four buttons on
+            // a phone row and offered "cancelar" for an hour that is
+            // already over.
+            const over = new Date(b.ends_at) <= now;
+
+            if (over) {
+              return (
+                <AttendanceButtons
+                  bookingId={b.id}
+                  slug={slug}
+                  customerName={b.customers?.name ?? 'El cliente'}
+                />
+              );
+            }
+
+            return (
+              <div className="flex flex-wrap items-center gap-2">
+                {b.service_type_id && b.resource_id && (
+                  <RescheduleButton
+                    bookingId={b.id}
+                    slug={slug}
+                    serviceId={b.service_type_id}
+                    serviceName={b.service_types?.name ?? 'La cita'}
+                    resourceId={b.resource_id}
+                    currentStart={b.starts_at}
+                    timezone={tz}
+                  />
+                )}
+                <ConfirmForm
+                  action={cancelBooking.bind(null, b.id, slug)}
+                  confirmTitle="Cancelar cita"
+                  confirmMessage={`¿Cancelar ${b.service_types?.name ?? 'la cita'} de ${
+                    b.customers?.name ?? 'este cliente'
+                  }? El horario quedará libre de nuevo.`}
+                  confirmLabel="Cancelar cita"
+                  triggerClassName="px-3 py-1.5 text-xs"
+                >
+                  Cancelar
+                </ConfirmForm>
+              </div>
+            );
+          }}
         />
       </div>
     </div>

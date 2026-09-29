@@ -124,3 +124,72 @@ export async function rescheduleBookingFromDashboard(
   }
   return result;
 }
+
+// How an appointment ends.
+//
+// Until now every booking stayed 'confirmed' forever unless someone
+// cancelled it, so the agenda for last Tuesday looked exactly like the
+// agenda for next Tuesday and the owner had no way to record that a
+// customer simply never arrived. AgendaList was already written to dim
+// and check a 'completed' row — it just never received one.
+//
+// One action for both outcomes rather than two near-identical ones: the
+// guard, the ownership check and the revalidation are the whole body,
+// and the only difference is a string. `attended` is a boolean at the
+// call site so the button can't pass a status this function doesn't
+// expect.
+export async function markBookingAttendance(
+  bookingId: string,
+  slug: string,
+  attended: boolean
+): Promise<{ error: string | null }> {
+  let tenantId: string;
+  try {
+    ({ tenantId } = await requireTenantStaff(slug));
+  } catch {
+    return { error: 'No tienes acceso a este negocio.' };
+  }
+
+  const supabase = await createClient();
+
+  // Only a confirmed booking can turn into an outcome. Without this an
+  // owner could mark a cancelled appointment as "completed" — which
+  // would re-arm the exclusion constraint on a slot the system has
+  // already resold, and the update would fail with a constraint error
+  // the owner cannot possibly interpret. Refusing here gives them a
+  // sentence instead.
+  const { data: booking } = await supabase
+    .from('bookings')
+    .select('status')
+    .eq('id', bookingId)
+    .eq('tenant_id', tenantId)
+    .maybeSingle();
+
+  if (!booking) return { error: 'Esa cita ya no existe.' };
+  if (booking.status === 'cancelled') {
+    return { error: 'Esa cita está cancelada. Vuelve a agendarla si el cliente sí vino.' };
+  }
+
+  const { error } = await supabase
+    .from('bookings')
+    .update({ status: attended ? 'completed' : 'no_show' })
+    .eq('id', bookingId)
+    .eq('tenant_id', tenantId);
+
+  if (error) {
+    // 23514 is the status check constraint: db/023 hasn't been run yet,
+    // so 'no_show' isn't a legal value in this database. Say that,
+    // rather than "no se pudo guardar" — it's the one failure here with
+    // a specific fix.
+    if (error.code === '23514') {
+      return { error: 'Falta correr la migración 023 en la base de datos.' };
+    }
+    console.error('markBookingAttendance failed', error);
+    return { error: 'No se pudo guardar. Intenta de nuevo.' };
+  }
+
+  revalidatePath(`/t/${slug}/dashboard/calendar`);
+  revalidatePath(`/t/${slug}/dashboard`);
+  revalidatePath(`/t/${slug}/dashboard/customers`);
+  return { error: null };
+}

@@ -1,6 +1,7 @@
 'use server';
 
 import { createAdminClient } from '@/lib/supabase/admin';
+import { isReservedSlug } from '@/lib/domains';
 import { getActor } from '@/lib/auth/access';
 import { syncResellerSubscriptionQuantity } from '@/lib/payments/resellerSubscription';
 
@@ -8,6 +9,7 @@ import { syncResellerSubscriptionQuantity } from '@/lib/payments/resellerSubscri
 // validated here too so the error message is friendly instead of a raw
 // constraint violation.
 const SLUG_REGEX = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+
 
 // Called directly from the client (NewTenantForm.tsx) — no redirect()
 // here, same reasoning as every other action in this codebase: it would
@@ -38,6 +40,13 @@ export async function createTenant(
   if (!name) {
     return { ok: false, error: 'Falta el nombre del negocio.' };
   }
+  // A slug is a subdomain. Taking one of ours would make the business
+  // unreachable — the proxy would route that host somewhere else and
+  // nobody would see an error, the page would just never load.
+  if (isReservedSlug(slug)) {
+    return { ok: false, error: `«${slug}» es un nombre reservado del sistema. Elige otro.` };
+  }
+
   if (!SLUG_REGEX.test(slug)) {
     return { ok: false, error: 'El slug solo puede tener minúsculas, números y guiones (no al inicio ni al final).' };
   }

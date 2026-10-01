@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Label } from '@/components/ui/Label';
 import { Button } from '@/components/ui/Button';
+import { isReservedSlug } from '@/lib/domains';
 
 const SLUG_REGEX = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
@@ -79,6 +80,13 @@ export function NewBusinessForm({
       setError('Falta el nombre del negocio.');
       return;
     }
+    // Mirrors the server check in createTenant. Here it is a courtesy —
+    // the one that cannot be bypassed is the Server Action's.
+    if (isReservedSlug(slug)) {
+      setError(`«${slug}» es un nombre reservado del sistema. Elige otro.`);
+      return;
+    }
+
     if (!SLUG_REGEX.test(slug)) {
       setError('El slug solo puede tener minúsculas, números y guiones (no al inicio ni al final).');
       return;

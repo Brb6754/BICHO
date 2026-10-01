@@ -12,6 +12,21 @@ import { MarketingFooter } from '@/components/marketing/MarketingFooter';
 
 export const metadata: Metadata = {
   title: 'bicho reservas — Software & AI Solutions',
+  // This page is reachable from two hosts — bichomx.com/reservas and
+  // reservas.bichomx.com, which proxy.ts rewrites here. Without a
+  // canonical that is duplicate content, and a search engine picks one
+  // of the two arbitrarily while they compete against each other.
+  //
+  // The apex wins: the studio page, the portfolio and the /ia campaign
+  // all live there, and a domain this new cannot afford to split its
+  // authority across two hosts.
+  //
+  // Absolute on purpose. A relative canonical resolves against whatever
+  // host served the page, which on the subdomain would point it at
+  // itself and do nothing at all.
+  alternates: {
+    canonical: 'https://bichomx.com/reservas',
+  },
   description:
     'bicho es la plataforma de reservas de citas para peluquerías, spas, consultorios y gimnasios: página de reservas con tu marca, disponibilidad en tiempo real y confirmación automática.',
 };

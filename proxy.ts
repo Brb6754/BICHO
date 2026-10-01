@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { PREFIXED_SUBDOMAINS, ROOT_ALIAS_SUBDOMAINS } from '@/lib/domains';
 
 // In prod this is your real domain (e.g. "tuapp.com"), set via env var.
 // Locally it defaults to "localhost:3000" — *.localhost subdomains
@@ -69,14 +70,36 @@ export async function proxy(request: NextRequest) {
     return response;
   }
 
-  // Three kinds of subdomain: the internal team's panel, the sales-rep
-  // panel (db/016), and everything else, which is a business.
-  const rewritePath =
-    subdomain === 'admin'
-      ? `/admin${pathname}`
-      : subdomain === 'vendedores'
-        ? `/vendedor${pathname}`
-        : `/t/${subdomain}${pathname}`;
+  // Three kinds of subdomain (lib/domains.ts holds the lists, because
+  // tenant creation has to refuse the same names):
+  //
+  //  1. A root alias — reservas.* serves a different home page from the
+  //     same site. See lib/domains.ts for why this is a rewrite and not
+  //     a redirect, and where the duplicate-content problem is handled.
+  //  2. A prefixed panel — admin.* and vendedores.*, where the whole
+  //     path lives under /admin or /vendedor.
+  //  3. Anything else is a business: {slug}.bichomx.com → /t/{slug}.
+  const alias = ROOT_ALIAS_SUBDOMAINS[subdomain];
+  if (alias) {
+    // Only "/" moves. Everything else is served as-is so this host keeps
+    // /demo, /plataforma, /privacidad and /terminos working, and so
+    // /reservas resolves instead of becoming /reservas/reservas.
+    if (pathname !== '/') return response;
+    const aliased = NextResponse.rewrite(new URL(alias, request.url), { request });
+    response.cookies.getAll().forEach((cookie) => aliased.cookies.set(cookie));
+    return aliased;
+  }
+
+  const prefix = PREFIXED_SUBDOMAINS[subdomain] ?? `/t/${subdomain}`;
+
+  // Never prefix twice. A <Link> inside these sections is supposed to use
+  // the PUBLIC path (/dashboard, not /t/{slug}/dashboard), but one that
+  // slips through would otherwise become /t/{slug}/t/{slug}/... and 404
+  // — which is exactly the bug that broke the tenant sidebar once and the
+  // platform demo's menu a second time. Cheaper to make it impossible
+  // here than to catch it in review every time.
+  const alreadyPrefixed = pathname === prefix || pathname.startsWith(`${prefix}/`);
+  const rewritePath = alreadyPrefixed ? pathname : `${prefix}${pathname}`;
   const rewritten = NextResponse.rewrite(new URL(rewritePath, request.url), { request });
 
   // Carry over whatever session cookies got refreshed above onto the

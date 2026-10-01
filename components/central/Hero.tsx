@@ -48,14 +48,11 @@ export function Hero() {
           className="hero-rise mt-9 flex flex-wrap items-center justify-center gap-3"
           style={{ '--rise-delay': '280ms' } as React.CSSProperties}
         >
-          {/* The strongest thing bicho can hand a stranger isn't a
-              screenshot, it's the running product — so that's the
-              primary action. The portfolio is one scroll and one nav
-              link away; a third button here would flatten all three. */}
-          <PillLink href="/plataforma" tone="core">
-            Ver la plataforma
-          </PillLink>
-          <PillLink href="mailto:nonameynk@gmail.com" tone="outlineOnDark">
+          {/* One action, not two. The platform demo lost its button here
+              (2026-10-01, Bruno's call) and lives on in the nav and in
+              the portfolio section; what the hero asks for now is the
+              conversation, so it gets the whole fold to itself. */}
+          <PillLink href="mailto:nonameynk@gmail.com" tone="core">
             Cuéntanos tu proyecto
           </PillLink>
         </div>

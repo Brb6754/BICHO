@@ -67,11 +67,11 @@ export default async function DemoPage({
 
           <div className="relative mt-8 max-w-3xl">
             <h1 className="font-[family-name:var(--font-display)] text-[clamp(2.4rem,7.5vw,4.5rem)] font-extrabold uppercase leading-[0.92] tracking-[-0.02em] text-white">
-              Te la mostramos con <span className="text-[#D4F23A]">tu negocio</span> adentro
+              Te enseñamos <span className="text-[#D4F23A]">tu página de reservas</span> funcionando
             </h1>
             <p className="mt-6 max-w-lg text-[15px] leading-relaxed text-[#E3DEFA] sm:text-base">
-              Nada de una demo genérica con datos de mentira. Montamos tus servicios,
-              tus horarios y tu marca, y te enseñamos cómo se ve para tus clientes.
+              Nada de datos de mentira: montamos tus servicios, tus horarios y tu marca,
+              y la ves igual que la verían tus clientes.
             </p>
           </div>
 

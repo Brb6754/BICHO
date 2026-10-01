@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { BlockRenderer } from '@/components/blocks/BlockRenderer';
 import { googleFontsHref, isFontKey, FONT_OPTIONS, type FontKey } from '@/lib/branding/fonts';
@@ -69,7 +70,15 @@ export default async function ReservarPage({ params }: { params: Promise<{ slug:
     .from('tenants')
     .select('id, name, vertical, timezone')
     .eq('slug', slug)
-    .single();
+    .maybeSingle();
+
+  // A subdomain that belongs to no business is a 404, not a crash. It
+  // used to be the latter: the query returned null, `tenant.id` below
+  // asserted it wasn't, and the page threw into the error boundary —
+  // so a typo in the subdomain ("test_salon" instead of "test-salon")
+  // read as "Algo salió mal" to a customer, which says the business is
+  // broken rather than that the address is wrong.
+  if (!tenant) notFound();
 
   const { data: branding_raw } = await supabase
     .from('tenants')
@@ -103,21 +112,21 @@ export default async function ReservarPage({ params }: { params: Promise<{ slug:
   const { data: services } = await supabase
     .from('service_types')
     .select('id, name, duration_minutes, price_cents')
-    .eq('tenant_id', tenant!.id)
+    .eq('tenant_id', tenant.id)
     .eq('active', true)
     .order('name');
 
   const { data: resources } = await supabase
     .from('resources')
     .select('id, name')
-    .eq('tenant_id', tenant!.id)
+    .eq('tenant_id', tenant.id)
     .eq('active', true)
     .order('name');
 
   const { data: template } = await supabase
     .from('templates')
     .select('blocks')
-    .eq('vertical', tenant?.vertical ?? 'general')
+    .eq('vertical', tenant.vertical ?? 'general')
     .maybeSingle();
 
   // `design` is queried separately from `blocks` for the same reason
@@ -128,7 +137,7 @@ export default async function ReservarPage({ params }: { params: Promise<{ slug:
   const { data: templateDesignRow } = await supabase
     .from('templates')
     .select('design')
-    .eq('vertical', tenant?.vertical ?? 'general')
+    .eq('vertical', tenant.vertical ?? 'general')
     .maybeSingle();
 
   // The tenant's OWN page, snapshotted from its template when the
@@ -159,7 +168,7 @@ export default async function ReservarPage({ params }: { params: Promise<{ slug:
     const hero = createDefaultBlock('hero');
     const booking = createDefaultBlock('booking');
     if (hero.type === 'hero') {
-      hero.props = { ...hero.props, title: tenant?.name ?? '', subtitle: 'Elige tu servicio y horario.' };
+      hero.props = { ...hero.props, title: tenant.name, subtitle: 'Elige tu servicio y horario.' };
     }
     return [hero, booking];
   };
@@ -181,10 +190,10 @@ export default async function ReservarPage({ params }: { params: Promise<{ slug:
 
   const bookingData = {
     slug,
-    businessName: tenant?.name,
+    businessName: tenant.name,
     services: services ?? [],
     resources: resources ?? [],
-    timezone: tenant?.timezone ?? null,
+    timezone: tenant.timezone ?? null,
     // `|| undefined` and not `?? undefined`: an empty string saved from
     // the panel has to fall through to BookingFlow's default too, not
     // ask "¿Con qué ?".

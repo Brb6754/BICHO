@@ -18,12 +18,17 @@ export function DemoBanner({ current }: { current: 'panel' | 'reservar' }) {
   return (
     <div className="sticky top-0 z-50 border-b border-white/10 bg-[#05091C] text-white">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-5 gap-y-3 px-4 py-2.5 sm:px-6">
+        {/* Vuelve a /reservas, no al apex: lo que esta demo demuestra es
+            bicho reservas, así que la salida natural es la landing de
+            ESE producto — donde está el botón de agendar una demo de
+            verdad. El apex es el estudio entero y deja al visitante un
+            nivel más arriba de donde venía. */}
         <Link
-          href="/"
+          href="/reservas"
           className="inline-flex shrink-0 items-center gap-1.5 rounded-full text-[13px] font-medium text-white/70 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
         >
           <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
-          Volver a bicho
+          Volver a reservas
         </Link>
 
         <span aria-hidden="true" className="hidden h-4 w-px bg-white/15 lg:block" />

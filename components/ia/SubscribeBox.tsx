@@ -50,12 +50,12 @@ export function SubscribeBox({
     return (
       <div
         role="status"
-        className={`flex items-start gap-3 rounded-2xl px-5 py-4 ${
-          onInk ? 'bg-white/10 text-white' : 'bg-[#141024] text-white'
+        className={`flex items-start gap-3 rounded-none px-5 py-4 ${
+          onInk ? 'bg-white/10 text-[#FBF9F5]' : 'bg-[#241038] text-[#FBF9F5]'
         }`}
       >
-        <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#3B00FF]">
-          <Check className="h-3 w-3 text-white" strokeWidth={3.5} aria-hidden="true" />
+        <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#CBFC31]">
+          <Check className="h-3 w-3 text-[#241038]" strokeWidth={3.5} aria-hidden="true" />
         </span>
         <p className="text-[15px] leading-relaxed">
           {state === 'already'
@@ -90,10 +90,10 @@ export function SubscribeBox({
           /* 16px on phones: iOS Safari zooms into any field whose text is
              smaller than that the moment it is focused, which yanks the
              whole page sideways. */
-          className={`min-w-0 flex-1 rounded-xl px-4 py-3.5 text-base outline-none transition sm:text-[15px] ${
+          className={`min-w-0 flex-1 rounded-none px-4 py-3.5 text-base outline-none transition sm:text-[15px] ${
             onInk
               ? 'bg-white/10 text-white ring-1 ring-inset ring-white/20 placeholder:text-white/45 focus:ring-2 focus:ring-white'
-              : 'bg-white text-[#141024] ring-1 ring-inset ring-[#141024]/15 placeholder:text-[#141024]/35 focus:ring-2 focus:ring-[#3B00FF]'
+              : 'bg-white text-[#241038] ring-1 ring-inset ring-[#241038]/20 placeholder:text-[#241038]/35 focus:ring-2 focus:ring-[#241038]'
           }`}
         />
 
@@ -115,10 +115,10 @@ export function SubscribeBox({
         <button
           type="submit"
           disabled={state === 'sending'}
-          className={`inline-flex shrink-0 items-center justify-center gap-2 rounded-xl px-5 py-3.5 text-[15px] font-semibold transition disabled:opacity-60 ${
+          className={`inline-flex shrink-0 items-center justify-center gap-2 rounded-none px-5 py-3.5 text-[15px] font-semibold transition disabled:opacity-60 ${
             onInk
-              ? 'bg-white text-[#141024] hover:bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white'
-              : 'bg-[#3B00FF] text-white hover:bg-[#5B2BFF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B00FF] focus-visible:ring-offset-2'
+              ? 'bg-[#CBFC31] text-[#241038] hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#CBFC31] focus-visible:ring-offset-2 focus-visible:ring-offset-[#241038]'
+              : 'bg-[#241038] text-[#CBFC31] hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#241038] focus-visible:ring-offset-2'
           }`}
         >
           {state === 'sending' ? 'Enviando…' : 'Quiero recibirlo'}
@@ -132,7 +132,7 @@ export function SubscribeBox({
         </p>
       )}
 
-      <p className={`mt-3 text-[13px] ${onInk ? 'text-white/55' : 'text-[#141024]/50'}`}>
+      <p className={`mt-3 text-[13px] ${onInk ? 'text-[#FBF9F5]/60' : 'text-[#241038]/55'}`}>
         Un correo por semana. Te puedes dar de baja con un clic.
       </p>
     </form>

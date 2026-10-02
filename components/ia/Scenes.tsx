@@ -14,8 +14,14 @@
 // scale with their container and stay crisp; all are aria-hidden, because
 // the heading beside them already carries the meaning.
 
-const INK = '#141024';
-const VIOLET = '#3B00FF';
+// Los dos colores de las ilustraciones de NOTI (ver components/ia/tokens.ts).
+// El violeta eléctrico de la plataforma salió de aquí junto con el resto
+// de la página: sobre papel crema gritaba, y es el color del estudio, no
+// el de la publicación. El morado medio es el que usan los dibujos de
+// los posts — tiene cuerpo suficiente para leerse como relleno sólido
+// sobre crema, cosa que la lavanda clara no logra.
+const INK = '#241038';
+const PURPLE = '#7C5BB8';
 
 function Frame({ children }: { children: React.ReactNode }) {
   return (
@@ -48,10 +54,10 @@ function RepeatedQuestion() {
       ))}
       {/* One answer, in the accent — the point of the post is that you
           write it once. */}
-      <rect x="168" y="86" width="134" height="52" rx="14" fill={VIOLET} />
+      <rect x="168" y="86" width="134" height="52" rx="14" fill={PURPLE} />
       <rect x="182" y="102" width="92" height="5" rx="2.5" fill="#fff" opacity="0.95" />
       <rect x="182" y="114" width="64" height="5" rx="2.5" fill="#fff" opacity="0.6" />
-      <circle cx="292" cy="152" r="5" fill={VIOLET} opacity="0.25" />
+      <circle cx="292" cy="152" r="5" fill={PURPLE} opacity="0.25" />
     </Frame>
   );
 }
@@ -67,13 +73,13 @@ function ReceiptToNumber() {
         <rect key={i} x="36" y={44 + i * 18} width={i % 3 === 0 ? 70 : 84} height="4" rx="2" fill={INK} opacity="0.18" />
       ))}
       {/* The line the machine actually reads. */}
-      <rect x="36" y="152" width="58" height="9" rx="3" fill={VIOLET} opacity="0.85" />
+      <rect x="36" y="152" width="58" height="9" rx="3" fill={PURPLE} opacity="0.85" />
 
       {/* The hand-off: receipt in, number out. */}
       <path d="M148 100 H182" stroke={INK} strokeOpacity="0.28" strokeWidth="2" strokeLinecap="round" />
       <path d="M176 94 L184 100 L176 106" stroke={INK} strokeOpacity="0.28" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
 
-      <rect x="196" y="66" width="104" height="68" rx="12" fill={VIOLET} />
+      <rect x="196" y="66" width="104" height="68" rx="12" fill={PURPLE} />
       <rect x="212" y="86" width="44" height="10" rx="4" fill="#fff" />
       <rect x="212" y="104" width="72" height="5" rx="2.5" fill="#fff" opacity="0.6" />
     </Frame>
@@ -92,7 +98,7 @@ function EightDays() {
         const x = 30 + col * 38;
         const y = 34 + row * 38;
         return marked.has(i) ? (
-          <rect key={i} x={x} y={y} width="26" height="26" rx="8" fill={VIOLET} />
+          <rect key={i} x={x} y={y} width="26" height="26" rx="8" fill={PURPLE} />
         ) : (
           <rect key={i} x={x} y={y} width="26" height="26" rx="8" fill={INK} opacity="0.07" />
         );
@@ -121,15 +127,15 @@ function TheGap() {
           height="12"
           rx="5"
           fill="none"
-          stroke={VIOLET}
+          stroke={PURPLE}
           strokeOpacity="0.45"
           strokeWidth="2"
           strokeDasharray="3 3"
         />
       ))}
       <path d="M22 150 H302" stroke={INK} strokeOpacity="0.18" strokeWidth="2" strokeLinecap="round" />
-      <circle cx="215" cy="114" r="4" fill={VIOLET} />
-      <path d="M215 118 V134" stroke={VIOLET} strokeWidth="2" strokeLinecap="round" />
+      <circle cx="215" cy="114" r="4" fill={PURPLE} />
+      <path d="M215 118 V134" stroke={PURPLE} strokeWidth="2" strokeLinecap="round" />
     </Frame>
   );
 }
@@ -145,7 +151,7 @@ function StoppedPath() {
         <path d="M90 60 H124" stroke={INK} strokeOpacity="0.3" strokeWidth="2" strokeLinecap="round" />
         <rect x="132" y="44" width="58" height="32" rx="10" fill={INK} opacity="0.1" />
         <path d="M198 60 H232" stroke={INK} strokeOpacity="0.3" strokeWidth="2" strokeLinecap="round" />
-        <rect x="240" y="44" width="58" height="32" rx="10" fill={VIOLET} />
+        <rect x="240" y="44" width="58" height="32" rx="10" fill={PURPLE} />
       </g>
       <g>
         <rect x="24" y="126" width="58" height="32" rx="10" fill={INK} opacity="0.1" />
@@ -166,7 +172,7 @@ function StoppedPath() {
         <path d="M198 142 H214" stroke={INK} strokeOpacity="0.18" strokeWidth="2" strokeLinecap="round" />
         <path
           d="M232 132 L252 152 M252 132 L232 152"
-          stroke={VIOLET}
+          stroke={PURPLE}
           strokeWidth="2.5"
           strokeLinecap="round"
           opacity="0.7"
@@ -211,18 +217,18 @@ export function HeroThread({ className = '' }: { className?: string }) {
 
   return (
     <div
-      className={`rounded-3xl bg-white p-5 shadow-[0_1px_2px_rgba(20,16,36,0.05),0_24px_50px_-28px_rgba(20,16,36,0.45)] ring-1 ring-[#141024]/[0.07] sm:p-6 ${className}`}
+      className={`border border-[#241038]/15 bg-white p-5 sm:p-6 ${className}`}
     >
-      <div className="flex items-center gap-2 border-b border-[#141024]/[0.08] pb-3">
-        <span className="h-2 w-2 rounded-full bg-[#3B00FF]" aria-hidden="true" />
-        <p className="text-[13px] font-medium text-[#141024]/55">Tu WhatsApp, cualquier martes</p>
+      <div className="flex items-center gap-2 border-b border-[#241038]/15 pb-3">
+        <span className="h-2 w-2 rounded-full bg-[#7C5BB8]" aria-hidden="true" />
+        <p className="text-[13px] font-medium text-[#241038]/55">Tu WhatsApp, cualquier martes</p>
       </div>
 
       <ul className="mt-4 flex flex-col gap-2.5">
         {bubbles.map((text, i) => (
           <li key={i} className="flex">
             <span
-              className="max-w-[85%] rounded-2xl rounded-bl-md bg-[#F0F0F6] px-4 py-2.5 text-[14px] leading-snug text-[#141024]/80"
+              className="max-w-[85%] rounded-2xl rounded-bl-md bg-[#EDE6F8] px-4 py-2.5 text-[14px] leading-snug text-[#241038]/85"
               /* The list is the point, so the repetition is not faded
                  out — a reader has to feel the fourth one arrive. */
             >
@@ -231,14 +237,14 @@ export function HeroThread({ className = '' }: { className?: string }) {
           </li>
         ))}
         <li className="flex justify-end">
-          <span className="max-w-[85%] rounded-2xl rounded-br-md bg-[#3B00FF] px-4 py-2.5 text-[14px] font-medium leading-snug text-white">
+          <span className="max-w-[85%] rounded-2xl rounded-br-md bg-[#241038] px-4 py-2.5 text-[14px] font-medium leading-snug text-[#CBFC31]">
             Abrimos 9 a 8. Corte $300. Sí, tarjeta.
           </span>
         </li>
       </ul>
 
-      <p className="mt-4 border-t border-[#141024]/[0.08] pt-3 text-[13px] leading-relaxed text-[#141024]/55">
-        Escribes esa respuesta <span className="font-semibold text-[#141024]">una vez</span>. El resto
+      <p className="mt-4 border-t border-[#241038]/15 pt-3 text-[13px] leading-relaxed text-[#241038]/60">
+        Escribes esa respuesta <span className="font-semibold text-[#241038]">una vez</span>. El resto
         del martes es tuyo.
       </p>
     </div>

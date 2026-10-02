@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Inter, Baloo_2, Space_Grotesk, Archivo } from 'next/font/google';
+import { Inter, Baloo_2, Space_Grotesk, Archivo, Playfair_Display } from 'next/font/google';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
@@ -32,6 +32,22 @@ const centralFont = Space_Grotesk({ subsets: ['latin'], weight: ['500', '600', '
 // Spanish diacritics.
 const iaFont = Archivo({ subsets: ['latin'], weight: ['500', '600', '700'], variable: '--font-ia' });
 
+// El titular de NOTI. Las dos caras que usan los posts son exactamente
+// estas: una didona de contraste altísimo para el titular y una
+// grotesca pesada (Archivo, arriba) para subtítulos y etiquetas. Esa
+// tensión ES la identidad editorial — una sola de las dos la deshace.
+//
+// Playfair y no una de las didonas de pago que se ven en los posts:
+// es la que más se acerca de lo que hay en Google Fonts, con el peso
+// 900 que el titular necesita y las diacríticas del español bien
+// dibujadas (la ó de "conversación" es la prueba).
+const notiFont = Playfair_Display({
+  subsets: ['latin'],
+  weight: ['700', '800', '900'],
+  style: ['normal', 'italic'],
+  variable: '--font-noti',
+});
+
 export const metadata: Metadata = {
   title: 'Reservas SaaS',
 };
@@ -52,7 +68,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html
       lang="es"
-      className={`${inter.variable} ${displayFont.variable} ${iaFont.variable}`}
+      className={`${inter.variable} ${displayFont.variable} ${centralFont.variable} ${iaFont.variable} ${notiFont.variable}`}
       suppressHydrationWarning
     >
       <head>

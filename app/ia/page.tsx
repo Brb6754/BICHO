@@ -1,11 +1,12 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ArrowUpRight, Clock3 } from 'lucide-react';
+import { ArrowRight, Clock3 } from 'lucide-react';
 import { CentralLogo } from '@/components/central/CentralLogo';
-import { CentralFooter } from '@/components/central/CentralFooter';
 import { SubscribeBox } from '@/components/ia/SubscribeBox';
 import { POSTS } from '@/components/ia/posts';
 import { HeroThread, PostScene } from '@/components/ia/Scenes';
+import { Masthead, NotiLockup, Highlight } from '@/components/ia/Masthead';
+import { NOTI, RULE } from '@/components/ia/tokens';
 import { SERVICES } from '@/components/central/services';
 
 export const metadata: Metadata = {
@@ -20,26 +21,24 @@ export const metadata: Metadata = {
   },
 };
 
-// THE CAMPAIGN LANDING — where Bruno's posts about using AI in a small
-// business send their traffic.
+// LA LANDING DE LA CAMPAÑA — a donde mandan los posts.
 //
-// It is deliberately NOT a third variation of bicho central. That page is
-// dark because it is a portfolio: screenshots need a dark room to sit in,
-// and its job is to be looked at. This page's job is to be READ, so the
-// ground flips to paper and the type gets a real measure. The violet
-// stays, and it is the only accent on the page — same brand, different
-// room.
+// Reestilizada el 2026-10-02 con el lenguaje de las piezas de Instagram:
+// papel crema, tinta berenjena, titular en didona, grotesca pesada para
+// el subtítulo y las etiquetas, resaltadores de lima y lavanda, y la
+// retícula de reglas finas con la sección a la izquierda y la fecha a la
+// derecha.
 //
-// Order of the page follows what the visitor does, not what we want:
-// they arrived from a post, so the writing comes FIRST and the subscribe
-// box sits inside the hero where it costs nothing to ignore. The pitch
-// for bicho's services is last, after the page has earned it. A visitor
-// who never scrolls that far read five useful things and left — that is
-// a good outcome, not a failed conversion.
+// El violeta eléctrico de la plataforma salió de esta página. Es el
+// color de bicho como estudio, y esto es NOTI: una publicación con su
+// propia voz. Quien llega desde un post no debería sentir que cambió de
+// medio al entrar.
 //
-// What is deliberately absent: an exit-intent popup, a scroll-triggered
-// modal, a countdown, a fake subscriber count. The premise of the page is
-// that the writing earns the address.
+// Lo que NO cambió es el orden, que sigue el del lector y no el nuestro:
+// el contenido primero, el formulario dentro de la portada donde no
+// cuesta nada ignorarlo, y la oferta de servicios al final, cuando la
+// página ya se la ganó. Sigue sin haber popup de salida, modal por
+// scroll ni contador de suscriptores inventado.
 
 const AREA_LABEL: Record<string, string> = {
   operación: 'Operación',
@@ -50,110 +49,103 @@ const AREA_LABEL: Record<string, string> = {
 
 export default function IaCampaignPage() {
   return (
-    <div className="min-h-screen bg-[#F3F3F8] text-[#141024]">
-      {/* A campaign landing gets a deliberately thin header: the visitor
-          arrived to read one thing, and a full navigation is five ways to
-          leave before they start. One way back to the studio, no more. */}
-      <header className="mx-auto flex max-w-3xl items-center justify-between px-6 py-6">
-        <Link href="/" className="rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B00FF]">
-          <CentralLogo className="h-6" tone="ink" />
-          <span className="sr-only">bicho — inicio</span>
-        </Link>
-        <Link
-          href="/#servicios"
-          className="rounded-full px-3 py-1.5 text-sm font-medium text-[#141024]/60 transition-colors hover:bg-[#141024]/[0.05] hover:text-[#141024] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B00FF]"
-        >
-          Qué hacemos
-        </Link>
-      </header>
+    <div className="min-h-screen" style={{ backgroundColor: NOTI.paper, color: NOTI.ink }}>
+      <div className="mx-auto max-w-5xl px-6 pt-6 sm:pt-8">
+        <Masthead section="IA para tu negocio" meta="Cada jueves" />
+      </div>
 
       <main>
-        {/* HERO — opens with the format of the series itself, not with a
-            promise about it. The most characteristic thing in this
-            subject's world is the question a business owner actually
-            asks, so the page opens with one and answers it. */}
-        {/* Two columns from lg, and the picture is not an illustration
-            OF the headline — it is the headline's evidence. The sentence
-            says "la pregunta que te hacen diez veces al día"; the thread
-            beside it is that Tuesday. On a phone the type comes first and
-            the thread follows, because the headline still has to be the
-            first thing read. */}
-        <section className="mx-auto max-w-6xl px-6 pb-16 pt-8 sm:pb-20 sm:pt-12">
-          <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:gap-16">
+        {/* PORTADA. La composición de los posts: etiqueta de sección,
+            titular en didona, tema en grotesca pesada, e ilustración
+            como evidencia y no como adorno — el hilo de WhatsApp ES la
+            frase "la pregunta que te hacen diez veces al día". */}
+        <section className="mx-auto max-w-5xl px-6 pb-16 pt-10 sm:pb-20 sm:pt-14">
+          <div className="grid items-end gap-10 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:gap-14">
             <div>
-              <p className="font-[family-name:var(--font-ia)] text-[clamp(1.7rem,4.4vw,2.5rem)] font-medium leading-[1.15] tracking-[-0.02em] text-[#141024]/45">
-                ¿Por dónde empiezo con la inteligencia artificial en mi negocio?
-              </p>
-              <h1 className="mt-4 font-[family-name:var(--font-ia)] text-[clamp(2.1rem,5.4vw,3.2rem)] font-bold leading-[1.1] tracking-[-0.03em] text-[#141024]">
-                Por la pregunta que te hacen{' '}
-                <span className="text-[#3B00FF]">diez veces al día</span>.
+              <h1 className="font-[family-name:var(--font-noti)] text-[clamp(2.6rem,7.2vw,4.6rem)] font-black leading-[0.95] tracking-[-0.025em]">
+                Por la pregunta que te hacen diez veces al día.
               </h1>
 
-              <p className="mt-6 max-w-xl text-[17px] leading-[1.7] text-[#141024]/70">
+              <p className="mt-6 font-[family-name:var(--font-ia)] text-[clamp(1.25rem,3vw,1.9rem)] font-bold leading-tight tracking-[-0.02em]">
+                ¿Por dónde empiezo con la IA en mi negocio?
+              </p>
+
+              <p className="mt-5 max-w-xl text-[16px] leading-[1.7] opacity-75">
                 Cada semana contamos una cosa que de verdad funcionó —y una que no— con el
                 problema, lo que hicimos y lo que costó. Sin tecnicismos y sin humo.
               </p>
-
-              <div className="mt-8 max-w-xl">
-                <SubscribeBox source="hero" />
-              </div>
             </div>
 
             <HeroThread />
           </div>
+
+          <div className="mt-12 border-t pt-8 sm:mt-14" style={{ borderColor: RULE }}>
+            <div className="grid gap-6 sm:grid-cols-[minmax(0,0.8fr)_minmax(0,1fr)] sm:items-center sm:gap-10">
+              <div>
+                <Highlight>El jueves, en tu correo</Highlight>
+                <p className="mt-3 text-[15px] leading-relaxed opacity-70">
+                  Gratis, en español, cinco minutos. Te das de baja con un clic.
+                </p>
+              </div>
+              <SubscribeBox source="hero" />
+            </div>
+          </div>
         </section>
 
-        {/* THE CONTENT. The reason someone is on this page. */}
-        <section className="border-t border-[#141024]/10 bg-white">
-          <div className="mx-auto max-w-6xl px-6 py-16 sm:py-20">
-            <h2 className="font-[family-name:var(--font-ia)] text-[clamp(1.5rem,3.4vw,2rem)] font-bold leading-tight tracking-[-0.02em]">
-              Lo que llevamos escrito
-            </h2>
-            <p className="mt-2 text-[15px] text-[#141024]/60">
-              Cada entrada responde una pregunta y dice dónde el consejo deja de servir.
-            </p>
+        {/* EL CONTENIDO. La razón por la que alguien está en esta página. */}
+        <section className="border-y" style={{ backgroundColor: NOTI.paperDeep, borderColor: RULE }}>
+          <div className="mx-auto max-w-5xl px-6 py-16 sm:py-20">
+            <div
+              className="flex items-baseline justify-between gap-4 border-b pb-3 text-[11px] font-semibold uppercase tracking-[0.18em]"
+              style={{ borderColor: RULE }}
+            >
+              <span>Lo que llevamos escrito</span>
+              <span className="opacity-55">{POSTS.length} entradas</span>
+            </div>
 
-            {/* Cards, and each one earns the format by carrying its own
-                drawing. As a bare text list this section was five
-                paragraphs stacked — nothing for the eye to land on, and
-                on a phone you could not tell one entry from the next
-                while scrolling. The scene is what makes them scannable;
-                without it a grid would just be a list in boxes. */}
-            <ul className="mt-10 grid gap-5 sm:grid-cols-2">
+            {/* Lista editorial, no rejilla de tarjetas: cada entrada es
+                una fila con su ilustración al lado y una regla fina
+                debajo. Las tarjetas con sombra venían del sistema de la
+                plataforma; una publicación se compone con reglas. */}
+            <ul>
               {POSTS.map((post) => (
                 <li key={post.slug}>
                   <Link
                     href={`/ia/${post.slug}`}
-                    className="group flex h-full flex-col overflow-hidden rounded-3xl bg-[#F7F7FB] ring-1 ring-[#141024]/[0.07] transition-shadow duration-300 hover:shadow-[0_2px_4px_rgba(20,16,36,0.04),0_20px_44px_-24px_rgba(20,16,36,0.4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B00FF]"
+                    className="group grid gap-5 border-b py-7 sm:grid-cols-[13rem_minmax(0,1fr)] sm:gap-8"
+                    style={{ borderColor: RULE }}
                   >
-                    <PostScene
-                      scene={post.scene}
-                      className="aspect-[16/10] rounded-none transition-transform duration-500 ease-out group-hover:scale-[1.03]"
-                    />
+                    <div
+                      className="aspect-[16/10] overflow-hidden"
+                      style={{ backgroundColor: NOTI.lavenderSoft }}
+                    >
+                      <PostScene
+                        scene={post.scene}
+                        className="h-full w-full rounded-none transition-transform duration-500 ease-out group-hover:scale-[1.04]"
+                      />
+                    </div>
 
-                    <div className="flex flex-1 flex-col p-5 sm:p-6">
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px]">
-                        <span className="font-medium text-[#3B00FF]">{AREA_LABEL[post.area]}</span>
-                        <span className="flex items-center gap-1 text-[#141024]/45">
-                          <Clock3 className="h-3.5 w-3.5" aria-hidden="true" />
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-semibold uppercase tracking-[0.14em]">
+                        <span>{AREA_LABEL[post.area]}</span>
+                        <span className="flex items-center gap-1 opacity-50">
+                          <Clock3 className="h-3 w-3" aria-hidden="true" />
                           {post.minutes} min
                         </span>
                       </div>
 
-                      <p className="mt-3 text-[14px] leading-snug text-[#141024]/55">
-                        {post.question}
-                      </p>
-                      <h3 className="mt-1 font-[family-name:var(--font-ia)] text-[1.2rem] font-bold leading-[1.25] tracking-[-0.02em] text-[#141024] underline-offset-[6px] group-hover:underline">
+                      <h3 className="mt-2.5 font-[family-name:var(--font-noti)] text-[clamp(1.5rem,3.2vw,2.1rem)] font-bold leading-[1.1] tracking-[-0.02em] underline-offset-[6px] group-hover:underline">
                         {post.answer}
                       </h3>
-                      <p className="mt-2.5 text-[14px] leading-relaxed text-[#141024]/65">
+                      <p className="mt-2 text-[14px] leading-snug opacity-55">{post.question}</p>
+                      <p className="mt-3 max-w-xl text-[15px] leading-relaxed opacity-80">
                         {post.standfirst}
                       </p>
 
-                      <span className="mt-auto flex items-center gap-1.5 pt-5 text-[14px] font-semibold text-[#3B00FF]">
+                      <span className="mt-4 inline-flex items-center gap-1.5 text-[13px] font-bold uppercase tracking-[0.14em]">
                         Leer
-                        <ArrowUpRight
-                          className="h-4 w-4 transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+                        <ArrowRight
+                          className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-1"
                           aria-hidden="true"
                         />
                       </span>
@@ -165,73 +157,89 @@ export default function IaCampaignPage() {
           </div>
         </section>
 
-        {/* THE NEWSLETTER. One dark band on a paper page — the single
-            place the page raises its voice, and it lands on the one ask
-            it makes. */}
-        <section className="bg-[#141024] text-white">
-          <div className="mx-auto max-w-3xl px-6 py-16 sm:py-20">
-            <h2 className="font-[family-name:var(--font-ia)] text-[clamp(1.6rem,4vw,2.4rem)] font-bold leading-[1.15] tracking-[-0.02em]">
-              El jueves, en tu correo
-            </h2>
-            <p className="mt-4 max-w-xl text-[16px] leading-[1.7] text-white/70">
-              Se llama NOTI. Son las noticias de IA de la semana con un{' '}
-              <span className="text-white">«¿y a mí qué?»</span> debajo de cada una: qué
-              significa para un negocio como el tuyo. Gratis, en español, y se lee en cinco
-              minutos.
-            </p>
-            <div className="mt-8 max-w-xl">
+        {/* LA SUSCRIPCIÓN. La única banda oscura de la página, y cae
+            sobre la única cosa que la página pide. */}
+        <section style={{ backgroundColor: NOTI.ink, color: NOTI.paper }}>
+          <div className="mx-auto max-w-5xl px-6 py-16 sm:py-20">
+            <div className="grid gap-10 lg:grid-cols-2 lg:items-center lg:gap-16">
+              <div>
+                <h2 className="font-[family-name:var(--font-noti)] text-[clamp(2rem,5vw,3.2rem)] font-black leading-[1.02] tracking-[-0.025em]">
+                  El jueves, en tu correo.
+                </h2>
+                <p className="mt-5 max-w-lg text-[16px] leading-[1.7] opacity-75">
+                  Se llama NOTI. Son las noticias de IA de la semana con un{' '}
+                  <span className="px-1.5" style={{ backgroundColor: NOTI.lime, color: NOTI.ink }}>
+                    ¿y a mí qué?
+                  </span>{' '}
+                  debajo de cada una: qué significa para un negocio como el tuyo. Gratis, en
+                  español, y se lee en cinco minutos.
+                </p>
+              </div>
               <SubscribeBox source="banda-noti" tone="ink" />
             </div>
           </div>
         </section>
 
-        {/* AND THEN THE PITCH. Last on purpose: a reader who got this far
-            has read something useful, which is the only thing that earns
-            the right to say "we also build this". */}
-        <section className="border-t border-[#141024]/10 bg-[#F3F3F8]">
-          <div className="mx-auto max-w-3xl px-6 py-16 sm:py-20">
-            <h2 className="font-[family-name:var(--font-ia)] text-[clamp(1.5rem,3.4vw,2rem)] font-bold leading-tight tracking-[-0.02em]">
-              Y si prefieres que lo hagamos nosotros
-            </h2>
-            <p className="mt-3 max-w-xl text-[16px] leading-[1.7] text-[#141024]/70">
-              Todo lo que está aquí arriba lo aprendimos construyéndolo para negocios
-              reales. Si lo tuyo es atender tu negocio y no configurar herramientas,
-              nosotros lo armamos.
-            </p>
+        {/* Y DESPUÉS LA OFERTA. Al final a propósito: quien llegó hasta
+            aquí leyó algo útil, que es lo único que da derecho a decir
+            "esto también lo construimos nosotros". */}
+        <section className="mx-auto max-w-5xl px-6 py-16 sm:py-20">
+          <div
+            className="flex items-baseline justify-between gap-4 border-b pb-3 text-[11px] font-semibold uppercase tracking-[0.18em]"
+            style={{ borderColor: RULE }}
+          >
+            <span>Si prefieres que lo hagamos nosotros</span>
+            <span className="opacity-55">bicho</span>
+          </div>
 
-            <ul className="mt-9 grid gap-x-8 gap-y-6 sm:grid-cols-2">
-              {SERVICES.map((service) => (
-                <li key={service.id}>
-                  <h3 className="font-[family-name:var(--font-ia)] text-[17px] font-bold leading-snug">
-                    {service.name}
-                  </h3>
-                  <p className="mt-1.5 text-[15px] leading-relaxed text-[#141024]/65">
-                    {service.proof}
-                  </p>
-                </li>
-              ))}
-            </ul>
+          <p className="mt-8 max-w-xl text-[16px] leading-[1.7] opacity-80">
+            Todo lo que está aquí arriba lo aprendimos construyéndolo para negocios reales. Si lo
+            tuyo es atender tu negocio y no configurar herramientas, nosotros lo armamos.
+          </p>
 
-            <div className="mt-10 flex flex-wrap items-center gap-3">
-              <Link
-                href="/demo"
-                className="inline-flex items-center gap-2 rounded-full bg-[#3B00FF] px-6 py-3 text-[15px] font-semibold text-white transition-colors hover:bg-[#5B2BFF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B00FF] focus-visible:ring-offset-2"
-              >
-                Cuéntanos qué necesitas
-              </Link>
-              <Link
-                href="/#portafolio"
-                className="inline-flex items-center gap-1.5 rounded-full border border-[#141024]/15 px-6 py-3 text-[15px] font-medium text-[#141024]/75 transition-colors hover:bg-[#141024]/[0.04] hover:text-[#141024] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B00FF]"
-              >
-                Ver lo que hemos hecho
-                <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
-              </Link>
-            </div>
+          <ul className="mt-10 grid gap-x-10 gap-y-7 sm:grid-cols-2">
+            {SERVICES.map((service) => (
+              <li key={service.id} className="border-t pt-4" style={{ borderColor: RULE }}>
+                <h3 className="font-[family-name:var(--font-ia)] text-[17px] font-bold leading-snug">
+                  {service.name}
+                </h3>
+                <p className="mt-1.5 text-[15px] leading-relaxed opacity-70">{service.proof}</p>
+              </li>
+            ))}
+          </ul>
+
+          <div className="mt-10 flex flex-wrap items-center gap-3">
+            <Link
+              href="/demo"
+              className="inline-flex items-center gap-2 px-6 py-3.5 text-[14px] font-bold uppercase tracking-[0.12em] transition-opacity hover:opacity-85"
+              style={{ backgroundColor: NOTI.ink, color: NOTI.lime }}
+            >
+              Cuéntanos qué necesitas
+            </Link>
+            <Link
+              href="/#portafolio"
+              className="inline-flex items-center gap-1.5 border px-6 py-3.5 text-[14px] font-bold uppercase tracking-[0.12em] transition-colors hover:bg-white"
+              style={{ borderColor: RULE }}
+            >
+              Ver lo que hemos hecho
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </Link>
           </div>
         </section>
       </main>
 
-      <CentralFooter />
+      <footer className="border-t" style={{ borderColor: RULE }}>
+        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-6 px-6 py-8">
+          <NotiLockup />
+          <Link
+            href="/"
+            className="flex items-center gap-2 text-[13px] opacity-60 transition-opacity hover:opacity-100"
+          >
+            <CentralLogo className="h-4" tone="ink" />
+            bichomx.com
+          </Link>
+        </div>
+      </footer>
     </div>
   );
 }

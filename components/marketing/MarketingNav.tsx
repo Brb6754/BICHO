@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Menu, X } from 'lucide-react';
 import { BichoLogo } from './BichoLogo';
 import { PillLink, focusRingOnDark, focusRingOnLight } from './Primitives';
@@ -39,6 +39,18 @@ const LINKS = [
 export function MarketingNav({ tone = 'onLight' }: { tone?: 'onViolet' | 'onLight' }) {
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
+
+  // Escape cierra el menú. En un panel que tapa la página, dejar el
+  // teclado sin salida es la clase de detalle que solo nota quien
+  // depende de él.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open]);
   const onViolet = tone === 'onViolet';
 
   const ring = onViolet ? focusRingOnDark : focusRingOnLight;
@@ -67,7 +79,7 @@ export function MarketingNav({ tone = 'onLight' }: { tone?: 'onViolet' | 'onLigh
           notices on a capsule. The 1fr columns force the centre column to
           the real centre. Below lg the nav is hidden, that column
           collapses to zero, and the row reads as logo + actions. */}
-      <div className="mx-auto grid max-w-7xl grid-cols-[1fr_auto_1fr] items-center gap-6 px-6 py-5">
+      <div className="relative z-30 mx-auto grid max-w-7xl grid-cols-[1fr_auto_1fr] items-center gap-6 px-6 py-5">
         <a
           href="/reservas#top"
           onClick={scrollToSection('top', close)}
@@ -108,7 +120,7 @@ export function MarketingNav({ tone = 'onLight' }: { tone?: 'onViolet' | 'onLigh
             onClick={() => setOpen((v) => !v)}
             aria-expanded={open}
             aria-label={open ? 'Cerrar menú' : 'Abrir menú'}
-            className={`flex h-10 w-10 items-center justify-center rounded-full border transition-colors lg:hidden ${burgerTone} ${ring}`}
+            className={`flex h-11 w-11 items-center justify-center rounded-full border transition-colors lg:hidden ${burgerTone} ${ring}`}
           >
             {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
@@ -117,6 +129,20 @@ export function MarketingNav({ tone = 'onLight' }: { tone?: 'onViolet' | 'onLigh
 
       {/* The panel is white on both grounds: a translucent panel over the
           hero's grid texture made the links unreadable. */}
+      {/* Un velo detrás del panel: oscurece la página, deja claro que el
+          menú está encima de todo, y da la salida que un celular espera
+          — tocar fuera para cerrar. Antes la única forma era apuntarle
+          a la X. */}
+      {open && (
+        <button
+          type="button"
+          aria-hidden="true"
+          tabIndex={-1}
+          onClick={close}
+          className="fixed inset-0 z-20 cursor-default bg-[#140F2E]/45 lg:hidden"
+        />
+      )}
+
       {open && (
         <div className="absolute inset-x-4 top-full z-30 rounded-2xl bg-white p-2 shadow-[0_24px_60px_-20px_rgba(20,15,46,0.35)] ring-1 ring-[#140F2E]/[0.08] lg:hidden">
           {LINKS.map((link) => (

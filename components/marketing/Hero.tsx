@@ -1,4 +1,3 @@
-import { Mail } from 'lucide-react';
 import { PillLink } from './Primitives';
 import { ConfirmedCard, AgendaCard, MiniCalendar } from './HeroCards';
 import {
@@ -153,23 +152,6 @@ export function Hero() {
             <PillLink href="/plataforma" tone="outlineOnDark" className="w-full justify-center sm:w-auto">
               Ver la plataforma
             </PillLink>
-
-            <a
-              href="mailto:nonameynk@gmail.com"
-              className="group flex items-center justify-center gap-3 text-left sm:justify-start"
-            >
-              <span className="flex h-11 w-11 items-center justify-center rounded-full border border-white/30 text-white transition-colors group-hover:border-[#D4F23A] group-hover:text-[#D4F23A]">
-                <Mail className="h-4 w-4" />
-              </span>
-              <span className="leading-tight">
-                <span className="block text-[11px] font-medium uppercase tracking-wide text-[#E3DEFA]">
-                  Escríbenos
-                </span>
-                <span className="block text-sm font-semibold text-white">
-                  nonameynk@gmail.com
-                </span>
-              </span>
-            </a>
           </div>
 
           <CircleStamp className="hidden shrink-0 sm:inline-flex" />

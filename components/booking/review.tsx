@@ -66,7 +66,9 @@ export function BookingSummary({
         )}
         <SummaryRow label="Cuándo" value={when} onEdit={() => onEdit('date')} />
         {location && <SummaryRow label="Dónde" value={location} />}
-        <SummaryRow label="Precio" value={formatPrice(service.price_cents)} />
+        {formatPrice(service.price_cents) && (
+          <SummaryRow label="Precio" value={formatPrice(service.price_cents)} />
+        )}
       </div>
 
       {/* No invented cancellation policy: the business hasn't set one

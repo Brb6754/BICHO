@@ -65,7 +65,7 @@ export function ServiceCard({
 
       <span className="shrink-0 text-right">
         <span className="block text-[15px] font-semibold tabular-nums text-ink">
-          {formatPrice(service.price_cents)}
+          {formatPrice(service.price_cents) || 'Sin costo'}
         </span>
       </span>
     </button>

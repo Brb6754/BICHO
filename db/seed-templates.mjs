@@ -370,6 +370,50 @@ const gimnasio = {
 
 // ────────────────────────────────────────────────────────────────────
 
+// ────────────────────────────────────────────────────────────────────
+// 07 · RESTAURANTE — reservar no cuesta: la mesa es el recurso y el
+// "servicio" es el tamaño del grupo. La única vertical donde el precio
+// del servicio es cero a propósito (ver formatPrice en
+// components/booking/types.ts: cero no se pinta como "$0").
+// ────────────────────────────────────────────────────────────────────
+const restaurante = {
+  design: {
+    typeScale: 'editorial',
+    rhythm: 'spacious',
+    shape: 'soft',
+    imageTreatment: 'arch',
+    headingFont: "'Iowan Old Style', Georgia, serif",
+    upperHeadings: false,
+  },
+  blocks: [
+    header('Cocina de temporada', 'Reserva tu mesa', 'Dos turnos, comida y cena. Confirmamos al momento.'),
+    booking(),
+    b('services', 'editorial', {
+      heading: 'La carta, en corto',
+      intro: 'Cambia con lo que hay en el mercado. Esto es lo que casi siempre está.',
+      items: [
+        { name: 'Menú de degustación', description: 'Se pide al reservar, para toda la mesa.', price: '$890', duration: '2 h 30' },
+        { name: 'Entradas', description: 'Para compartir.', price: '$120–$280', duration: '' },
+        { name: 'Fuertes', description: 'Pesca del día, cordero, opciones vegetarianas.', price: '$290–$520', duration: '' },
+        { name: 'Postres', description: 'De la casa.', price: '$140', duration: '' },
+      ],
+    }, COLUMN),
+    b('faq', 'default', {
+      heading: 'Antes de venir',
+      items: [
+        { question: '¿Cuánto tiempo tenemos la mesa?', answer: 'Hora y media para dos personas, dos horas de cuatro en adelante. Si el turno siguiente está libre, nadie te va a apurar.' },
+        { question: '¿Somos un grupo grande?', answer: 'Reserva la mesa grande y dinos cuántos son en las notas.' },
+        { question: '¿Puedo llegar tarde?', answer: 'Guardamos la mesa 15 minutos. Pasado eso la liberamos, porque el turno siguiente ya está reservado.' },
+      ],
+    }, COLUMN),
+    b('hours', 'default', {
+      heading: 'Turnos',
+      lines: ['Miércoles a sábado: 13:30–17:00 y 19:00–23:00', 'Domingo: solo comida', 'Lunes y martes: cerrado'],
+    }, COLUMN),
+    b('location', 'default', { heading: 'Dónde estamos', address: 'Zona Centro, Durango', mapUrl: '' }, COLUMN),
+  ],
+};
+
 const TEMPLATES = [
   {
     vertical: 'peluqueria',
@@ -410,6 +454,14 @@ const TEMPLATES = [
     accent_color: '#3F6C51',
     features: ['Consultas largas', 'Tipos de consulta con precio', 'Qué llevar a la cita'],
     ...doctor,
+  },
+  {
+    vertical: 'restaurante',
+    name: 'Restaurante',
+    available: true,
+    accent_color: '#B4812F',
+    features: ['Reserva de mesa por turno', 'Sin costo por reservar', 'Avisos de cupo y horario'],
+    ...restaurante,
   },
   {
     vertical: 'gimnasio',

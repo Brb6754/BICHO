@@ -41,7 +41,17 @@ export function stepsFor(resourceCount: number, resourceLabel: string): StepDef[
   return steps;
 }
 
+/**
+ * Precio para el cliente. Cadena vacía cuando es cero, y quien la usa
+ * no la pinta.
+ *
+ * Cero no es "gratis" en el sentido comercial: es un negocio donde
+ * reservar no se cobra — una mesa de restaurante, una consulta de
+ * valoración, una pista incluida en la membresía. "$0" junto a "Mesa
+ * para dos" se lee como un error del sistema, no como una cortesía.
+ */
 export function formatPrice(cents: number): string {
+  if (cents <= 0) return '';
   return new Intl.NumberFormat('es-MX', {
     style: 'currency',
     currency: 'MXN',

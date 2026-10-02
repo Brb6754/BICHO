@@ -352,14 +352,14 @@ function BlockItem({
     case 'location':
       return (
         <BlockBox style={block.style}>
-          <LocationSection props={block.props} mapHref={block.props.mapUrl ? safeHref(block.props.mapUrl) : null} />
+          <LocationSection props={block.props} branding={branding} mapHref={block.props.mapUrl ? safeHref(block.props.mapUrl) : null} />
         </BlockBox>
       );
 
     case 'hours':
       return (
         <BlockBox style={block.style}>
-          <HoursSection props={block.props} />
+          <HoursSection props={block.props} branding={branding} />
         </BlockBox>
       );
 

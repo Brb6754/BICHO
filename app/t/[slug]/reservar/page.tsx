@@ -11,6 +11,7 @@ import {
   tenantDarkModeCssVars,
   tenantDarkBase,
 } from '@/lib/branding/colors';
+import { mixToPaper } from '@/lib/branding/colors';
 import type { Block, TemplateDesign } from '@/lib/templates/blocks';
 import { createDefaultBlock, normalizeDesign, templateDesignCssVars } from '@/lib/templates/blocks';
 
@@ -55,6 +56,18 @@ export async function generateViewport({ params }: { params: Promise<{ slug: str
     return { themeColor: `rgb(${paper.split(' ').join(', ')})`, colorScheme: 'dark' };
   }
   return { themeColor: colors?.background_color ?? '#F7F6F3', colorScheme: 'light' };
+}
+
+// El gris de la columna `background_color` (db/009) es un default, no
+// una decision: ningun negocio lo eligio, lo trae puesto desde que se
+// creo. Tratarlo como "sin configurar" es lo que permite que CADA
+// negocio tenga su propio papel sin pedirle a nadie que abra el panel
+// — y quien si eligio un color sigue mandando.
+const PAPEL_POR_DEFECTO = '#F7F6F3';
+
+function paperFor(guardado: string | null | undefined, primary: string, accent: string): string {
+  if (!guardado || guardado.toUpperCase() === PAPEL_POR_DEFECTO) return mixToPaper(primary, accent);
+  return guardado;
 }
 
 export default async function ReservarPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -262,7 +275,13 @@ export default async function ReservarPage({ params }: { params: Promise<{ slug:
                 // business's identity arrives as a theme.
                 ...tenantColorCssVars(branding.primaryColor, secondaryColor, branding.accentColor),
                 ...templateDesignCssVars(design),
-                backgroundColor: branding_raw?.background_color ?? '#F7F6F3',
+                // El papel toma un tinte del negocio en vez de un gris fijo:
+                // con el fondo neutro, cinco negocios distintos servian la
+                // misma hoja y la pagina se leia como un documento. Sigue
+                // siendo papel —4% de color, no un campo— pero ahora es
+                // SU papel. Un background_color configurado a mano en el
+                // panel sigue mandando sobre esto.
+                backgroundColor: paperFor(branding_raw?.background_color, branding.primaryColor, branding.accentColor),
                 color: branding_raw?.text_color ?? '#1A1A1A',
                 fontFamily: FONT_OPTIONS[bodyKey].family,
                 '--font-heading': FONT_OPTIONS[headingKey].family,

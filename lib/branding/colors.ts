@@ -146,6 +146,19 @@ function mixHex(hex: string, towardHex: string, weight: number): string {
 // see tenantDarkBase() above), replaces the default white base so a
 // card in dark mode tints from the tenant's own dark anchor color
 // instead of white.
+/**
+ * El papel de la pagina publica: casi blanco, con el tono del negocio
+ * dentro.
+ *
+ * Un 4% suena a nada y es la diferencia entre "una hoja" y "la hoja de
+ * este negocio": a pantalla completa el ojo lo lee como temperatura
+ * —calido en un restaurante, verde en un spa— aunque nadie podria
+ * nombrar el color.
+ */
+export function mixToPaper(primaryColor: string, accentColor: string): string {
+  return mixHex(mixHex(primaryColor, accentColor, 0.5), '#FFFFFF', 0.04);
+}
+
 export function tenantGlassBackground(
   primaryColor: string,
   accentColor: string,
@@ -160,7 +173,7 @@ export function tenantGlassBackground(
   // surfaces are paper, separated by hairlines and one soft shadow.
   // The trace of tint that remains is what keeps a white card from
   // looking clinically detached from the tenant's palette.
-  const tint = { 1: 0.012, 2: 0.02, 3: 0.028 }[level];
+  const tint = { 1: 0.02, 2: 0.03, 3: 0.045 }[level];
   const blend = mixHex(primaryColor, accentColor, 0.6);
   return mixHex(blend, darkBase ?? '#FFFFFF', tint);
 }

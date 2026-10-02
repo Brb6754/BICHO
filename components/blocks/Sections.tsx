@@ -9,7 +9,7 @@ import type {
   HoursProps,
   LocationProps,
 } from '@/lib/templates/blocks';
-import { tenantCtaStyle, withAlpha, legibleBrandText, readableFgRgb } from '@/lib/branding/colors';
+import { tenantCtaStyle, withAlpha, legibleBrandText, readableFgRgb, darkenHex, contrastRatio } from '@/lib/branding/colors';
 import { safeHref } from '@/lib/branding/safeHref';
 
 // The section library. Everything here is variant-driven: one block
@@ -55,6 +55,22 @@ const imageStyle: React.CSSProperties = { borderRadius: 'var(--tpl-image-radius,
 // Brand color as text, checked against the page it sits on. The light
 // ground is the booking page's default paper; the dark one is the same
 // anchored dark the cards use.
+/**
+ * La marca del negocio sobre cada encabezado: una barra corta del color
+ * de acento. Es el recurso mas barato que existe para que una pagina
+ * deje de parecer un documento — tres pixeles de color que se repiten
+ * cada seccion y amarran la pagina entera a la identidad del negocio.
+ */
+function SectionRule({ branding }: { branding: SectionBranding }) {
+  return (
+    <span
+      aria-hidden="true"
+      className="mb-4 block h-[3px] w-10 rounded-full"
+      style={{ backgroundColor: branding.accentColor }}
+    />
+  );
+}
+
 function brandText(branding: SectionBranding): string {
   const ground = branding.isDark && branding.darkBase ? branding.darkBase : '#F7F6F3';
   return legibleBrandText(branding.primaryColor, branding.accentColor, ground);
@@ -130,31 +146,53 @@ export function HeroSection({
   // hostile: it costs the visitor a scroll before they can do the one
   // thing they came to do.
   if (variant === 'header') {
+    // LA BANDA DE IDENTIDAD, EN EL COLOR DEL NEGOCIO.
+    //
+    // Era papel con una regla fina debajo, y Bruno lo dijo exacto:
+    // "parece un documento". Tenía una razón —no robarle la pantalla a
+    // la reserva— pero esa razón se cumple con la ALTURA, no con la
+    // falta de color: esta banda sigue midiendo lo mismo y la reserva
+    // sigue entrando sin hacer scroll.
+    //
+    // El color sale del negocio, nunca de la plataforma. Es lo que hace
+    // que cinco páginas con la misma estructura se vean como cinco
+    // negocios distintos en vez de cinco copias del mismo documento.
+    const fondo = branding.primaryColor;
+    const fg = `rgb(${readableFgRgb(fondo)})`;
+    // El acento solo se usa si de verdad se lee sobre este fondo; si no,
+    // la bajada se queda en el mismo color del texto, atenuada.
+    const acentoLegible = contrastRatio(accent, fondo) >= 3;
     return (
-      <header className="w-full border-b border-ink/[0.07] px-5 py-8 sm:px-6 sm:py-10">
-        <div className="mx-auto flex max-w-2xl flex-col items-start gap-4 sm:flex-row sm:items-center sm:gap-5">
+      <header
+        className="relative w-full overflow-hidden px-5 py-10 sm:px-6 sm:py-12"
+        style={{ background: `linear-gradient(135deg, ${fondo}, ${darkenHex(fondo, 22)})`, color: fg }}
+      >
+        {/* Un halo del acento en la esquina: le da profundidad a un
+            campo plano sin meter una imagen que nadie subió. */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-16 -top-24 h-64 w-64 rounded-full blur-3xl"
+          style={{ background: withAlpha(accent, 0.35) }}
+        />
+        <div className="relative mx-auto flex max-w-2xl flex-col items-start gap-4 sm:flex-row sm:items-center sm:gap-5">
           {branding.logoUrl && (
+            // Placa blanca detrás del logo: sobre un campo de color, un
+            // logo de píxeles oscuros desaparece.
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={branding.logoUrl}
               alt=""
               aria-hidden="true"
-              className="h-12 w-auto max-w-[160px] shrink-0 object-contain"
+              className="h-14 w-auto max-w-[170px] shrink-0 rounded-xl bg-white/95 object-contain p-1.5"
             />
           )}
           <div className="min-w-0">
-            {/* Eyebrow is muted, not brand-coloured. On a page whose
-                only job is a booking, the accent has to mean "this is
-                what you press" — spending it on a label above the
-                title spends it on nothing. */}
             {props.eyebrow && (
-              // Follows the template's own heading case: a condensed,
-              // upper-case template (pádel, gimnasio) keeps its shouted
-              // label; the others read it in sentence case instead of the
-              // tracked-out capitals every generic landing page uses.
               <p
-                className="text-[13px] font-medium text-muted"
+                className="text-[13px] font-semibold"
                 style={{
+                  color: acentoLegible ? accent : fg,
+                  opacity: acentoLegible ? 1 : 0.7,
                   textTransform: 'var(--tpl-heading-transform)' as React.CSSProperties['textTransform'],
                   letterSpacing: 'var(--tpl-label-tracking)',
                 }}
@@ -164,8 +202,9 @@ export function HeroSection({
               </p>
             )}
             <h1
-              className="mt-1 text-2xl font-bold leading-tight text-ink sm:text-3xl"
+              className="mt-1.5 text-[1.7rem] font-bold leading-[1.1] sm:text-[2.1rem]"
               style={{
+                color: fg,
                 fontFamily: 'var(--tpl-heading-font, var(--font-heading))',
                 letterSpacing: 'var(--tpl-heading-tracking)',
                 textTransform: 'var(--tpl-heading-transform)' as React.CSSProperties['textTransform'],
@@ -175,7 +214,7 @@ export function HeroSection({
               {props.title}
             </h1>
             {props.subtitle && (
-              <p className="mt-1.5 max-w-xl text-sm leading-relaxed text-muted" data-edit="subtitle">
+              <p className="mt-2 max-w-xl text-sm leading-relaxed" style={{ color: fg, opacity: 0.8 }} data-edit="subtitle">
                 {props.subtitle}
               </p>
             )}
@@ -330,6 +369,7 @@ export function ServicesSection({
 
   const header = (
     <div className="mb-8 max-w-2xl sm:mb-12">
+      <SectionRule branding={branding} />
       <h2 className="font-bold text-ink" style={h2Style} data-edit="heading">
         {heading}
       </h2>
@@ -481,6 +521,7 @@ export function SplitSection({
   const text = (
     <div className={offset ? 'lg:py-8' : ''}>
       <Eyebrow color={branding.accentColor} editKey="eyebrow">{props.eyebrow}</Eyebrow>
+      <SectionRule branding={branding} />
       <h2 className="font-bold text-ink" style={h2Style} data-edit="heading">
         {props.heading}
       </h2>
@@ -522,6 +563,7 @@ export function TeamSection({
 
   const header = (
     <div className="mb-8 max-w-2xl sm:mb-12">
+      <SectionRule branding={branding} />
       <h2 className="font-bold text-ink" style={h2Style} data-edit="heading">
         {heading}
       </h2>
@@ -605,6 +647,7 @@ export function TeamSection({
 export function FaqSection({ props, branding }: { props: FaqProps; branding: SectionBranding }) {
   return (
     <div className="mx-auto max-w-3xl">
+      <SectionRule branding={branding} />
       <h2 className="mb-6 font-bold text-ink sm:mb-10" style={h2Style} data-edit="heading">
         {props.heading}
       </h2>
@@ -694,13 +737,25 @@ function splitHoursLine(line: string): [string, string | null] {
   return [line.slice(0, i).trim(), line.slice(i + 1).trim()];
 }
 
-export function HoursSection({ props }: { props: HoursProps }) {
+export function HoursSection({ props, branding }: { props: HoursProps; branding: SectionBranding }) {
   return (
     <div>
+      <SectionRule branding={branding} />
       <h2 className="mb-5 font-bold text-ink" style={h2Style} data-edit="heading">
         {props.heading}
       </h2>
-      <dl className="divide-y divide-ink/[0.08] border-y border-ink/[0.08]">
+      {/* Panel tenido con el color del negocio en vez de dos reglas
+          finas sobre papel. El horario es de las tres cosas que la
+          gente viene a mirar, y en papel plano se perdia entre el resto
+          del texto. */}
+      <dl
+        className="divide-y px-5"
+        style={{
+          backgroundColor: withAlpha(branding.accentColor, 0.1),
+          borderRadius: 'var(--tpl-radius, 14px)',
+          borderColor: withAlpha(branding.primaryColor, 0.12),
+        }}
+      >
         {props.lines.map((line) => {
           const [label, value] = splitHoursLine(line);
           const closed = value !== null && /cerrado/i.test(value);
@@ -722,7 +777,15 @@ export function HoursSection({ props }: { props: HoursProps }) {
   );
 }
 
-export function LocationSection({ props, mapHref }: { props: LocationProps; mapHref: string | null }) {
+export function LocationSection({
+  props,
+  mapHref,
+  branding,
+}: {
+  props: LocationProps;
+  mapHref: string | null;
+  branding: SectionBranding;
+}) {
   // With no map link, one is built from the address: every phone opens
   // a Google Maps search URL in its maps app, which is the whole point of
   // this block for someone standing on the street.
@@ -730,6 +793,7 @@ export function LocationSection({ props, mapHref }: { props: LocationProps; mapH
     mapHref ?? (props.address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(props.address)}` : null);
   return (
     <div>
+      <SectionRule branding={branding} />
       <h2 className="mb-4 font-bold text-ink" style={h2Style} data-edit="heading">
         {props.heading}
       </h2>
@@ -743,7 +807,12 @@ export function LocationSection({ props, mapHref }: { props: LocationProps; mapH
           href={href}
           target="_blank"
           rel="noreferrer"
-          className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl border border-ink/[0.12] px-5 py-3 text-sm font-medium text-ink transition-[transform,border-color] duration-150 hover:border-ink/30 active:scale-[0.98] sm:inline-flex sm:w-auto"
+          className="mt-5 flex w-full items-center justify-center gap-2 px-5 py-3 text-sm font-semibold transition-transform duration-150 active:scale-[0.98] sm:inline-flex sm:w-auto"
+          style={{
+            backgroundColor: branding.primaryColor,
+            color: `rgb(${readableFgRgb(branding.primaryColor)})`,
+            borderRadius: 'var(--tpl-radius, 14px)',
+          }}
         >
           <MapPin className="h-4 w-4" aria-hidden="true" />
           Cómo llegar

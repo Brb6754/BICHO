@@ -402,7 +402,182 @@ const NEGOCIOS = [
       }, COLUMN),
     ],
   },
+
+  // ══════════════════════════════════════════════════════════════════
+  // GIMNASIO — se reserva una CLASE con cupo, no una persona.
+  // ══════════════════════════════════════════════════════════════════
+  {
+    slug: 'hierro-monte',
+    name: 'Hierro & Monte',
+    vertical: 'gimnasio',
+    description: 'Fuerza, movilidad y acondicionamiento en grupos de ocho.',
+    colors: { primary: '#171717', secondary: '#0A0A0A', accent: '#FF5C2B' },
+    design: {
+      typeScale: 'condensed',
+      rhythm: 'compact',
+      shape: 'sharp',
+      imageTreatment: 'square',
+      headingFont: "'Arial Black', 'Helvetica Neue', Helvetica, sans-serif",
+      upperHeadings: true,
+    },
+    resourceLabel: 'Sala',
+    location: 'Blvd. Felipe Pescador 1140, Durango',
+    resources: ['Sala de fuerza', 'Sala de movilidad'],
+    services: [
+      ['Fuerza (grupo de 8)', 60, 180],
+      ['Acondicionamiento', 45, 150],
+      ['Movilidad y core', 45, 150],
+      ['Evaluación inicial', 45, 0],
+    ],
+    schedule: [...week([1, 2, 3, 4, 5], '06:00', '21:00'), ...week([6], '08:00', '14:00')],
+    blocks: () => [
+      header('Entrenamiento en grupos chicos', 'Aparta tu clase', 'Ocho personas por sala. Reservas y te guardamos el lugar.'),
+      booking(),
+      b('services', 'compact', {
+        heading: 'Clases y precios',
+        intro: 'La evaluación inicial no se cobra: son 45 minutos para ver cómo te mueves antes de meterte a una clase.',
+        items: [
+          { name: 'Fuerza (grupo de 8)', description: '', price: '$180', duration: '60 min' },
+          { name: 'Acondicionamiento', description: '', price: '$150', duration: '45 min' },
+          { name: 'Movilidad y core', description: '', price: '$150', duration: '45 min' },
+          { name: 'Evaluación inicial', description: '', price: 'Sin costo', duration: '45 min' },
+          { name: 'Mensualidad libre', description: '', price: '$1,100', duration: 'al mes' },
+        ],
+      }, COLUMN),
+      b('faq', 'default', {
+        heading: 'Antes de tu primera clase',
+        items: [
+          { question: '¿Necesito experiencia?', answer: 'No. La evaluación inicial existe justo para eso, y en la clase cada quien trabaja con su propia carga.' },
+          { question: '¿Qué llevo?', answer: 'Ropa cómoda y agua. Si entrenas descalzo, avísanos.' },
+          { question: '¿Y si no llego?', answer: 'Cancela desde el enlace del correo hasta 2 horas antes y el lugar se libera para alguien más.' },
+        ],
+      }, COLUMN),
+      b('hours', 'default', {
+        heading: 'Horario',
+        lines: ['Lunes a viernes: 6:00–21:00', 'Sábado: 8:00–14:00', 'Domingo: cerrado'],
+      }, COLUMN),
+      b('location', 'default', { heading: 'Dónde estamos', address: 'Blvd. Felipe Pescador 1140, Durango', mapUrl: '' }, COLUMN),
+    ],
+  },
+
+  // ══════════════════════════════════════════════════════════════════
+  // CLÍNICA — la primera consulta no es igual que el seguimiento.
+  // ══════════════════════════════════════════════════════════════════
+  {
+    slug: 'clinica-alameda',
+    name: 'Clínica Alameda',
+    vertical: 'doctor',
+    description: 'Medicina general y nutrición, con consultas de 40 minutos.',
+    colors: { primary: '#1F4D3D', secondary: '#143327', accent: '#79B58C' },
+    design: {
+      typeScale: 'humanist',
+      rhythm: 'balanced',
+      shape: 'soft',
+      imageTreatment: 'circle',
+      headingFont: "'Iowan Old Style', Georgia, serif",
+      upperHeadings: false,
+    },
+    resourceLabel: 'Consultorio',
+    location: 'Av. 5 de Febrero 405, Zona Centro, Durango',
+    resources: ['Dra. Mariana Esparza · general', 'Lic. Sofía Ríos · nutrición'],
+    services: [
+      ['Primera consulta', 40, 700],
+      ['Consulta de seguimiento', 25, 450],
+      ['Consulta de nutrición', 50, 650],
+      ['Certificado médico', 20, 350],
+    ],
+    schedule: [...week([1, 2, 3, 4, 5], '08:00', '20:00'), ...week([6], '09:00', '13:00')],
+    blocks: () => [
+      header('Medicina general y nutrición', 'Agenda tu consulta', 'Cuarenta minutos la primera vez. Sin sala de espera llena.'),
+      booking(),
+      b('services', 'menu', {
+        heading: 'Consultas',
+        intro: 'La primera consulta dura cuarenta minutos porque incluye historia clínica completa. El seguimiento es más corto y más barato.',
+        items: [
+          { name: 'Primera consulta', description: 'Historia clínica, exploración y plan.', price: '$700', duration: '40 min' },
+          { name: 'Consulta de seguimiento', description: 'Revisión de estudios y ajustes.', price: '$450', duration: '25 min' },
+          { name: 'Consulta de nutrición', description: 'Medición, plan de alimentación y seguimiento.', price: '$650', duration: '50 min' },
+          { name: 'Certificado médico', description: 'Escolar o deportivo.', price: '$350', duration: '20 min' },
+        ],
+      }, COLUMN),
+      b('faq', 'default', {
+        heading: 'Antes de tu cita',
+        items: [
+          { question: '¿Qué llevo a la primera consulta?', answer: 'Estudios recientes si los tienes y la lista de medicamentos que tomas, con dosis.' },
+          { question: '¿Dan receta e incapacidad?', answer: 'Sí, ambas cuando el caso lo amerita.' },
+          { question: '¿Atienden urgencias?', answer: 'No. Aquí la cita más próxima suele ser el mismo día, pero esto no sustituye una sala de urgencias.' },
+        ],
+      }, COLUMN),
+      b('hours', 'default', {
+        heading: 'Horario',
+        lines: ['Lunes a viernes: 8:00–20:00', 'Sábado: 9:00–13:00', 'Domingo: cerrado'],
+      }, COLUMN),
+      b('location', 'default', { heading: 'Dónde estamos', address: 'Av. 5 de Febrero 405, Zona Centro, Durango', mapUrl: '' }, COLUMN),
+    ],
+  },
+
+  // ══════════════════════════════════════════════════════════════════
+  // BARBERÍA — misma vertical que el salón, identidad opuesta. Está
+  // aquí para enseñar justo eso: el giro no decide cómo se ve una
+  // página; lo decide la marca del negocio.
+  // ══════════════════════════════════════════════════════════════════
+  {
+    slug: 'don-ramon',
+    name: 'Barbería Don Ramón',
+    vertical: 'peluqueria',
+    description: 'Corte clásico, barba y navaja. Desde 1998.',
+    colors: { primary: '#1B2A33', secondary: '#0E1A21', accent: '#D4A520' },
+    design: {
+      typeScale: 'grotesque',
+      rhythm: 'compact',
+      shape: 'sharp',
+      imageTreatment: 'square',
+      headingFont: "'Helvetica Neue', Helvetica, Arial, sans-serif",
+      upperHeadings: true,
+    },
+    resourceLabel: 'Barbero',
+    location: 'Calle Pasteur 210 Sur, Zona Centro, Durango',
+    resources: ['Ramón', 'Beto', 'Chuy'],
+    services: [
+      ['Corte clásico', 40, 220],
+      ['Corte y barba', 60, 320],
+      ['Afeitado con navaja', 40, 260],
+      ['Perfilado de barba', 25, 150],
+      ['Corte para niño', 30, 180],
+    ],
+    schedule: [...week([1, 2, 3, 4, 5], '10:00', '20:00'), ...week([6], '09:00', '17:00')],
+    blocks: () => [
+      header('Corte, barba y navaja', 'Pide tu turno', 'Tres sillas. Elige barbero y hora, sin esperar en la banca.'),
+      booking(),
+      b('services', 'menu', {
+        heading: 'Precios',
+        intro: 'Todos incluyen lavado y toalla caliente.',
+        items: [
+          { name: 'Corte clásico', description: 'Tijera o máquina, como lo pidas.', price: '$220', duration: '40 min' },
+          { name: 'Corte y barba', description: 'El completo.', price: '$320', duration: '60 min' },
+          { name: 'Afeitado con navaja', description: 'Toalla caliente y aceite.', price: '$260', duration: '40 min' },
+          { name: 'Perfilado de barba', description: 'Mantenimiento entre cortes.', price: '$150', duration: '25 min' },
+          { name: 'Corte para niño', description: 'Hasta 12 años.', price: '$180', duration: '30 min' },
+        ],
+      }, COLUMN),
+      b('team', 'roster', {
+        heading: 'Los barberos',
+        intro: '',
+        members: [
+          { name: 'Ramón', role: 'Clásico', photoUrl: '', note: 'El de la navaja.' },
+          { name: 'Beto', role: 'Fades', photoUrl: '', note: 'Degradados y diseño.' },
+          { name: 'Chuy', role: 'Barba', photoUrl: '', note: 'Perfilado y tratamiento.' },
+        ],
+      }, COLUMN),
+      b('hours', 'default', {
+        heading: 'Horario',
+        lines: ['Lunes a viernes: 10:00–20:00', 'Sábado: 9:00–17:00', 'Domingo: cerrado'],
+      }, COLUMN),
+      b('location', 'default', { heading: 'Dónde estamos', address: 'Calle Pasteur 210 Sur, Zona Centro, Durango', mapUrl: '' }, COLUMN),
+    ],
+  },
 ];
+
 
 // ── ejecución ────────────────────────────────────────────────────────
 async function seed(negocio) {
@@ -420,6 +595,11 @@ async function seed(negocio) {
     primary_color: negocio.colors.primary,
     secondary_color: negocio.colors.secondary,
     accent_color: negocio.colors.accent,
+    // Se dejan en el default de la columna a proposito: la pagina trata
+    // ese valor como "sin configurar" y calcula el papel del color del
+    // negocio. Ver mixToPaper en lib/branding/colors.ts.
+    background_color: '#F7F6F3',
+    text_color: '#1A1A1A',
     resource_label: negocio.resourceLabel,
     location: negocio.location,
     page_blocks: blocks,

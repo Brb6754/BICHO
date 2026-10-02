@@ -9,8 +9,15 @@ import { formatDuration, formatPrice, type Service } from './types';
 // `primary` at double width, and its label goes semibold. That way it
 // still reads as chosen in greyscale, at a glance, and for anyone who
 // doesn't separate the tenant's palette from its own background.
-const SELECTED_RING = 'border-primary ring-1 ring-primary bg-primary/[0.06]';
-const UNSELECTED_RING = 'border-border bg-surface hover:border-primary/40';
+//
+// Y las tarjetas llevan color SIN estar seleccionadas. Antes eran
+// blancas con una línea de 1px: correcto y exactamente lo que Bruno
+// describió como "parece un documento". Una lista de opciones en la que
+// ninguna tiene color obliga al ojo a leerlas todas; con un relleno
+// tenue del acento del negocio se ven como fichas que se pueden tocar,
+// que es lo que son.
+const SELECTED_RING = 'border-primary ring-1 ring-primary bg-primary/[0.12] shadow-sm';
+const UNSELECTED_RING = 'border-transparent bg-accent/[0.09] hover:bg-accent/[0.16]';
 
 function SelectionDot({ selected }: { selected: boolean }) {
   return (
@@ -63,8 +70,11 @@ export function ServiceCard({
         </span>
       </span>
 
-      <span className="shrink-0 text-right">
-        <span className="block text-[15px] font-semibold tabular-nums text-ink">
+      {/* El precio es una ficha, no una columna de texto: es el dato que
+          la gente compara, y en una fila de texto plano pesa lo mismo
+          que la duración. */}
+      <span className="shrink-0">
+        <span className="block rounded-full bg-primary/[0.14] px-3 py-1 text-[14px] font-bold tabular-nums text-ink">
           {formatPrice(service.price_cents) || 'Sin costo'}
         </span>
       </span>

@@ -80,6 +80,7 @@ const NEGOCIOS = [
   // ══════════════════════════════════════════════════════════════════
   {
     slug: 'dental-nova',
+    logo: '/demo/logos/dental-nova.png',
     fonts: { heading: 'outfit', body: 'inter' },
     name: 'Dental Nova',
     vertical: 'dentista',
@@ -156,11 +157,12 @@ const NEGOCIOS = [
   // ══════════════════════════════════════════════════════════════════
   {
     slug: 'casa-luma',
+    logo: '/demo/logos/casa-luma.webp',
     fonts: { heading: 'fraunces', body: 'jost' },
     name: 'Casa Luma',
     vertical: 'peluqueria',
     description: 'Color, corte y uñas en Zona Centro.',
-    colors: { primary: '#46202E', secondary: '#2C1220', accent: '#E0A3B2' },
+    colors: { primary: '#4A2318', secondary: '#2E140D', accent: '#C0714B' },
     design: {
       typeScale: 'editorial',
       rhythm: 'spacious',
@@ -226,11 +228,12 @@ const NEGOCIOS = [
   // ══════════════════════════════════════════════════════════════════
   {
     slug: 'alto-padel',
+    logo: '/demo/logos/alto-padel.webp',
     fonts: { heading: 'oswald', body: 'inter' },
     name: 'Alto Pádel Club',
     vertical: 'padel',
     description: 'Cuatro pistas, dos techadas. Abierto hasta las once.',
-    colors: { primary: '#0F2E4A', secondary: '#0A2033', accent: '#56D08A' },
+    colors: { primary: '#15336B', secondary: '#0D2149', accent: '#8CC63F' },
     design: {
       typeScale: 'condensed',
       rhythm: 'compact',
@@ -290,11 +293,12 @@ const NEGOCIOS = [
   // ══════════════════════════════════════════════════════════════════
   {
     slug: 'mesa-doce',
+    logo: '/demo/logos/mesa-doce.png',
     fonts: { heading: 'cormorant', body: 'jost' },
     name: 'Mesa Doce',
     vertical: 'restaurante',
     description: 'Cocina de temporada. Doce mesas, dos turnos.',
-    colors: { primary: '#2B1A13', secondary: '#1A0F0A', accent: '#D4A355' },
+    colors: { primary: '#3B4A26', secondary: '#232E16', accent: '#C8891F' },
     design: {
       typeScale: 'editorial',
       rhythm: 'spacious',
@@ -352,11 +356,12 @@ const NEGOCIOS = [
   // ══════════════════════════════════════════════════════════════════
   {
     slug: 'agua-serena',
+    logo: '/demo/logos/agua-serena.png',
     fonts: { heading: 'cormorant', body: 'jost' },
     name: 'Agua Serena',
     vertical: 'spa',
     description: 'Tres cabinas, un tratamiento a la vez.',
-    colors: { primary: '#2E3B33', secondary: '#1E2822', accent: '#A9C2A3' },
+    colors: { primary: '#1D4A5F', secondary: '#12303E', accent: '#6F8F63' },
     design: {
       typeScale: 'humanist',
       rhythm: 'spacious',
@@ -415,6 +420,7 @@ const NEGOCIOS = [
   // ══════════════════════════════════════════════════════════════════
   {
     slug: 'hierro-monte',
+    logo: '/demo/logos/hierro-monte.webp',
     fonts: { heading: 'anton', body: 'inter' },
     name: 'Hierro & Monte',
     vertical: 'gimnasio',
@@ -473,6 +479,7 @@ const NEGOCIOS = [
   // ══════════════════════════════════════════════════════════════════
   {
     slug: 'clinica-alameda',
+    logo: '/demo/logos/clinica-alameda.webp',
     fonts: { heading: 'dmserif', body: 'inter' },
     name: 'Clínica Alameda',
     vertical: 'doctor',
@@ -532,11 +539,12 @@ const NEGOCIOS = [
   // ══════════════════════════════════════════════════════════════════
   {
     slug: 'don-ramon',
+    logo: '/demo/logos/don-ramon.webp',
     fonts: { heading: 'bebas', body: 'inter' },
     name: 'Barbería Don Ramón',
     vertical: 'peluqueria',
     description: 'Corte clásico, barba y navaja. Desde 1998.',
-    colors: { primary: '#1B2A33', secondary: '#0E1A21', accent: '#D4A520' },
+    colors: { primary: '#1A1A1A', secondary: '#0D0D0D', accent: '#C8793C' },
     design: {
       typeScale: 'grotesque',
       rhythm: 'compact',
@@ -610,6 +618,7 @@ async function seed(negocio) {
     // negocio. Ver mixToPaper en lib/branding/colors.ts.
     background_color: '#F7F6F3',
     text_color: '#1A1A1A',
+    logo_url: negocio.logo,
     font_heading: negocio.fonts.heading,
     font_body: negocio.fonts.body,
     resource_label: negocio.resourceLabel,

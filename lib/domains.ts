@@ -96,6 +96,29 @@ export const RESERVED_SLUGS = new Set<string>([
   'soporte',
 ]);
 
+/**
+ * Los negocios de demostración (db/seed-demo-tenants.mjs).
+ *
+ * Son los únicos cuyo panel del dueño se puede ver SIN sesión, en
+ * /panel. La lista existe para que ese panel público nunca pueda
+ * abrirse sobre un negocio real: un cliente de verdad no quiere que
+ * cualquiera vea cómo luce su agenda, aunque las citas sean inventadas.
+ */
+export const DEMO_SLUGS = new Set<string>([
+  'dental-nova',
+  'casa-luma',
+  'alto-padel',
+  'mesa-doce',
+  'agua-serena',
+  'hierro-monte',
+  'clinica-alameda',
+  'don-ramon',
+]);
+
+export function isDemoSlug(slug: string): boolean {
+  return DEMO_SLUGS.has(slug.trim().toLowerCase());
+}
+
 export function isReservedSlug(slug: string): boolean {
   return RESERVED_SLUGS.has(slug.trim().toLowerCase());
 }

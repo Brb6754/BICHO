@@ -202,7 +202,7 @@ export function HeroSection({
               </p>
             )}
             <h1
-              className="mt-1.5 text-[1.7rem] font-bold leading-[1.1] sm:text-[2.1rem]"
+              className="mt-2 text-[clamp(2rem,7vw,3.1rem)] font-bold leading-[1.02]"
               style={{
                 color: fg,
                 fontFamily: 'var(--tpl-heading-font, var(--font-heading))',

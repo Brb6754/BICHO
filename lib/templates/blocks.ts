@@ -632,14 +632,19 @@ export function normalizeDesign(raw: Partial<TemplateDesign> | null | undefined)
 // value here is read by BlockRenderer's blocks via var(--tpl-*), so a
 // block never needs to know which template it is inside.
 export function templateDesignCssVars(design: TemplateDesign): Record<string, string> {
+  // Una variable CSS definida pero VACIA no dispara el fallback de
+  // var(): `var(--tpl-heading-font, var(--font-heading))` se quedaria
+  // sin fuente. Por eso, cuando la plantilla no impone una cara, la
+  // clave no se emite y la fuente del negocio pasa limpia.
+  const headingFont = design.headingFont.trim();
   return {
+    ...(headingFont ? { '--tpl-heading-font': headingFont } : {}),
     '--tpl-h1': TYPE_SCALE_H1[design.typeScale],
     '--tpl-h2': TYPE_SCALE_H2[design.typeScale],
     '--tpl-tracking': TYPE_SCALE_TRACKING[design.typeScale],
     '--tpl-space': RHYTHM_SPACE[design.rhythm],
     '--tpl-radius': SHAPE_RADIUS[design.shape],
     '--tpl-image-radius': IMAGE_RADIUS[design.imageTreatment],
-    '--tpl-heading-font': design.headingFont,
     '--tpl-heading-transform': design.upperHeadings ? 'uppercase' : 'none',
     '--tpl-heading-tracking': design.upperHeadings ? '0.01em' : TYPE_SCALE_TRACKING[design.typeScale],
     // Small labels: capitals need air to stay legible; sentence case

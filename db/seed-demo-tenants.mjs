@@ -78,6 +78,7 @@ const NEGOCIOS = [
   // ══════════════════════════════════════════════════════════════════
   {
     slug: 'dental-nova',
+    fonts: { heading: 'outfit', body: 'inter' },
     name: 'Dental Nova',
     vertical: 'dentista',
     description: 'Odontología general y estética en Durango.',
@@ -87,7 +88,7 @@ const NEGOCIOS = [
       rhythm: 'balanced',
       shape: 'soft',
       imageTreatment: 'circle',
-      headingFont: "'Helvetica Neue', Helvetica, Arial, sans-serif",
+      headingFont: '',
       upperHeadings: false,
     },
     resourceLabel: 'Dentista',
@@ -153,6 +154,7 @@ const NEGOCIOS = [
   // ══════════════════════════════════════════════════════════════════
   {
     slug: 'casa-luma',
+    fonts: { heading: 'fraunces', body: 'jost' },
     name: 'Casa Luma',
     vertical: 'peluqueria',
     description: 'Color, corte y uñas en Zona Centro.',
@@ -162,7 +164,7 @@ const NEGOCIOS = [
       rhythm: 'spacious',
       shape: 'sharp',
       imageTreatment: 'square',
-      headingFont: "Georgia, 'Times New Roman', serif",
+      headingFont: '',
       upperHeadings: false,
     },
     resourceLabel: 'Estilista',
@@ -222,6 +224,7 @@ const NEGOCIOS = [
   // ══════════════════════════════════════════════════════════════════
   {
     slug: 'alto-padel',
+    fonts: { heading: 'oswald', body: 'inter' },
     name: 'Alto Pádel Club',
     vertical: 'padel',
     description: 'Cuatro pistas, dos techadas. Abierto hasta las once.',
@@ -231,7 +234,7 @@ const NEGOCIOS = [
       rhythm: 'compact',
       shape: 'sharp',
       imageTreatment: 'square',
-      headingFont: "'Arial Narrow', 'Helvetica Neue', Helvetica, sans-serif",
+      headingFont: '',
       upperHeadings: true,
     },
     resourceLabel: 'Pista',
@@ -285,6 +288,7 @@ const NEGOCIOS = [
   // ══════════════════════════════════════════════════════════════════
   {
     slug: 'mesa-doce',
+    fonts: { heading: 'cormorant', body: 'jost' },
     name: 'Mesa Doce',
     vertical: 'restaurante',
     description: 'Cocina de temporada. Doce mesas, dos turnos.',
@@ -294,7 +298,7 @@ const NEGOCIOS = [
       rhythm: 'spacious',
       shape: 'soft',
       imageTreatment: 'arch',
-      headingFont: "'Iowan Old Style', Georgia, serif",
+      headingFont: '',
       upperHeadings: false,
     },
     resourceLabel: 'Mesa',
@@ -346,6 +350,7 @@ const NEGOCIOS = [
   // ══════════════════════════════════════════════════════════════════
   {
     slug: 'agua-serena',
+    fonts: { heading: 'cormorant', body: 'jost' },
     name: 'Agua Serena',
     vertical: 'spa',
     description: 'Tres cabinas, un tratamiento a la vez.',
@@ -355,7 +360,7 @@ const NEGOCIOS = [
       rhythm: 'spacious',
       shape: 'soft',
       imageTreatment: 'arch',
-      headingFont: "'Iowan Old Style', Georgia, serif",
+      headingFont: '',
       upperHeadings: false,
     },
     resourceLabel: 'Cabina',
@@ -408,6 +413,7 @@ const NEGOCIOS = [
   // ══════════════════════════════════════════════════════════════════
   {
     slug: 'hierro-monte',
+    fonts: { heading: 'anton', body: 'inter' },
     name: 'Hierro & Monte',
     vertical: 'gimnasio',
     description: 'Fuerza, movilidad y acondicionamiento en grupos de ocho.',
@@ -417,7 +423,7 @@ const NEGOCIOS = [
       rhythm: 'compact',
       shape: 'sharp',
       imageTreatment: 'square',
-      headingFont: "'Arial Black', 'Helvetica Neue', Helvetica, sans-serif",
+      headingFont: '',
       upperHeadings: true,
     },
     resourceLabel: 'Sala',
@@ -465,6 +471,7 @@ const NEGOCIOS = [
   // ══════════════════════════════════════════════════════════════════
   {
     slug: 'clinica-alameda',
+    fonts: { heading: 'dmserif', body: 'inter' },
     name: 'Clínica Alameda',
     vertical: 'doctor',
     description: 'Medicina general y nutrición, con consultas de 40 minutos.',
@@ -474,7 +481,7 @@ const NEGOCIOS = [
       rhythm: 'balanced',
       shape: 'soft',
       imageTreatment: 'circle',
-      headingFont: "'Iowan Old Style', Georgia, serif",
+      headingFont: '',
       upperHeadings: false,
     },
     resourceLabel: 'Consultorio',
@@ -523,6 +530,7 @@ const NEGOCIOS = [
   // ══════════════════════════════════════════════════════════════════
   {
     slug: 'don-ramon',
+    fonts: { heading: 'bebas', body: 'inter' },
     name: 'Barbería Don Ramón',
     vertical: 'peluqueria',
     description: 'Corte clásico, barba y navaja. Desde 1998.',
@@ -532,7 +540,7 @@ const NEGOCIOS = [
       rhythm: 'compact',
       shape: 'sharp',
       imageTreatment: 'square',
-      headingFont: "'Helvetica Neue', Helvetica, Arial, sans-serif",
+      headingFont: '',
       upperHeadings: true,
     },
     resourceLabel: 'Barbero',
@@ -600,6 +608,8 @@ async function seed(negocio) {
     // negocio. Ver mixToPaper en lib/branding/colors.ts.
     background_color: '#F7F6F3',
     text_color: '#1A1A1A',
+    font_heading: negocio.fonts.heading,
+    font_body: negocio.fonts.body,
     resource_label: negocio.resourceLabel,
     location: negocio.location,
     page_blocks: blocks,

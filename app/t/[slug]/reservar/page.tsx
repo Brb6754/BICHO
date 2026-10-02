@@ -11,7 +11,7 @@ import {
   tenantDarkModeCssVars,
   tenantDarkBase,
 } from '@/lib/branding/colors';
-import { mixToPaper } from '@/lib/branding/colors';
+import { mixToPaper, withAlpha } from '@/lib/branding/colors';
 import type { Block, TemplateDesign } from '@/lib/templates/blocks';
 import { createDefaultBlock, normalizeDesign, templateDesignCssVars } from '@/lib/templates/blocks';
 
@@ -288,7 +288,29 @@ export default async function ReservarPage({ params }: { params: Promise<{ slug:
               } as React.CSSProperties)
         }
       >
-        {/* No ambient shapes.
+        {/* ATMÓSFERA. Dos manchas enormes y difusas con los colores del
+            negocio, fijas al viewport.
+
+            La versión anterior de esta página no tenía ninguna, y el
+            comentario que estaba aquí defendía esa decisión: antes eran
+            dos cuñas con clip-path que cortaban una diagonal dura y se
+            leían como un error de render. El problema era la FORMA, no
+            la existencia — una hoja plana de un solo color es
+            exactamente lo que hace que una página se vea hecha con un
+            generador de sitios.
+
+            Son radiales suaves, sin borde que recortar, al 10% y 7%, y
+            van en `fixed` para que el fondo no se desplace con el
+            scroll: la página se mueve, la luz no. */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none fixed inset-0 -z-10"
+          style={{
+            background: `radial-gradient(60rem 40rem at 12% -10%, ${withAlpha(branding.primaryColor, 0.1)}, transparent 60%), radial-gradient(45rem 35rem at 100% 15%, ${withAlpha(branding.accentColor, 0.07)}, transparent 65%)`,
+          }}
+        />
+
+        {/* Sin cuñas.
             This used to be two large clip-path wedges tinted with the
             tenant's colours. They cut a hard diagonal seam across the
             page that read as a rendering artefact rather than as

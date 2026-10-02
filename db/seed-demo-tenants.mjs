@@ -63,8 +63,10 @@ const COLUMN = { maxWidth: 'sm' };
 const WIDE = { maxWidth: 'lg' };
 const FULL = { maxWidth: 'full' };
 
-const header = (eyebrow, title, subtitle) =>
-  b('hero', 'header', { eyebrow, title, subtitle, backgroundImageUrl: '', align: 'left', ctaText: '', ctaLink: '' }, FULL);
+// La foto del local vive en /public/demo/<slug>.webp y se sirve desde
+// la app, así que funciona igual en cada subdominio de negocio.
+const header = (eyebrow, title, subtitle, foto = '') =>
+  b('hero', 'header', { eyebrow, title, subtitle, backgroundImageUrl: foto, align: 'left', ctaText: '', ctaLink: '' }, FULL);
 
 const booking = () => b('booking', 'default', {}, WIDE);
 
@@ -108,7 +110,7 @@ const NEGOCIOS = [
         'Odontología general y estética',
         'Agenda tu consulta',
         'Elige al dentista y la hora. Te confirmamos por correo, sin llamadas.'
-      ),
+      , '/demo/dental-nova.webp'),
       booking(),
       b('services', 'menu', {
         heading: 'Precios de referencia',
@@ -184,7 +186,7 @@ const NEGOCIOS = [
         'Estudio de color y corte',
         'Reserva tu cita',
         'Elige servicio, estilista y horario. Te llega la confirmación al instante.'
-      ),
+      , '/demo/casa-luma.webp'),
       booking(),
       b('services', 'menu', {
         heading: 'Precios de referencia',
@@ -248,7 +250,7 @@ const NEGOCIOS = [
     ],
     schedule: week([0, 1, 2, 3, 4, 5, 6], '07:00', '23:00'),
     blocks: () => [
-      header('Club de pádel', 'Reserva pista', 'Cuatro pistas, dos techadas. Elige horario y listo.'),
+      header('Club de pádel', 'Reserva pista', 'Cuatro pistas, dos techadas. Elige horario y listo.', '/demo/alto-padel.webp'),
       booking(),
       b('services', 'compact', {
         heading: 'Tarifas',
@@ -312,7 +314,7 @@ const NEGOCIOS = [
     ],
     schedule: [...week([3, 4, 5, 6], '13:30', '23:00'), ...week([0], '13:30', '18:00')],
     blocks: () => [
-      header('Cocina de temporada', 'Reserva tu mesa', 'Dos turnos, comida y cena. Confirmamos al momento.'),
+      header('Cocina de temporada', 'Reserva tu mesa', 'Dos turnos, comida y cena. Confirmamos al momento.', '/demo/mesa-doce.webp'),
       booking(),
       b('services', 'editorial', {
         heading: 'La carta, en corto',
@@ -375,7 +377,7 @@ const NEGOCIOS = [
     ],
     schedule: [...week([2, 3, 4, 5], '11:00', '20:00'), ...week([6], '10:00', '18:00')],
     blocks: () => [
-      header('Casa de bienestar', 'Aparta tu tratamiento', 'Tres cabinas, un tratamiento a la vez. Elige duración y horario.'),
+      header('Casa de bienestar', 'Aparta tu tratamiento', 'Tres cabinas, un tratamiento a la vez. Elige duración y horario.', '/demo/agua-serena.webp'),
       booking(),
       b('services', 'editorial', {
         heading: 'Tratamientos',
@@ -437,7 +439,7 @@ const NEGOCIOS = [
     ],
     schedule: [...week([1, 2, 3, 4, 5], '06:00', '21:00'), ...week([6], '08:00', '14:00')],
     blocks: () => [
-      header('Entrenamiento en grupos chicos', 'Aparta tu clase', 'Ocho personas por sala. Reservas y te guardamos el lugar.'),
+      header('Entrenamiento en grupos chicos', 'Aparta tu clase', 'Ocho personas por sala. Reservas y te guardamos el lugar.', '/demo/hierro-monte.webp'),
       booking(),
       b('services', 'compact', {
         heading: 'Clases y precios',
@@ -495,7 +497,7 @@ const NEGOCIOS = [
     ],
     schedule: [...week([1, 2, 3, 4, 5], '08:00', '20:00'), ...week([6], '09:00', '13:00')],
     blocks: () => [
-      header('Medicina general y nutrición', 'Agenda tu consulta', 'Cuarenta minutos la primera vez. Sin sala de espera llena.'),
+      header('Medicina general y nutrición', 'Agenda tu consulta', 'Cuarenta minutos la primera vez. Sin sala de espera llena.', '/demo/clinica-alameda.webp'),
       booking(),
       b('services', 'menu', {
         heading: 'Consultas',
@@ -555,7 +557,7 @@ const NEGOCIOS = [
     ],
     schedule: [...week([1, 2, 3, 4, 5], '10:00', '20:00'), ...week([6], '09:00', '17:00')],
     blocks: () => [
-      header('Corte, barba y navaja', 'Pide tu turno', 'Tres sillas. Elige barbero y hora, sin esperar en la banca.'),
+      header('Corte, barba y navaja', 'Pide tu turno', 'Tres sillas. Elige barbero y hora, sin esperar en la banca.', '/demo/don-ramon.webp'),
       booking(),
       b('services', 'menu', {
         heading: 'Precios',

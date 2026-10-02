@@ -164,11 +164,37 @@ export function HeroSection({
     const acentoLegible = contrastRatio(accent, fondo) >= 3;
     return (
       <header
-        className="relative w-full overflow-hidden px-5 py-10 sm:px-6 sm:py-12"
+        className="relative w-full overflow-hidden px-5 py-10 sm:px-6 sm:py-14"
         style={{ background: `linear-gradient(135deg, ${fondo}, ${darkenHex(fondo, 22)})`, color: fg }}
       >
-        {/* Un halo del acento en la esquina: le da profundidad a un
-            campo plano sin meter una imagen que nadie subió. */}
+        {/* LA FOTO DEL LUGAR, cuando el negocio subió una.
+            
+            Va DEBAJO del color, no en lugar del color: la marca tiene
+            que seguir decidiendo el tono de la página, y un titular
+            sobre una foto cruda es ilegible en cuanto la foto tiene
+            cielo. El degradado la cubre al 88% del lado del texto y la
+            deja respirar del otro, así que se reconoce el local sin
+            que el nombre pelee con él. */}
+        {hasImage && (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={props.backgroundImageUrl}
+              alt=""
+              aria-hidden="true"
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+            <div
+              aria-hidden="true"
+              className="absolute inset-0"
+              style={{
+                background: `linear-gradient(100deg, ${withAlpha(fondo, 0.94)} 0%, ${withAlpha(fondo, 0.86)} 45%, ${withAlpha(darkenHex(fondo, 18), 0.58)} 100%)`,
+              }}
+            />
+          </>
+        )}
+        {/* Un halo del acento en la esquina: profundidad sobre el campo
+            plano cuando no hay foto, y un punto de luz cuando sí la hay. */}
         <div
           aria-hidden="true"
           className="pointer-events-none absolute -right-16 -top-24 h-64 w-64 rounded-full blur-3xl"

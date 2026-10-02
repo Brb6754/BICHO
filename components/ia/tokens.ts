@@ -16,6 +16,17 @@ export const NOTI = {
   paperDeep: '#F4F0E9',
   /** Tinta. Berenjena muy oscura, no negro — es lo que hace que la página se sienta impresa. */
   ink: '#241038',
+  /**
+   * Violeta de marca. El MISMO que la landing de reservas, a propósito:
+   * NOTI tiene voz propia pero es de bicho, y dos violetas distintos a
+   * un clic de distancia se leen como dos empresas.
+   *
+   * Se usa como CAMPO (portadas, bandas), no como texto: sobre papel el
+   * texto violeta sería un acento tímido, y lo que le faltaba a esta
+   * página era precisamente el bloque de color que tienen las piezas.
+   */
+  violet: '#5B34E8',
+  violetDeep: '#3A1C9E',
   /** Lavanda: el relleno de las ilustraciones y de los chips tranquilos. */
   lavender: '#C9B6EA',
   lavenderSoft: '#EDE6F8',

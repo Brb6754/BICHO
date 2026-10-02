@@ -6,6 +6,7 @@ import { SubscribeBox } from '@/components/ia/SubscribeBox';
 import { POSTS } from '@/components/ia/posts';
 import { HeroThread, PostScene } from '@/components/ia/Scenes';
 import { Masthead, NotiLockup, Highlight } from '@/components/ia/Masthead';
+import { Grain, NotiWordmark } from '@/components/ia/Texture';
 import { NOTI, RULE } from '@/components/ia/tokens';
 import { SERVICES } from '@/components/central/services';
 
@@ -50,44 +51,64 @@ const AREA_LABEL: Record<string, string> = {
 export default function IaCampaignPage() {
   return (
     <div className="min-h-screen" style={{ backgroundColor: NOTI.paper, color: NOTI.ink }}>
-      <div className="mx-auto max-w-5xl px-6 pt-6 sm:pt-8">
-        <Masthead section="IA para tu negocio" meta="Cada jueves" />
-      </div>
-
       <main>
-        {/* PORTADA. La composición de los posts: etiqueta de sección,
-            titular en didona, tema en grotesca pesada, e ilustración
-            como evidencia y no como adorno — el hilo de WhatsApp ES la
-            frase "la pregunta que te hacen diez veces al día". */}
-        <section className="mx-auto max-w-5xl px-6 pb-16 pt-10 sm:pb-20 sm:pt-14">
-          <div className="grid items-end gap-10 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:gap-14">
-            <div>
-              <h1 className="font-[family-name:var(--font-noti)] text-[clamp(2.6rem,7.2vw,4.6rem)] font-black leading-[0.95] tracking-[-0.025em]">
-                Por la pregunta que te hacen diez veces al día.
-              </h1>
+        {/* PORTADA. Campo violeta a sangre, como los posts de la
+            campaña.
 
-              <p className="mt-6 font-[family-name:var(--font-ia)] text-[clamp(1.25rem,3vw,1.9rem)] font-bold leading-tight tracking-[-0.02em]">
-                ¿Por dónde empiezo con la IA en mi negocio?
-              </p>
+            La primera versión de esta página era crema de arriba abajo:
+            correcta de composición y sin identidad — el feed abre con un
+            bloque de color saturado y la página abría con un documento.
+            El color es lo que hace que alguien que viene de un post
+            reconozca dónde cayó antes de leer una palabra.
 
-              <p className="mt-5 max-w-xl text-[16px] leading-[1.7] opacity-75">
-                Cada semana contamos una cosa que de verdad funcionó —y una que no— con el
-                problema, lo que hicimos y lo que costó. Sin tecnicismos y sin humo.
-              </p>
-            </div>
+            El grano no es decoración: las piezas están hechas con papel
+            recortado, y un campo plano sin textura se ve como un div. */}
+        <section className="relative isolate overflow-hidden" style={{ backgroundColor: NOTI.violet }}>
+          <Grain id="grain-portada" />
 
-            <HeroThread />
-          </div>
+          <div className="relative mx-auto max-w-5xl px-6 pb-16 pt-6 sm:pb-20 sm:pt-8">
+            <Masthead section="IA para tu negocio" meta="Cada jueves" tone="paper" />
 
-          <div className="mt-12 border-t pt-8 sm:mt-14" style={{ borderColor: RULE }}>
-            <div className="grid gap-6 sm:grid-cols-[minmax(0,0.8fr)_minmax(0,1fr)] sm:items-center sm:gap-10">
+            <div
+              className="mt-12 grid items-end gap-10 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:gap-14"
+              style={{ color: NOTI.paper }}
+            >
               <div>
-                <Highlight>El jueves, en tu correo</Highlight>
-                <p className="mt-3 text-[15px] leading-relaxed opacity-70">
-                  Gratis, en español, cinco minutos. Te das de baja con un clic.
+                <h1 className="font-[family-name:var(--font-noti)] text-[clamp(2.6rem,7.2vw,4.6rem)] font-black leading-[0.95] tracking-[-0.025em]">
+                  Por la pregunta que te hacen{' '}
+                  {/* El lima funciona aquí y solo aquí: sobre este
+                      violeta da 5.3:1, sobre el papel crema 1.3:1. La
+                      misma asimetría que gobierna el lima en toda la
+                      marca. */}
+                  <span style={{ color: NOTI.lime }}>diez veces al día</span>.
+                </h1>
+
+                <p className="mt-6 font-[family-name:var(--font-ia)] text-[clamp(1.25rem,3vw,1.9rem)] font-bold leading-tight tracking-[-0.02em]">
+                  ¿Por dónde empiezo con la IA en mi negocio?
+                </p>
+
+                <p className="mt-5 max-w-xl text-[16px] leading-[1.7] opacity-80">
+                  Cada semana contamos una cosa que de verdad funcionó —y una que no— con el
+                  problema, lo que hicimos y lo que costó. Sin tecnicismos y sin humo.
                 </p>
               </div>
-              <SubscribeBox source="hero" />
+
+              <HeroThread />
+            </div>
+
+            <div
+              className="mt-12 border-t pt-8 sm:mt-14"
+              style={{ borderColor: 'rgba(251, 249, 245, 0.28)', color: NOTI.paper }}
+            >
+              <div className="grid gap-6 sm:grid-cols-[minmax(0,0.8fr)_minmax(0,1fr)] sm:items-center sm:gap-10">
+                <div>
+                  <Highlight>El jueves, en tu correo</Highlight>
+                  <p className="mt-3 text-[15px] leading-relaxed opacity-80">
+                    Gratis, en español, cinco minutos. Te das de baja con un clic.
+                  </p>
+                </div>
+                <SubscribeBox source="hero" tone="ink" />
+              </div>
             </div>
           </div>
         </section>
@@ -157,25 +178,32 @@ export default function IaCampaignPage() {
           </div>
         </section>
 
-        {/* LA SUSCRIPCIÓN. La única banda oscura de la página, y cae
-            sobre la única cosa que la página pide. */}
-        <section style={{ backgroundColor: NOTI.ink, color: NOTI.paper }}>
-          <div className="mx-auto max-w-5xl px-6 py-16 sm:py-20">
+        {/* LA SUSCRIPCIÓN, EN LIMA. El segundo golpe de color de la
+            página, y cae sobre la única cosa que la página pide.
+
+            Lima y no otra banda oscura: en el feed el lima es el color
+            de los posts que celebran algo ("QUE TE RESERVEN", "CONFIRMADO"),
+            y aquí celebra lo mismo. Sobre este campo el texto es tinta
+            —13:1—, que es la única forma en que este color se usa. */}
+        <section className="relative isolate overflow-hidden" style={{ backgroundColor: NOTI.lime }}>
+          <Grain id="grain-noti" opacity={0.2} />
+          <div className="relative mx-auto max-w-5xl px-6 py-16 sm:py-20" style={{ color: NOTI.ink }}>
             <div className="grid gap-10 lg:grid-cols-2 lg:items-center lg:gap-16">
               <div>
-                <h2 className="font-[family-name:var(--font-noti)] text-[clamp(2rem,5vw,3.2rem)] font-black leading-[1.02] tracking-[-0.025em]">
+                <NotiWordmark className="text-[clamp(2.6rem,7vw,4.2rem)]" />
+                <h2 className="mt-5 font-[family-name:var(--font-noti)] text-[clamp(2rem,5vw,3.2rem)] font-black leading-[1.02] tracking-[-0.025em]">
                   El jueves, en tu correo.
                 </h2>
-                <p className="mt-5 max-w-lg text-[16px] leading-[1.7] opacity-75">
-                  Se llama NOTI. Son las noticias de IA de la semana con un{' '}
-                  <span className="px-1.5" style={{ backgroundColor: NOTI.lime, color: NOTI.ink }}>
+                <p className="mt-5 max-w-lg text-[16px] leading-[1.7] opacity-80">
+                  Las noticias de IA de la semana con un{' '}
+                  <span className="px-1.5" style={{ backgroundColor: NOTI.ink, color: NOTI.lime }}>
                     ¿y a mí qué?
                   </span>{' '}
                   debajo de cada una: qué significa para un negocio como el tuyo. Gratis, en
                   español, y se lee en cinco minutos.
                 </p>
               </div>
-              <SubscribeBox source="banda-noti" tone="ink" />
+              <SubscribeBox source="banda-noti" />
             </div>
           </div>
         </section>
@@ -183,47 +211,54 @@ export default function IaCampaignPage() {
         {/* Y DESPUÉS LA OFERTA. Al final a propósito: quien llegó hasta
             aquí leyó algo útil, que es lo único que da derecho a decir
             "esto también lo construimos nosotros". */}
-        <section className="mx-auto max-w-5xl px-6 py-16 sm:py-20">
-          <div
-            className="flex items-baseline justify-between gap-4 border-b pb-3 text-[11px] font-semibold uppercase tracking-[0.18em]"
-            style={{ borderColor: RULE }}
-          >
-            <span>Si prefieres que lo hagamos nosotros</span>
-            <span className="opacity-55">bicho</span>
-          </div>
-
-          <p className="mt-8 max-w-xl text-[16px] leading-[1.7] opacity-80">
-            Todo lo que está aquí arriba lo aprendimos construyéndolo para negocios reales. Si lo
-            tuyo es atender tu negocio y no configurar herramientas, nosotros lo armamos.
-          </p>
-
-          <ul className="mt-10 grid gap-x-10 gap-y-7 sm:grid-cols-2">
-            {SERVICES.map((service) => (
-              <li key={service.id} className="border-t pt-4" style={{ borderColor: RULE }}>
-                <h3 className="font-[family-name:var(--font-ia)] text-[17px] font-bold leading-snug">
-                  {service.name}
-                </h3>
-                <p className="mt-1.5 text-[15px] leading-relaxed opacity-70">{service.proof}</p>
-              </li>
-            ))}
-          </ul>
-
-          <div className="mt-10 flex flex-wrap items-center gap-3">
-            <Link
-              href="/demo"
-              className="inline-flex items-center gap-2 px-6 py-3.5 text-[14px] font-bold uppercase tracking-[0.12em] transition-opacity hover:opacity-85"
-              style={{ backgroundColor: NOTI.ink, color: NOTI.lime }}
+        <section className="relative isolate overflow-hidden" style={{ backgroundColor: NOTI.ink }}>
+          <Grain id="grain-estudio" opacity={0.12} />
+          <div className="relative mx-auto max-w-5xl px-6 py-16 sm:py-20" style={{ color: NOTI.paper }}>
+            <div
+              className="flex items-baseline justify-between gap-4 border-b pb-3 text-[11px] font-semibold uppercase tracking-[0.18em]"
+              style={{ borderColor: 'rgba(251, 249, 245, 0.28)' }}
             >
-              Cuéntanos qué necesitas
-            </Link>
-            <Link
-              href="/#portafolio"
-              className="inline-flex items-center gap-1.5 border px-6 py-3.5 text-[14px] font-bold uppercase tracking-[0.12em] transition-colors hover:bg-white"
-              style={{ borderColor: RULE }}
-            >
-              Ver lo que hemos hecho
-              <ArrowRight className="h-4 w-4" aria-hidden="true" />
-            </Link>
+              <span>Si prefieres que lo hagamos nosotros</span>
+              <span className="opacity-55">bicho</span>
+            </div>
+
+            <p className="mt-8 max-w-xl text-[16px] leading-[1.7] opacity-80">
+              Todo lo que está aquí arriba lo aprendimos construyéndolo para negocios reales. Si lo
+              tuyo es atender tu negocio y no configurar herramientas, nosotros lo armamos.
+            </p>
+
+            <ul className="mt-10 grid gap-x-10 gap-y-7 sm:grid-cols-2">
+              {SERVICES.map((service) => (
+                <li
+                  key={service.id}
+                  className="border-t pt-4"
+                  style={{ borderColor: 'rgba(251, 249, 245, 0.2)' }}
+                >
+                  <h3 className="font-[family-name:var(--font-ia)] text-[17px] font-bold leading-snug">
+                    {service.name}
+                  </h3>
+                  <p className="mt-1.5 text-[15px] leading-relaxed opacity-70">{service.proof}</p>
+                </li>
+              ))}
+            </ul>
+
+            <div className="mt-10 flex flex-wrap items-center gap-3">
+              <Link
+                href="/demo"
+                className="inline-flex items-center gap-2 px-6 py-3.5 text-[14px] font-bold uppercase tracking-[0.12em] transition-opacity hover:opacity-85"
+                style={{ backgroundColor: NOTI.lime, color: NOTI.ink }}
+              >
+                Cuéntanos qué necesitas
+              </Link>
+              <Link
+                href="/#portafolio"
+                className="inline-flex items-center gap-1.5 border px-6 py-3.5 text-[14px] font-bold uppercase tracking-[0.12em] transition-colors hover:bg-white/10"
+                style={{ borderColor: 'rgba(251, 249, 245, 0.3)' }}
+              >
+                Ver lo que hemos hecho
+                <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              </Link>
+            </div>
           </div>
         </section>
       </main>

@@ -71,7 +71,11 @@ export function MarketingNav({ tone = 'onLight' }: { tone?: 'onViolet' | 'onLigh
         <a
           href="/reservas#top"
           onClick={scrollToSection('top', close)}
-          className={`shrink-0 rounded-sm ${ring}`}
+          /* El logo medía 28px de alto, por debajo del objetivo táctil
+             de 44 que recomienda Apple y Android. El -my-2 devuelve el
+             espacio que el py-2 añade, así que el área de toque crece
+             sin mover la barra. */
+          className={`-my-2 flex shrink-0 items-center rounded-sm py-2 ${ring}`}
         >
           <BichoLogo className="h-7" tone={onViolet ? 'light' : 'ink'} />
         </a>

@@ -19,10 +19,10 @@ const WHAT_REPS_GET = [
 
 export function ResellerSection() {
   return (
-    <section id="vendedores" className="relative overflow-hidden bg-[#1B1040] px-6 py-24 sm:py-28">
+    <section id="vendedores" className="relative overflow-hidden bg-[#1B1040] px-6 py-14 sm:py-24 lg:py-28">
       <DotField tone="onDark" />
 
-      <div className="relative mx-auto grid max-w-6xl gap-12 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:items-center lg:gap-20">
+      <div className="relative mx-auto grid max-w-6xl gap-8 sm:gap-12 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:items-center lg:gap-20">
         <Reveal>
           <Eyebrow onDark>Red de vendedores</Eyebrow>
           <h2 className="mt-5 font-[family-name:var(--font-display)] text-[clamp(1.9rem,4.4vw,3.1rem)] font-extrabold uppercase leading-[0.95] tracking-[-0.02em] text-white">
@@ -47,7 +47,7 @@ export function ResellerSection() {
         {/* Cream plaque: the one light surface inside the darkest band on
             the page, so the offer to reps reads as its own thing rather
             than more body copy. */}
-        <Reveal delay={120} className="rounded-[28px] bg-white p-8">
+        <Reveal delay={120} className="rounded-[28px] bg-white p-6 sm:p-8">
           <p className="font-[family-name:var(--font-display)] text-lg font-bold text-[#140F2E]">
             Lo que recibes como vendedor
           </p>

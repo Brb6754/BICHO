@@ -11,7 +11,7 @@ export function FinalCta() {
   return (
     <section className="bg-white px-6 pb-24 sm:pb-28">
       <Reveal className="mx-auto max-w-6xl overflow-hidden rounded-[32px] bg-[#5B34E8] px-8 py-14 sm:px-14 sm:py-16">
-        <div className="grid gap-10 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:items-end lg:gap-16">
+        <div className="grid gap-8 sm:gap-10 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:items-end lg:gap-16">
           <h2 className="font-[family-name:var(--font-display)] text-[2.25rem] font-bold uppercase leading-[1.02] tracking-[-0.01em] text-white sm:text-[3rem]">
             Deja de agendar
             <br />

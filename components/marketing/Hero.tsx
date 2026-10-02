@@ -90,7 +90,7 @@ export function Hero() {
               decoration that survives on a phone, where the cards and
               arrows drop out — without them the mobile hero is a block
               of type on a flat field. */}
-          <AsteriskMark className="absolute right-1 top-0 h-7 w-7 text-[#D4F23A] sm:h-9 sm:w-9 lg:right-[7%] lg:top-2 lg:h-12 lg:w-12" />
+          <AsteriskMark className="absolute right-1 top-0 hidden h-7 w-7 sm:block text-[#D4F23A] sm:h-9 sm:w-9 lg:right-[7%] lg:top-2 lg:h-12 lg:w-12" />
           {/* Three bugs, three angles. The first rides beside the
               asterisk at every size; the other two only exist from xl,
               where the margins beside the type are wide enough to hold
@@ -98,7 +98,7 @@ export function Hero() {
               and the right one on POR. `top-[0.75rem]` and not 1.5: at
               exactly 1024 the lower edge of the first one grazed the top
               of POR. */}
-          <BichoBug className="absolute right-10 top-0 h-8 w-8 -rotate-12 sm:h-10 sm:w-10 lg:right-[14%] lg:top-[0.75rem] lg:h-20 lg:w-20" />
+          <BichoBug className="absolute right-10 top-0 hidden h-8 w-8 -rotate-12 sm:block sm:h-10 sm:w-10 lg:right-[14%] lg:top-[0.75rem] lg:h-20 lg:w-20" />
           <BichoBug className="absolute right-[0.5%] top-[5.5rem] hidden h-14 w-14 rotate-[18deg] xl:block" />
           <BichoBug className="absolute left-[9%] top-[10rem] hidden h-14 w-14 -rotate-[24deg] xl:block" />
           {/* The sparkle holds the bottom-left corner only below lg; from
@@ -130,11 +130,16 @@ export function Hero() {
             The stamp anchors the right end of the same line so the row
             reads as one bar rather than buttons with a sticker floating
             near them. */}
-        <div className="mt-8 flex flex-col items-start gap-8 sm:mt-10 lg:mt-12 lg:flex-row lg:items-center lg:justify-between lg:gap-16">
-          <div className="flex flex-wrap items-center gap-5">
+        <div className="mt-8 flex flex-col items-stretch gap-6 sm:mt-10 sm:items-start sm:gap-8 lg:mt-12 lg:flex-row lg:items-center lg:justify-between lg:gap-16">
+          <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-5">
+            {/* En telefono los dos botones ocupan el ancho completo y
+                quedan del mismo tamano: dos pastillas de anchos
+                distintos, centradas bajo un titular centrado, es lo que
+                hacia ver desalineada la portada. */}
             <PillLink
               href="/demo"
               tone="lime"
+              className="w-full justify-between sm:w-auto sm:justify-start"
             >
               Agenda una demo
             </PillLink>
@@ -145,13 +150,13 @@ export function Hero() {
                 lead — but a visitor who isn't ready to hand over a
                 phone number can still see the product instead of
                 bouncing. */}
-            <PillLink href="/plataforma" tone="outlineOnDark">
+            <PillLink href="/plataforma" tone="outlineOnDark" className="w-full justify-center sm:w-auto">
               Ver la plataforma
             </PillLink>
 
             <a
               href="mailto:nonameynk@gmail.com"
-              className="group flex items-center gap-3 text-left"
+              className="group flex items-center justify-center gap-3 text-left sm:justify-start"
             >
               <span className="flex h-11 w-11 items-center justify-center rounded-full border border-white/30 text-white transition-colors group-hover:border-[#D4F23A] group-hover:text-[#D4F23A]">
                 <Mail className="h-4 w-4" />
@@ -170,10 +175,17 @@ export function Hero() {
           <CircleStamp className="hidden shrink-0 sm:inline-flex" />
         </div>
 
+        {/* El sello solo existe desde sm, y con el se iba la unica
+            mencion de la prueba gratis en la pantalla donde mas se
+            decide. Esta linea lo dice en telefono. */}
+        <p className="mt-5 text-center text-[14px] text-[#E3DEFA] sm:hidden">
+          Prueba <span className="font-semibold text-[#D4F23A]">15 días</span>, sin tarjeta.
+        </p>
+
         {/* Phone gets the cards too, just in the flow instead of floating
             over the type — the product should appear above the fold on
             the device most of these visitors are actually holding. */}
-        <div className="mt-14 flex items-start justify-center gap-4 lg:hidden">
+        <div className="mt-10 flex items-start justify-center gap-4 sm:mt-14 lg:hidden">
           <ConfirmedCard className="w-[13rem]" />
           <AgendaCard className="mt-8 hidden w-[12rem] sm:block" />
         </div>

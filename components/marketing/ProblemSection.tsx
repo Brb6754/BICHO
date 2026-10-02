@@ -39,7 +39,7 @@ export function ProblemSection() {
     // The sheet that laps over the hero: negative margin + rounded top
     // corners + its own z-index, so the violet field reads as something
     // the page is sliding over rather than a band stacked above it.
-    <section className="relative z-10 -mt-8 overflow-hidden rounded-t-[36px] bg-white px-6 py-24 sm:-mt-10 sm:rounded-t-[48px] sm:py-28">
+    <section className="relative z-10 -mt-8 overflow-hidden rounded-t-[36px] bg-white px-6 py-14 sm:-mt-10 sm:rounded-t-[48px] sm:py-28">
       <DotField />
       <div className="relative mx-auto grid max-w-6xl gap-14 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-20">
         <Reveal>

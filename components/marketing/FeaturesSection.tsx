@@ -105,7 +105,7 @@ const FEATURES = [
 
 export function FeaturesSection() {
   return (
-    <section id="funciones" className="bg-[#F5F3FC] px-6 py-24 sm:py-28">
+    <section id="funciones" className="bg-[#F5F3FC] px-6 py-14 sm:py-24 lg:py-28">
       <div className="mx-auto max-w-6xl">
         <Reveal>
           <SectionOpener
@@ -115,14 +115,14 @@ export function FeaturesSection() {
           />
         </Reveal>
 
-        <div className="mt-16 grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
+        <div className="mt-10 grid grid-cols-1 items-start gap-5 sm:mt-16 sm:gap-6 lg:grid-cols-3">
           {FEATURES.map(({ title, description, Mock, Icon, skin, offset }, i) => (
             <Reveal key={title} delay={i * 100} className={offset}>
               <article
-                className={`group flex h-full flex-col rounded-[28px] p-6 transition-transform duration-300 hover:-translate-y-1 ${skin.surface} ${skin.frame}`}
+                className={`group flex h-full flex-col rounded-[28px] p-5 transition-transform sm:p-6 duration-300 hover:-translate-y-1 ${skin.surface} ${skin.frame}`}
               >
                 <div className="relative overflow-hidden rounded-2xl">
-                  <div className="h-44">
+                  <div className="h-36 sm:h-44">
                     <Mock />
                   </div>
                   <span

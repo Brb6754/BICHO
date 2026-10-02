@@ -35,8 +35,8 @@ const STEPS = [
 
 export function HowItWorksSection() {
   return (
-    <section id="como-funciona" className="bg-white px-6 py-24 sm:py-28">
-      <div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] lg:gap-20">
+    <section id="como-funciona" className="bg-white px-6 py-14 sm:py-24 lg:py-28">
+      <div className="mx-auto grid max-w-6xl items-center gap-8 sm:gap-12 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] lg:gap-20">
         {/* Left: the mosaic. Unequal blocks on purpose — a tall frame
             beside a stacked pair, so the eye moves through it instead
             of scanning a row.
@@ -47,11 +47,11 @@ export function HowItWorksSection() {
         <Reveal className="grid grid-cols-1 gap-4 sm:grid-cols-5">
           <div className="space-y-4 sm:col-span-3">
             <div className="overflow-hidden rounded-[28px] bg-[#1B1040] p-4">
-              <div className="h-[260px]">
+              <div className="h-[200px] sm:h-[260px]">
                 <BookingPageMock />
               </div>
             </div>
-            <div className="rounded-[28px] bg-[#D4F23A] p-6">
+            <div className="rounded-[28px] bg-[#D4F23A] p-5 sm:p-6">
               <Link2 className="h-6 w-6 text-[#140F2E]" strokeWidth={2} aria-hidden="true" />
               <p className="mt-4 font-[family-name:var(--font-display)] text-2xl font-bold leading-tight text-[#140F2E]">
                 Una liga
@@ -66,7 +66,7 @@ export function HowItWorksSection() {
             {/* White, not mist: this card sits ON the mist band, so it
                 needs to be a step lighter than its ground to read as
                 a surface at all. */}
-            <div className="rounded-[28px] bg-white p-6 ring-1 ring-[#140F2E]/[0.06]">
+            <div className="rounded-[28px] bg-white p-5 ring-1 sm:p-6 ring-[#140F2E]/[0.06]">
               <MailCheck className="h-6 w-6 text-[#5B34E8]" strokeWidth={2} aria-hidden="true" />
               <p className="mt-4 text-sm font-semibold leading-snug text-[#140F2E]">
                 Confirmación automática
@@ -76,7 +76,7 @@ export function HowItWorksSection() {
               </p>
             </div>
             <div className="overflow-hidden rounded-[28px] bg-[#1B1040] p-4">
-              <div className="h-[200px]">
+              <div className="h-[160px] sm:h-[200px]">
                 <ConfirmationMock />
               </div>
             </div>

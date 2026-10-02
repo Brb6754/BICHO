@@ -29,7 +29,7 @@ const INCLUDED = [
 
 export function PricingSection() {
   return (
-    <section id="precios" className="relative overflow-hidden bg-[#F5F3FC] px-6 py-24 sm:py-28">
+    <section id="precios" className="relative overflow-hidden bg-[#F5F3FC] px-6 py-14 sm:py-24 lg:py-28">
       <DotField />
       <div className="relative mx-auto max-w-6xl">
         <Reveal>
@@ -41,7 +41,7 @@ export function PricingSection() {
         </Reveal>
 
         <Reveal delay={90}>
-          <div className="mt-16 grid gap-10 rounded-[28px] bg-white p-8 ring-1 ring-inset ring-[#140F2E]/[0.06] sm:p-12 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1fr)] lg:gap-16">
+          <div className="mt-10 grid gap-8 rounded-[28px] bg-white p-6 ring-1 ring-inset ring-[#140F2E]/[0.06] sm:mt-16 sm:gap-10 sm:p-12 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1fr)] lg:gap-16">
             <div>
               <div className="flex items-baseline gap-2">
                 <span className="font-[family-name:var(--font-display)] text-[clamp(3.5rem,9vw,5rem)] font-bold leading-none text-[#140F2E]">

@@ -22,6 +22,7 @@ function scrollToSection(id: string, onDone?: () => void) {
 const LINKS = [
   { id: 'funciones', label: 'Funciones' },
   { id: 'como-funciona', label: 'Cómo funciona' },
+  { id: 'precios', label: 'Precios' },
   { id: 'vendedores', label: 'Vendedores' },
 ];
 

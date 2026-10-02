@@ -108,6 +108,21 @@ export function Hero() {
           <MiniCalendar className="absolute -bottom-6 left-0 hidden lg:block xl:left-2" />
         </div>
 
+        {/* The promise the campaign is built on. It lives in the hero
+            and not in a section further down because it is what makes
+            someone click the post in the first place: a visitor who
+            arrives looking for "en menos de 24 horas" and doesn't find
+            it reads the page as the wrong one.
+
+            One line, not the paragraph that used to live here — the
+            reason that paragraph was cut (it pushed the buttons off a
+            wide screen) still holds, so the CTA row gives back the
+            space this takes. */}
+        <p className="mt-8 text-center text-[16px] leading-snug text-[#E3DEFA] sm:text-lg">
+          Tu página de reservas, lista en{' '}
+          <span className="font-semibold text-[#D4F23A]">menos de 24 horas</span>.
+        </p>
+
         {/* The ask, straight under the type — no supporting paragraph.
             It used to carry one, and it pushed the buttons a screen and a
             half down on a wide monitor: the headline already says what
@@ -115,7 +130,7 @@ export function Hero() {
             The stamp anchors the right end of the same line so the row
             reads as one bar rather than buttons with a sticker floating
             near them. */}
-        <div className="mt-10 flex flex-col items-start gap-8 sm:mt-12 lg:mt-16 lg:flex-row lg:items-center lg:justify-between lg:gap-16">
+        <div className="mt-8 flex flex-col items-start gap-8 sm:mt-10 lg:mt-12 lg:flex-row lg:items-center lg:justify-between lg:gap-16">
           <div className="flex flex-wrap items-center gap-5">
             <PillLink
               href="/demo"

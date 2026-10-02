@@ -6,6 +6,7 @@ import { FeaturesSection } from '@/components/marketing/FeaturesSection';
 import { HowItWorksSection } from '@/components/marketing/HowItWorksSection';
 import { StatsBar } from '@/components/marketing/StatsBar';
 import { ResellerSection } from '@/components/marketing/ResellerSection';
+import { PricingSection } from '@/components/marketing/PricingSection';
 import { FinalCta } from '@/components/marketing/FinalCta';
 import { MarketingFooter } from '@/components/marketing/MarketingFooter';
 
@@ -63,7 +64,7 @@ export default function MarketingHomePage() {
         {/* The rhythm is now white-dominant, and the banding is what
             separates sections: white (hero) → mist (problem) → white
             (who it's for, what it does) → mist (how it works) → the
-            one dark violet block (vendedores) → white (CTA)
+            one dark violet block (vendedores) → white (precios, CTA)
             → dark footer. Only two surfaces on the whole page are
             dark violet — the stats panel and the vendedores band —
             and they're what keeps a white page from going flat.
@@ -76,6 +77,7 @@ export default function MarketingHomePage() {
         <StatsBar />
         <HowItWorksSection />
         <ResellerSection />
+        <PricingSection />
         <FinalCta />
       </main>
       <MarketingFooter />

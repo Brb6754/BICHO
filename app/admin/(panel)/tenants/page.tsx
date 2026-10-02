@@ -28,7 +28,7 @@ function buildHref(searchParams: Record<string, string | undefined>, page: numbe
   return qs ? `/tenants?${qs}` : '/tenants';
 }
 
-// MRR is derived from real numbers (active tenant count × the $499 MXN
+// MRR is derived from real numbers (active tenant count × the $300 MXN
 // plan price from CLAUDE.md's business model) and is labelled as an
 // estimate wherever it appears. Churn used to sit beside it as a flat
 // hard-coded 4.2% — that number was invented, and giving an invented
@@ -37,7 +37,7 @@ function buildHref(searchParams: Record<string, string | undefined>, page: numbe
 // the disabled "resetear onboarding" button on the tenant detail page:
 // show the gap, don't fill it with fiction). It becomes real when
 // billing history exists — step 7, Stripe, currently paused.
-const MONTHLY_PLAN_PRICE_MXN = 499;
+const MONTHLY_PLAN_PRICE_MXN = 300;
 
 export default async function TenantsPage({
   searchParams: searchParamsPromise,

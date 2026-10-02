@@ -140,6 +140,14 @@ const NEGOCIOS = [
           { question: '¿Y si tengo dolor hoy?', answer: 'Reserva "Urgencia por dolor" en el primer horario libre. Si no hay, llámanos y te hacemos espacio.' },
         ],
       }, COLUMN),
+      b('split', 'image-left', {
+        eyebrow: '',
+        heading: 'El consultorio',
+        body: 'Equipo nuevo, esterilización a la vista y una sola persona por turno. Nadie espera en el pasillo.',
+        imageUrl: '/demo/dental-nova.webp',
+        ctaText: '',
+        ctaLink: '',
+      }, COLUMN),
       b('hours', 'default', {
         heading: 'Horario',
         lines: ['Lunes a viernes: 9:00–19:00', 'Sábado: 9:00–14:00', 'Domingo: cerrado'],
@@ -211,6 +219,14 @@ const NEGOCIOS = [
           { name: 'Paulina Cruz', role: 'Tratamientos y uñas', photoUrl: '', note: 'Reconstrucción y manicure.' },
         ],
       }, COLUMN),
+      b('split', 'image-left', {
+        eyebrow: '',
+        heading: 'El salón',
+        body: 'Seis estaciones con luz natural, lavabos reclinables y café mientras esperas el tinte.',
+        imageUrl: '/demo/casa-luma.webp',
+        ctaText: '',
+        ctaLink: '',
+      }, COLUMN),
       b('hours', 'default', {
         heading: 'Horario',
         lines: ['Martes a viernes: 10:00–20:00', 'Sábado: 9:00–18:00', 'Domingo y lunes: cerrado'],
@@ -274,6 +290,14 @@ const NEGOCIOS = [
           { question: '¿Qué pasa si llueve?', answer: 'Las pistas 1 y 2 son techadas. Si te tocó una descubierta, te cambiamos sin costo.' },
           { question: '¿Puedo cancelar?', answer: 'Sí, desde el enlace del correo, hasta 4 horas antes.' },
         ],
+      }, COLUMN),
+      b('split', 'image-left', {
+        eyebrow: '',
+        heading: 'Las pistas',
+        body: 'Cuatro pistas de cristal, dos techadas. Iluminación LED para jugar de noche.',
+        imageUrl: '/demo/alto-padel.webp',
+        ctaText: '',
+        ctaLink: '',
       }, COLUMN),
       b('hours', 'default', {
         heading: 'Horario',
@@ -339,6 +363,14 @@ const NEGOCIOS = [
           { question: '¿Puedo llegar tarde?', answer: 'Guardamos la mesa 15 minutos. Pasado eso la liberamos, porque el turno siguiente ya está reservado.' },
         ],
       }, COLUMN),
+      b('split', 'image-left', {
+        eyebrow: '',
+        heading: 'El comedor',
+        body: 'Doce mesas, cocina abierta y terraza para cuando el clima lo permite.',
+        imageUrl: '/demo/mesa-doce.webp',
+        ctaText: '',
+        ctaLink: '',
+      }, COLUMN),
       b('hours', 'default', {
         heading: 'Turnos',
         lines: ['Miércoles a sábado: 13:30–17:00 y 19:00–23:00', 'Domingo: solo comida, 13:30–18:00', 'Lunes y martes: cerrado'],
@@ -403,6 +435,14 @@ const NEGOCIOS = [
           { question: '¿Hay algo que deba avisar?', answer: 'Embarazo, presión alta, cirugía reciente o alergia a algún aceite. Ponlo en las notas al reservar.' },
         ],
       }, COLUMN),
+      b('split', 'image-left', {
+        eyebrow: '',
+        heading: 'Las cabinas',
+        body: 'Tres cabinas con vista, camilla térmica y un vestidor para cada una.',
+        imageUrl: '/demo/agua-serena.webp',
+        ctaText: '',
+        ctaLink: '',
+      }, COLUMN),
       b('hours', 'default', {
         heading: 'Horario',
         lines: ['Martes a viernes: 11:00–20:00', 'Sábado: 10:00–18:00', 'Domingo y lunes: cerrado'],
@@ -466,6 +506,14 @@ const NEGOCIOS = [
           { question: '¿Y si no llego?', answer: 'Cancela desde el enlace del correo hasta 2 horas antes y el lugar se libera para alguien más.' },
         ],
       }, COLUMN),
+      b('split', 'image-left', {
+        eyebrow: '',
+        heading: 'El gimnasio',
+        body: 'Dos salas, racks completos y nunca más de ocho personas por clase.',
+        imageUrl: '/demo/hierro-monte.webp',
+        ctaText: '',
+        ctaLink: '',
+      }, COLUMN),
       b('hours', 'default', {
         heading: 'Horario',
         lines: ['Lunes a viernes: 6:00–21:00', 'Sábado: 8:00–14:00', 'Domingo: cerrado'],
@@ -523,6 +571,14 @@ const NEGOCIOS = [
           { question: '¿Dan receta e incapacidad?', answer: 'Sí, ambas cuando el caso lo amerita.' },
           { question: '¿Atienden urgencias?', answer: 'No. Aquí la cita más próxima suele ser el mismo día, pero esto no sustituye una sala de urgencias.' },
         ],
+      }, COLUMN),
+      b('split', 'image-left', {
+        eyebrow: '',
+        heading: 'El consultorio',
+        body: 'Dos consultorios, sala de espera chica y citas separadas para que no se encimen.',
+        imageUrl: '/demo/clinica-alameda.webp',
+        ctaText: '',
+        ctaLink: '',
       }, COLUMN),
       b('hours', 'default', {
         heading: 'Horario',
@@ -586,6 +642,14 @@ const NEGOCIOS = [
           { name: 'Beto', role: 'Fades', photoUrl: '', note: 'Degradados y diseño.' },
           { name: 'Chuy', role: 'Barba', photoUrl: '', note: 'Perfilado y tratamiento.' },
         ],
+      }, COLUMN),
+      b('split', 'image-left', {
+        eyebrow: '',
+        heading: 'La barbería',
+        body: 'Tres sillas originales, navaja, toalla caliente y la misma banca desde 1998.',
+        imageUrl: '/demo/don-ramon.webp',
+        ctaText: '',
+        ctaLink: '',
       }, COLUMN),
       b('hours', 'default', {
         heading: 'Horario',

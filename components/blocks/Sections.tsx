@@ -1,4 +1,4 @@
-import { ArrowRight, MapPin, Plus } from 'lucide-react';
+import { ArrowRight, Clock3, MapPin, Plus } from 'lucide-react';
 import type {
   HeroProps,
   ServicesProps,
@@ -491,23 +491,44 @@ export function ServicesSection({
   // menu (default) — a printed price list: name and duration on the
   // left, a leader rule, price on the right. Reads as a real menu, not
   // as three cards in a row.
+  // menu (por defecto). Era una lista impresa —nombre, guía de puntos,
+  // precio— y en papel se leía bien, pero debajo del módulo de reserva
+  // la página se volvía texto corrido: la parte de abajo era justo la
+  // que seguía pareciendo un documento.
+  //
+  // Ahora cada servicio es una ficha con el tinte del negocio y el
+  // precio en pastilla, el mismo lenguaje que las fichas del flujo de
+  // reserva de arriba. La página entera habla igual de un extremo al
+  // otro.
   return (
     <div>
       {header}
-      <div className="grid gap-x-16 gap-y-2 lg:grid-cols-2">
+      <div className="grid gap-3 sm:grid-cols-2">
         {items.map((s) => (
-          <div key={s.name} className="py-4">
-            <div className="flex items-baseline gap-4">
-              <h3 className="text-base font-semibold text-ink">{s.name}</h3>
-              <span className="min-w-6 flex-1 border-b border-dotted" style={{ borderColor: withAlpha(branding.primaryColor, 0.35) }} />
-              <span className="text-base font-bold" style={{ color: brandText(branding) }}>
+          <div
+            key={s.name}
+            className="flex flex-col p-5 transition-transform duration-200 hover:-translate-y-0.5"
+            style={{
+              backgroundColor: withAlpha(branding.accentColor, 0.1),
+              borderRadius: 'var(--tpl-radius, 14px)',
+            }}
+          >
+            <div className="flex items-start justify-between gap-4">
+              <h3 className="text-base font-semibold leading-snug text-ink">{s.name}</h3>
+              <span
+                className="shrink-0 rounded-full px-3 py-1 text-sm font-bold tabular-nums"
+                style={{ backgroundColor: withAlpha(branding.primaryColor, 0.16), color: 'rgb(var(--color-ink))' }}
+              >
                 {s.price}
               </span>
             </div>
-            <div className="mt-1.5 flex flex-wrap items-baseline gap-x-3">
-              {s.description && <p className="max-w-md text-sm leading-relaxed text-muted">{s.description}</p>}
-              {s.duration && <span className="text-xs uppercase tracking-wide text-muted">{s.duration}</span>}
-            </div>
+            {s.description && <p className="mt-2 text-sm leading-relaxed text-muted">{s.description}</p>}
+            {s.duration && (
+              <span className="mt-3 inline-flex w-fit items-center gap-1.5 text-xs font-medium text-muted">
+                <Clock3 className="h-3.5 w-3.5" aria-hidden="true" />
+                {s.duration}
+              </span>
+            )}
           </div>
         ))}
       </div>
@@ -684,16 +705,21 @@ export function FaqSection({ props, branding }: { props: FaqProps; branding: Sec
           {props.items.map((item) => (
             <details
               key={item.question}
-              className="group border-t py-5"
-              style={{ borderColor: withAlpha(branding.primaryColor, 0.15) }}
+              className="group mb-3 px-5 py-4"
+              style={{
+                backgroundColor: withAlpha(branding.accentColor, 0.1),
+                borderRadius: 'var(--tpl-radius, 14px)',
+              }}
             >
               <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-base font-semibold text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2">
                 {item.question}
-                <Plus
-                  className="h-4 w-4 shrink-0 transition-transform duration-200 group-open:rotate-45"
-                  style={{ color: brandText(branding) }}
+                <span
                   aria-hidden="true"
-                />
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
+                  style={{ backgroundColor: branding.accentColor, color: `rgb(${readableFgRgb(branding.accentColor)})` }}
+                >
+                  <Plus className="h-4 w-4 transition-transform duration-200 group-open:rotate-45" />
+                </span>
               </summary>
               <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted">{item.answer}</p>
             </details>

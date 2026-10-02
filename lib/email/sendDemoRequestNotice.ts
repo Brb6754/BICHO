@@ -1,4 +1,5 @@
 import { Resend } from 'resend';
+import { FROM_BICHO } from './from';
 
 // Notifies Bruno that a demo request came in from /demo.
 //
@@ -11,7 +12,7 @@ import { Resend } from 'resend';
 // Note on deliverability: this goes to the account owner's own inbox,
 // which is the one case Resend's shared sandbox domain handles reliably
 // (see the note in sendBookingConfirmation about buying a domain).
-const FROM_ADDRESS = 'bicho <onboarding@resend.dev>';
+
 
 function escapeHtml(value: string): string {
   return value
@@ -49,7 +50,7 @@ export async function sendDemoRequestNotice(lead: DemoRequestNotice): Promise<bo
   try {
     const resend = new Resend(apiKey);
     const { error } = await resend.emails.send({
-      from: FROM_ADDRESS,
+      from: FROM_BICHO,
       to,
       // Reply goes straight to the lead, so answering is one tap from
       // the notification instead of a copy-paste of their address.

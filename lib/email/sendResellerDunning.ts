@@ -1,4 +1,5 @@
 import { Resend } from 'resend';
+import { FROM_BICHO, REPLY_TO } from './from';
 
 // Dunning: the email a rep gets when their monthly charge fails.
 //
@@ -14,7 +15,7 @@ import { Resend } from 'resend';
 // runs, and returning non-200 to Stripe would make it retry the whole
 // event just because an email bounced.
 
-const FROM_ADDRESS = 'bicho <onboarding@resend.dev>';
+
 
 function escapeHtml(value: string): string {
   return value
@@ -69,7 +70,8 @@ export async function sendResellerDunning({
   try {
     const resend = new Resend(apiKey);
     await resend.emails.send({
-      from: FROM_ADDRESS,
+      from: FROM_BICHO,
+      ...(REPLY_TO ? { replyTo: REPLY_TO } : {}),
       to: email,
       subject,
       html: `

@@ -1,14 +1,10 @@
 import { Resend } from 'resend';
 import { appointmentWhen } from '@/lib/dates/tenantTime';
+import { FROM_BOOKINGS, REPLY_TO } from './from';
 
-// The "from" address Resend lets any account send from without first
-// verifying a custom domain — fine for now (no domain purchased yet,
-// see CLAUDE.md), but Resend's shared sandbox domain has real limits
-// (mainly: reliably reaches the account owner's own inbox, less so
-// arbitrary customer inboxes) — once there's a real domain, verify it
-// in the Resend dashboard and switch this to something like
-// `reservas@tudominio.com`.
-const FROM_ADDRESS = 'Reservas <onboarding@resend.dev>';
+// El remitente vive en ./from: una sola variable de entorno decide si
+// sale de `reservas@bichomx.com` o del dominio compartido de Resend.
+
 
 // customerName is raw text from the public booking form — never trust
 // it directly in HTML, even in an email (client rendering varies, and
@@ -85,7 +81,8 @@ export async function sendBookingConfirmation({
         ? `Hola ${escapeHtml(customerName)}, tu cita en <strong>${escapeHtml(businessName)}</strong> se movió a un nuevo horario.`
         : `Hola ${escapeHtml(customerName)}, tu cita en <strong>${escapeHtml(businessName)}</strong> quedó agendada.`;
     await resend.emails.send({
-      from: FROM_ADDRESS,
+      from: FROM_BOOKINGS,
+      ...(REPLY_TO ? { replyTo: REPLY_TO } : {}),
       to: customerEmail,
       subject: `${kind === 'rescheduled' ? 'Cita reprogramada' : 'Cita confirmada'} — ${businessName}`,
       html: `

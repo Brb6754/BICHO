@@ -220,3 +220,40 @@ export async function setTenantWhatsapp(tenantId: string, enabled: boolean) {
   revalidatePath(`/admin/tenants/${tenantId}`);
   revalidatePath(`/vendedor/negocios/${tenantId}`);
 }
+
+/**
+ * Qué productos tiene contratado el negocio.
+ *
+ * Pasa por `requireTenantManager`, igual que el interruptor de
+ * WhatsApp: un vendedor puede prender y apagar productos en los
+ * negocios que él trajo, nunca en los de otro. Es un interruptor de
+ * cobro, no una preferencia.
+ */
+export async function setTenantProduct(
+  tenantId: string,
+  producto: 'reservas' | 'cotizaciones',
+  enabled: boolean
+) {
+  await requireTenantManager(tenantId);
+
+  const columna = producto === 'reservas' ? 'reservas_enabled' : 'quotes_enabled';
+
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from('tenants')
+    .update({ [columna]: enabled })
+    .eq('id', tenantId)
+    .select('id');
+
+  if (error) {
+    // 42703 = la columna no existe todavía en este ambiente.
+    if (error.code === '42703') {
+      throw new Error('Falta correr db/027_quotes.sql y db/028_product_flags.sql en Supabase.');
+    }
+    throw new Error(`No se pudo cambiar el producto: ${error.message}`);
+  }
+  if (!data || data.length === 0) throw new Error('Ese negocio ya no existe.');
+
+  revalidatePath(`/admin/tenants/${tenantId}`);
+  revalidatePath(`/vendedor/negocios/${tenantId}`);
+}

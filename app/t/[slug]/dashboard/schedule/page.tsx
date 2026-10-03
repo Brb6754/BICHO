@@ -1,3 +1,5 @@
+import { productosDe } from '@/lib/products';
+import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Plus, X } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
@@ -46,6 +48,12 @@ type ScheduleRow = {
 // order, and an empty one says "Cerrado".
 export default async function SchedulePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
+  // Sin el producto de citas, esta pantalla no aplica. Redirige en vez
+  // de 404: un 404 dentro del propio panel se lee como un error del
+  // sistema, no como "no contrataste esto".
+  const productos = await productosDe(slug);
+  if (!productos.reservas) redirect('/dashboard');
+
   const supabase = await createClient();
   const { data: tenant } = await supabase
     .from('tenants')

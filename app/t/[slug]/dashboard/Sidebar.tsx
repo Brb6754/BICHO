@@ -22,9 +22,16 @@ import SignOutButton from './SignOutButton';
 // The segment navBase swaps out. NAV_ITEMS all start with it.
 const DASHBOARD_ROOT = '/dashboard';
 
-const NAV_ITEMS: { href: string; label: string; icon: typeof LayoutDashboard; exact?: boolean; requiresQuotes?: boolean }[] = [
+const NAV_ITEMS: {
+  href: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  exact?: boolean;
+  requiresQuotes?: boolean;
+  requiresReservas?: boolean;
+}[] = [
   { href: '/dashboard', label: 'Resumen', icon: LayoutDashboard, exact: true },
-  { href: '/dashboard/calendar', label: 'Agenda', icon: CalendarDays },
+  { href: '/dashboard/calendar', label: 'Agenda', icon: CalendarDays, requiresReservas: true },
   // Above the catalogue on purpose: services and hours are setup, changed
   // a few times a year. Customers is something an owner looks up.
   { href: '/dashboard/customers', label: 'Clientes', icon: Contact },
@@ -32,9 +39,9 @@ const NAV_ITEMS: { href: string; label: string; icon: typeof LayoutDashboard; ex
   // prendido: para quien solo agenda citas, un menú con una sección que
   // no usa es ruido permanente.
   { href: '/dashboard/cotizaciones', label: 'Cotizaciones', icon: FileText, requiresQuotes: true },
-  { href: '/dashboard/services', label: 'Servicios', icon: Tag },
-  { href: '/dashboard/resources', label: 'Quién atiende', icon: Users },
-  { href: '/dashboard/schedule', label: 'Horario', icon: Clock3 },
+  { href: '/dashboard/services', label: 'Servicios', icon: Tag, requiresReservas: true },
+  { href: '/dashboard/resources', label: 'Quién atiende', icon: Users, requiresReservas: true },
+  { href: '/dashboard/schedule', label: 'Horario', icon: Clock3, requiresReservas: true },
 ];
 
 const ROLE_LABELS: Record<string, string> = {
@@ -60,6 +67,7 @@ export function Sidebar({
   logoUrl,
   navBase = '',
   quotesEnabled = false,
+  reservasEnabled = true,
   bookingHref,
   footer,
 }: {
@@ -83,6 +91,8 @@ export function Sidebar({
   navBase?: string;
   /** El extra de cotizaciones, prendido por negocio. */
   quotesEnabled?: boolean;
+  /** El producto de citas. Apagado, el menú pierde agenda, servicios y horario. */
+  reservasEnabled?: boolean;
   // Same reason: the demo's booking page isn't on a tenant subdomain.
   bookingHref?: string;
   // Defaults to the real sign-out. The demo has no session to end.
@@ -157,7 +167,9 @@ export function Sidebar({
         </div>
 
         <nav aria-label="Secciones" className="mt-2 flex flex-1 flex-col gap-0.5 px-3">
-          {NAV_ITEMS.filter((item) => !item.requiresQuotes || quotesEnabled).map((item) => {
+          {NAV_ITEMS.filter(
+            (item) => (!item.requiresQuotes || quotesEnabled) && (!item.requiresReservas || reservasEnabled)
+          ).map((item) => {
             const href = navBase ? `${navBase}${item.href.slice(DASHBOARD_ROOT.length)}` : item.href;
             const isActive = item.exact ? pathname === href : (pathname?.startsWith(href) ?? false);
             const Icon = item.icon;
@@ -184,17 +196,23 @@ export function Sidebar({
             );
           })}
 
-          <div className="my-3 h-px bg-border" aria-hidden="true" />
+          {/* Sin el producto de citas no hay página de reservas que
+              ver: el enlace llevaría a un 404 del propio negocio. */}
+          {reservasEnabled && (
+            <>
+              <div className="my-3 h-px bg-border" aria-hidden="true" />
 
-          <a
-            href={bookingHref ?? tenantBookingPageUrl(slug)}
-            target="_blank"
-            rel="noreferrer"
-            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted transition-colors hover:bg-ink/[0.035] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-          >
-            <ArrowUpRight className="h-[18px] w-[18px] shrink-0" aria-hidden="true" />
-            Ver mi página de reservas
-          </a>
+              <a
+                href={bookingHref ?? tenantBookingPageUrl(slug)}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted transition-colors hover:bg-ink/[0.035] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+              >
+                <ArrowUpRight className="h-[18px] w-[18px] shrink-0" aria-hidden="true" />
+                Ver mi página de reservas
+              </a>
+            </>
+          )}
         </nav>
 
         <div className="border-t border-border p-3">

@@ -1,3 +1,5 @@
+import { productosDe } from '@/lib/products';
+import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { cancelBooking } from './actions';
 import { NewBookingForm } from './NewBookingForm';
@@ -15,6 +17,12 @@ import { dayKey } from '@/lib/dates/tenantTime';
 // timezone (UTC on Vercel).
 export default async function CalendarPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
+  // Sin el producto de citas, esta pantalla no aplica. Redirige en vez
+  // de 404: un 404 dentro del propio panel se lee como un error del
+  // sistema, no como "no contrataste esto".
+  const productos = await productosDe(slug);
+  if (!productos.reservas) redirect('/dashboard');
+
   const supabase = await createClient();
   const { data: tenant } = await supabase.from('tenants').select('id, timezone').eq('slug', slug).single();
 

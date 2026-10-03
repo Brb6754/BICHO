@@ -9,11 +9,13 @@ import { tenantBookingPageUrl } from '@/lib/urls';
 import { BILLABLE_STATUS, STATUS_LABELS, formatMxn, type Reseller } from '@/lib/resellers';
 import { RetailPriceCard } from '@/components/reseller/RetailPriceCard';
 import { WhatsappToggle } from '@/components/tenant-setup/WhatsappToggle';
+import { ProductToggles } from '@/components/tenant-setup/ProductToggles';
 import { getWhatsappAddon } from '@/lib/whatsapp/addonStatus';
 import { createDefaultBlock, type Block } from '@/lib/templates/blocks';
 import {
   createTenantOwner,
   setTenantWhatsapp,
+  setTenantProduct,
   updateTenantBranding,
   updateTenantPage,
   type TenantBranding,
@@ -74,6 +76,19 @@ export default async function ResellerBusinessPage({ params }: { params: Promise
 
   // Read in its own call so a database without db/021 renders the
   // section as "falta la migración" instead of taking the page down.
+  // Los dos flags de producto, leídos aparte y tolerantes: si db/027 o
+  // db/028 no están corridas, el panel enseña "reservas sí, cotizaciones
+  // no" —el estado de hoy— en vez de romperse.
+  const { data: flags } = await admin
+    .from('tenants')
+    .select('reservas_enabled, quotes_enabled')
+    .eq('id', tenant.id)
+    .maybeSingle();
+  const productos = {
+    reservas: flags?.reservas_enabled !== false,
+    cotizaciones: flags?.quotes_enabled === true,
+  };
+
   const whatsapp = await getWhatsappAddon(tenant.id);
 
   return (
@@ -108,6 +123,23 @@ export default async function ResellerBusinessPage({ params }: { params: Promise
           currentPrice={(tenant.retail_price_mxn as number | null) ?? null}
           wholesalePrice={reseller?.wholesale_price_mxn ?? 0}
           billable={tenant.status === BILLABLE_STATUS}
+        />
+      </section>
+
+      {/* Qué productos le vendiste. Va ANTES de los extras: un extra
+          modifica un producto, así que primero se decide cuál tiene. */}
+      <section className="mt-10">
+        <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+          <p className="text-sm font-semibold text-ink">Productos</p>
+          <p className="text-xs text-muted">Reservas, cotizaciones o las dos.</p>
+        </div>
+        <ProductToggles
+          reservas={productos.reservas}
+          cotizaciones={productos.cotizaciones}
+          onToggle={async (producto, activo) => {
+            'use server';
+            await setTenantProduct(tenant.id, producto, activo);
+          }}
         />
       </section>
 

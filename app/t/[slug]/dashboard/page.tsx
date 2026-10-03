@@ -1,3 +1,5 @@
+import { productosDe } from '@/lib/products';
+import { ResumenCotizaciones } from './ResumenCotizaciones';
 import Link from 'next/link';
 import { ArrowUpRight, Check } from 'lucide-react';
 import { CopyLinkButton } from '@/components/tenant-dash/CopyLinkButton';
@@ -25,6 +27,16 @@ export default async function DashboardOverviewPage({ params }: { params: Promis
   const { slug } = await params;
   const supabase = await createClient();
   const { data: tenant } = await supabase.from('tenants').select('id, name, timezone').eq('slug', slug).single();
+
+  // Un negocio que solo contrató cotizaciones no tiene agenda, ni
+  // servicios, ni horario — y este Resumen está escrito entero
+  // alrededor de "¿qué tengo hoy?". Enseñarle una agenda vacía y un
+  // checklist pidiéndole que configure horarios que nunca va a usar
+  // sería un panel roto el primer día.
+  const productos = await productosDe(slug);
+  if (!productos.reservas) {
+    return <ResumenCotizaciones slug={slug} tenantName={tenant?.name ?? ''} now={new Date()} />;
+  }
 
   const now = new Date();
   // Window wide enough to contain all of "today" in any timezone

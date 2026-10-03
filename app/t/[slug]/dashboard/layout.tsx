@@ -50,12 +50,17 @@ export default async function DashboardLayout({
   // nothing about whether they belong to THIS tenant. That has to be
   // checked explicitly against business_users on every request, and every
   // page under /dashboard shares this check via this layout.
+  // Qué productos tiene contratado el negocio. Consulta aparte y
+  // tolerante: si db/027 y db/028 no están corridas, el panel se
+  // comporta como siempre (citas sí, cotizaciones no) en vez de caerse.
   const { data: ajustes } = await supabase
     .from('tenants')
-    .select('quotes_enabled')
+    .select('quotes_enabled, reservas_enabled')
     .eq('slug', slug)
     .maybeSingle();
   const quotesEnabled = ajustes?.quotes_enabled === true;
+  // Sin la columna, true: todos los negocios de hoy contrataron citas.
+  const reservasEnabled = ajustes?.reservas_enabled !== false;
 
   const { data: membership } = await supabase
     .from('business_users')
@@ -92,6 +97,7 @@ export default async function DashboardLayout({
         primaryColor={primaryColor}
         logoUrl={tenant.logo_url}
         quotesEnabled={quotesEnabled}
+        reservasEnabled={reservasEnabled}
       />
       <main className="relative z-10 min-w-0 flex-1 px-5 pb-16 pt-20 sm:px-8 lg:px-12 lg:pt-12">
         <div className="mx-auto max-w-4xl">{children}</div>

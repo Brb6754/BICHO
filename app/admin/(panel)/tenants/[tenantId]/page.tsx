@@ -18,11 +18,13 @@ import {
   updateTenantPage,
   createTenantOwner,
   setTenantWhatsapp,
+  setTenantProduct,
   type TenantBranding,
 } from './actions';
 import { BrandEditor } from './BrandEditor';
 import { ResellerPicker } from '../../vendedores/ResellerPicker';
 import { WhatsappToggle } from '@/components/tenant-setup/WhatsappToggle';
+import { ProductToggles } from '@/components/tenant-setup/ProductToggles';
 import { getWhatsappAddon } from '@/lib/whatsapp/addonStatus';
 import { formatMxn, isMissingResellersTable } from '@/lib/resellers';
 import { OwnerCreator } from './OwnerCreator';
@@ -170,6 +172,19 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ t
 
   // Read in its own call so a database without db/021 renders the
   // section as "falta la migración" instead of taking the page down.
+  // Los dos flags de producto, leídos aparte y tolerantes: si db/027 o
+  // db/028 no están corridas, el panel enseña "reservas sí, cotizaciones
+  // no" —el estado de hoy— en vez de romperse.
+  const { data: flags } = await admin
+    .from('tenants')
+    .select('reservas_enabled, quotes_enabled')
+    .eq('id', tenant.id)
+    .maybeSingle();
+  const productos = {
+    reservas: flags?.reservas_enabled !== false,
+    cotizaciones: flags?.quotes_enabled === true,
+  };
+
   const whatsapp = await getWhatsappAddon(tenant.id);
 
   return (
@@ -282,6 +297,23 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ t
 
       <section className="mt-10">
         <OwnerCreator currentOwnerEmail={ownerEmail} onCreate={createTenantOwner.bind(null, tenant.id)} />
+      </section>
+
+      {/* Qué productos le vendiste. Va ANTES de los extras: un extra
+          modifica un producto, así que primero se decide cuál tiene. */}
+      <section className="mt-10">
+        <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+          <p className="text-sm font-semibold text-ink">Productos</p>
+          <p className="text-xs text-muted">Reservas, cotizaciones o las dos.</p>
+        </div>
+        <ProductToggles
+          reservas={productos.reservas}
+          cotizaciones={productos.cotizaciones}
+          onToggle={async (producto, activo) => {
+            'use server';
+            await setTenantProduct(tenant.id, producto, activo);
+          }}
+        />
       </section>
 
       <section className="mt-10">

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { productosDe } from '@/lib/products';
 import { BlockRenderer } from '@/components/blocks/BlockRenderer';
 import { googleFontsHref, isFontKey, FONT_OPTIONS, type FontKey } from '@/lib/branding/fonts';
 import {
@@ -92,6 +93,12 @@ export default async function ReservarPage({ params }: { params: Promise<{ slug:
   // read as "Algo salió mal" to a customer, which says the business is
   // broken rather than that the address is wrong.
   if (!tenant) notFound();
+
+  // Sin el producto de citas no hay nada que reservar aquí. 404 y no
+  // una página vacía: una página de reservas que no reserva le hace
+  // perder el tiempo a un cliente del negocio.
+  const productos = await productosDe(slug);
+  if (!productos.reservas) notFound();
 
   const { data: branding_raw } = await supabase
     .from('tenants')

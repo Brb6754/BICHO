@@ -68,41 +68,65 @@ export async function createQuote(
       .eq('id', tenantId)
       .maybeSingle();
 
-    // El folio lo entrega Postgres, no la app: calcular max(folio)+1
-    // aquí es una condición de carrera que, con dos vendedores
-    // cotizando a la vez, choca contra el unique (tenant_id, folio).
-    const { data: folio, error: eFolio } = await db.rpc('next_quote_folio', { p_tenant_id: tenantId });
-    if (eFolio) {
-      return {
-        ok: false,
-        error: eFolio.message.includes('next_quote_folio')
-          ? 'Falta correr la migración db/027_quotes.sql en Supabase.'
-          : `No se pudo generar el folio: ${eFolio.message}`,
-      };
+    // El folio lo entrega Postgres con un candado por negocio, no la
+    // app: calcular max(folio)+1 aquí es una condición de carrera que,
+    // con dos vendedores cotizando a la vez, choca contra el unique
+    // (tenant_id, folio).
+    //
+    // El fallback existe porque la función puede faltar o estar rota en
+    // un ambiente —a mí me pasó: la primera versión usaba FOR UPDATE
+    // sobre un agregado, que Postgres rechaza— y un folio no vale
+    // bloquear el producto entero. El unique sigue siendo la garantía
+    // de verdad: si dos coinciden, el insert falla y se reintenta.
+    let folio: number;
+    const { data: folioRpc, error: eFolio } = await db.rpc('next_quote_folio', { p_tenant_id: tenantId });
+    if (!eFolio && typeof folioRpc === 'number') {
+      folio = folioRpc;
+    } else {
+      const { data: ultima } = await db
+        .from('quotes')
+        .select('folio')
+        .eq('tenant_id', tenantId)
+        .order('folio', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      folio = (ultima?.folio ?? 0) + 1;
     }
 
-    const { data: quote, error } = await db
-      .from('quotes')
-      .insert({
-        tenant_id: tenantId,
-        folio,
-        customer_name: nombre,
-        customer_email: datos.customerEmail?.trim() || null,
-        customer_phone: datos.customerPhone?.trim() || null,
-        notes: datos.notes?.trim() || null,
-        // La tasa se CONGELA aquí. Si el negocio cambia su IVA mañana,
-        // una cotización ya enviada no puede cambiar sola: lo que el
-        // cliente recibió es lo que vale.
-        tax_rate: datos.taxRate ?? tenant?.tax_rate ?? 16,
-        tax_label: tenant?.tax_label ?? 'IVA',
-        discount_cents: Math.max(0, Math.round(Number(datos.discountMxn ?? 0) * 100)),
-        valid_until: datos.validUntil || null,
-        status: 'draft',
-      })
-      .select('id, folio')
-      .single();
+    const insertar = (f: number) =>
+      db
+        .from('quotes')
+        .insert({
+          tenant_id: tenantId,
+          folio: f,
+          customer_name: nombre,
+          customer_email: datos.customerEmail?.trim() || null,
+          customer_phone: datos.customerPhone?.trim() || null,
+          notes: datos.notes?.trim() || null,
+          // La tasa se CONGELA aquí. Si el negocio cambia su IVA mañana,
+          // una cotización ya enviada no puede cambiar sola: lo que el
+          // cliente recibió es lo que vale.
+          tax_rate: datos.taxRate ?? tenant?.tax_rate ?? 16,
+          tax_label: tenant?.tax_label ?? 'IVA',
+          discount_cents: Math.max(0, Math.round(Number(datos.discountMxn ?? 0) * 100)),
+          valid_until: datos.validUntil || null,
+          status: 'draft',
+        })
+        .select('id, folio')
+        .single();
 
-    if (error) return { ok: false, error: `No se pudo crear la cotización: ${error.message}` };
+    let { data: quote, error } = await insertar(folio);
+
+    // 23505 = otro vendedor se quedó con ese folio entre el cálculo y
+    // el insert. Una vez más con el siguiente número: el unique es la
+    // garantía real, el candado solo evita llegar hasta aquí.
+    if (error?.code === '23505') {
+      ({ data: quote, error } = await insertar(folio + 1));
+    }
+
+    if (error || !quote) {
+      return { ok: false, error: `No se pudo crear la cotización: ${error?.message ?? 'intenta de nuevo'}` };
+    }
 
     const { error: eItems } = await db.from('quote_items').insert(
       partidas.map((p, i) => ({

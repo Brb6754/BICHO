@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, CalendarDays, Contact, Tag, Users, Clock3, Menu, X, ArrowUpRight } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, Contact, Tag, Users, Clock3, Menu, X, ArrowUpRight, FileText } from 'lucide-react';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { BusinessMark } from '@/components/tenant-dash/BusinessMark';
 import { tenantBookingPageUrl } from '@/lib/urls';
@@ -22,12 +22,16 @@ import SignOutButton from './SignOutButton';
 // The segment navBase swaps out. NAV_ITEMS all start with it.
 const DASHBOARD_ROOT = '/dashboard';
 
-const NAV_ITEMS = [
+const NAV_ITEMS: { href: string; label: string; icon: typeof LayoutDashboard; exact?: boolean; requiresQuotes?: boolean }[] = [
   { href: '/dashboard', label: 'Resumen', icon: LayoutDashboard, exact: true },
   { href: '/dashboard/calendar', label: 'Agenda', icon: CalendarDays },
   // Above the catalogue on purpose: services and hours are setup, changed
   // a few times a year. Customers is something an owner looks up.
   { href: '/dashboard/customers', label: 'Clientes', icon: Contact },
+  // El segundo producto de bicho. Aparece solo si el negocio lo tiene
+  // prendido: para quien solo agenda citas, un menú con una sección que
+  // no usa es ruido permanente.
+  { href: '/dashboard/cotizaciones', label: 'Cotizaciones', icon: FileText, requiresQuotes: true },
   { href: '/dashboard/services', label: 'Servicios', icon: Tag },
   { href: '/dashboard/resources', label: 'Quién atiende', icon: Users },
   { href: '/dashboard/schedule', label: 'Horario', icon: Clock3 },
@@ -55,6 +59,7 @@ export function Sidebar({
   primaryColor,
   logoUrl,
   navBase = '',
+  quotesEnabled = false,
   bookingHref,
   footer,
 }: {
@@ -76,6 +81,8 @@ export function Sidebar({
   // /plataforma/panel/dashboard/calendar — every link in the demo's
   // menu was a 404 from the day it shipped.
   navBase?: string;
+  /** El extra de cotizaciones, prendido por negocio. */
+  quotesEnabled?: boolean;
   // Same reason: the demo's booking page isn't on a tenant subdomain.
   bookingHref?: string;
   // Defaults to the real sign-out. The demo has no session to end.
@@ -150,7 +157,7 @@ export function Sidebar({
         </div>
 
         <nav aria-label="Secciones" className="mt-2 flex flex-1 flex-col gap-0.5 px-3">
-          {NAV_ITEMS.map((item) => {
+          {NAV_ITEMS.filter((item) => !item.requiresQuotes || quotesEnabled).map((item) => {
             const href = navBase ? `${navBase}${item.href.slice(DASHBOARD_ROOT.length)}` : item.href;
             const isActive = item.exact ? pathname === href : (pathname?.startsWith(href) ?? false);
             const Icon = item.icon;

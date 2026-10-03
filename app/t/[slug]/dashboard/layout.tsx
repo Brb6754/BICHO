@@ -50,6 +50,13 @@ export default async function DashboardLayout({
   // nothing about whether they belong to THIS tenant. That has to be
   // checked explicitly against business_users on every request, and every
   // page under /dashboard shares this check via this layout.
+  const { data: ajustes } = await supabase
+    .from('tenants')
+    .select('quotes_enabled')
+    .eq('slug', slug)
+    .maybeSingle();
+  const quotesEnabled = ajustes?.quotes_enabled === true;
+
   const { data: membership } = await supabase
     .from('business_users')
     .select('role')
@@ -84,6 +91,7 @@ export default async function DashboardLayout({
         role={membership.role}
         primaryColor={primaryColor}
         logoUrl={tenant.logo_url}
+        quotesEnabled={quotesEnabled}
       />
       <main className="relative z-10 min-w-0 flex-1 px-5 pb-16 pt-20 sm:px-8 lg:px-12 lg:pt-12">
         <div className="mx-auto max-w-4xl">{children}</div>

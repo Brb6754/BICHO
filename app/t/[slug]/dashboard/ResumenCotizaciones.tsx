@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { ArrowUpRight, Eye, FileText, Check } from 'lucide-react';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { requireTenantStaff } from '@/lib/auth/tenantStaff';
 import { PageHeader } from '@/components/tenant-dash/PageHeader';
 import { computeTotals, formatMoney, formatFolio, isExpired } from '@/lib/quotes/totals';
 import { longDate } from '@/lib/dates/tenantTime';
@@ -21,13 +22,15 @@ export async function ResumenCotizaciones({
   tenantName: string;
   now: Date;
 }) {
-  const supabase = await createClient();
-  const { data: tenant } = await supabase.from('tenants').select('id, timezone').eq('slug', slug).single();
+  // Mismo motivo que la lista: `quotes` es service_role-only, y con la
+  // sesión esta pantalla enseñaría cero cotizaciones sin dar error.
+  const { tenantId, timezone } = await requireTenantStaff(slug);
+  const supabase = createAdminClient();
 
   const { data: quotes, error } = await supabase
     .from('quotes')
     .select('id, folio, customer_name, status, tax_rate, discount_cents, valid_until, viewed_at, created_at')
-    .eq('tenant_id', tenant!.id)
+    .eq('tenant_id', tenantId)
     .order('created_at', { ascending: false })
     .limit(20);
 
@@ -78,7 +81,7 @@ export async function ResumenCotizaciones({
   return (
     <div>
       <PageHeader
-        eyebrow={longDate(now, tenant?.timezone ?? null)}
+        eyebrow={longDate(now, timezone)}
         title={tenantName}
         action={
           <Link

@@ -1,12 +1,29 @@
 import Link from 'next/link';
 import { Plus, Eye, Check, Send, FileText } from 'lucide-react';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { requireTenantStaff } from '@/lib/auth/tenantStaff';
 import { PageHeader } from '@/components/tenant-dash/PageHeader';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { computeTotals, formatMoney, formatFolio, isExpired } from '@/lib/quotes/totals';
 import { QuoteRowActions } from './QuoteRowActions';
 
 export const dynamic = 'force-dynamic';
+
+// POR QUÉ ESTA PANTALLA LEE CON service_role Y NO CON LA SESIÓN.
+//
+// `quotes` y `quote_items` tienen RLS ACTIVO Y CERO POLICIES (db/027),
+// igual que customers y bookings: guardan el nombre y el teléfono de una
+// persona, y los precios con los que ese negocio vende. Con el cliente
+// atado a la cookie, Postgres no devuelve error — devuelve CERO FILAS.
+//
+// Eso fue exactamente este bug: las cotizaciones se guardaban bien y la
+// lista salía vacía, sin un solo mensaje de error. Es el mismo silencio
+// que ya mordió a este proyecto con `templates` en agosto.
+//
+// La membresía se comprueba aquí explícitamente con requireTenantStaff
+// en vez de confiar en el layout: el layout protege la navegación, pero
+// una pantalla que lee con service_role tiene que poder defenderse sola.
+
 
 const ESTADOS: Record<string, { texto: string; clase: string }> = {
   draft: { texto: 'Borrador', clase: 'bg-ink/[0.07] text-muted' },
@@ -19,16 +36,15 @@ const ESTADOS: Record<string, { texto: string; clase: string }> = {
 
 export default async function CotizacionesPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const supabase = await createClient();
-
-  const { data: tenant } = await supabase.from('tenants').select('id').eq('slug', slug).single();
+  const { tenantId } = await requireTenantStaff(slug);
+  const supabase = createAdminClient();
 
   // Consulta aparte y tolerante: si db/027 todavía no está corrida, la
   // sección explica qué falta en vez de tumbar el dashboard entero.
   const { data: quotes, error } = await supabase
     .from('quotes')
     .select('id, folio, customer_name, status, tax_rate, discount_cents, valid_until, viewed_at, created_at')
-    .eq('tenant_id', tenant!.id)
+    .eq('tenant_id', tenantId)
     .order('created_at', { ascending: false })
     .limit(50);
 

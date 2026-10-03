@@ -23,7 +23,6 @@ const LINKS = [
   { id: 'funciones', label: 'Funciones' },
   { id: 'demos', label: 'Demos' },
   { id: 'como-funciona', label: 'Cómo funciona' },
-  { id: 'precios', label: 'Precios' },
   { id: 'vendedores', label: 'Vendedores' },
 ];
 

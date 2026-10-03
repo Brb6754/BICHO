@@ -22,9 +22,6 @@ export function MarketingFooter() {
           <a href="/reservas#como-funciona" className={`rounded-sm transition-colors hover:text-white ${focusRingOnDark}`}>
             Cómo funciona
           </a>
-          <a href="/reservas#precios" className={`rounded-sm transition-colors hover:text-white ${focusRingOnDark}`}>
-            Precios
-          </a>
           <a href="/reservas#vendedores" className={`rounded-sm transition-colors hover:text-white ${focusRingOnDark}`}>
             Vendedores
           </a>

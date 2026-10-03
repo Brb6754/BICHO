@@ -3,6 +3,7 @@ import { Hero } from '@/components/marketing/Hero';
 import { ProblemSection } from '@/components/marketing/ProblemSection';
 import { TrustSection } from '@/components/marketing/TrustSection';
 import { FeaturesSection } from '@/components/marketing/FeaturesSection';
+import { DemosSection } from '@/components/marketing/DemosSection';
 import { HowItWorksSection } from '@/components/marketing/HowItWorksSection';
 import { StatsBar } from '@/components/marketing/StatsBar';
 import { ResellerSection } from '@/components/marketing/ResellerSection';
@@ -74,6 +75,7 @@ export default function MarketingHomePage() {
         <ProblemSection />
         <TrustSection />
         <FeaturesSection />
+        <DemosSection />
         <StatsBar />
         <HowItWorksSection />
         <ResellerSection />

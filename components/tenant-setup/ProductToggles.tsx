@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { CalendarDays, FileText } from 'lucide-react';
+import { CalendarDays, FileText, ReceiptText } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 
 // Qué productos tiene contratado el negocio.
@@ -11,20 +11,24 @@ import { Card } from '@/components/ui/Card';
 // pregunta comercial es una sola: ¿qué le vendiste? El mismo componente
 // sirve al panel interno y al del vendedor; quién puede tocarlo lo
 // decide la acción, no este archivo.
+type Producto = 'reservas' | 'cotizaciones' | 'facturacion';
+
 export function ProductToggles({
   reservas,
   cotizaciones,
+  facturacion,
   onToggle,
 }: {
   reservas: boolean;
   cotizaciones: boolean;
-  onToggle: (producto: 'reservas' | 'cotizaciones', activo: boolean) => Promise<void>;
+  facturacion: boolean;
+  onToggle: (producto: Producto, activo: boolean) => Promise<void>;
 }) {
   const router = useRouter();
   const [guardando, setGuardando] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function cambiar(producto: 'reservas' | 'cotizaciones', activo: boolean) {
+  async function cambiar(producto: Producto, activo: boolean) {
     setGuardando(producto);
     setError(null);
     try {
@@ -54,6 +58,16 @@ export function ProductToggles({
       activo: cotizaciones,
       detalle: 'Armar, enviar y seguir cotizaciones con su marca.',
       alApagar: 'La sección desaparece del panel. Las cotizaciones hechas se conservan.',
+    },
+    {
+      id: 'facturacion' as const,
+      label: 'Facturación',
+      Icon: ReceiptText,
+      activo: facturacion,
+      detalle: 'Emitir CFDI desde el panel. Requiere su RFC y su sello digital.',
+      // Apagarlo no invalida nada ante el SAT: lo ya timbrado existe en
+      // el SAT, no en bicho. Decir "se cancelan" sería falso y caro.
+      alApagar: 'Deja de poder emitir. Las facturas ya timbradas siguen siendo válidas.',
     },
   ];
 

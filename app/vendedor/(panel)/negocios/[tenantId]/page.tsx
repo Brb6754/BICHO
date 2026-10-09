@@ -81,12 +81,13 @@ export default async function ResellerBusinessPage({ params }: { params: Promise
   // no" —el estado de hoy— en vez de romperse.
   const { data: flags } = await admin
     .from('tenants')
-    .select('reservas_enabled, quotes_enabled')
+    .select('*')
     .eq('id', tenant.id)
     .maybeSingle();
   const productos = {
     reservas: flags?.reservas_enabled !== false,
     cotizaciones: flags?.quotes_enabled === true,
+    facturacion: flags?.facturacion_enabled === true,
   };
 
   const whatsapp = await getWhatsappAddon(tenant.id);
@@ -136,6 +137,7 @@ export default async function ResellerBusinessPage({ params }: { params: Promise
         <ProductToggles
           reservas={productos.reservas}
           cotizaciones={productos.cotizaciones}
+          facturacion={productos.facturacion}
           onToggle={async (producto, activo) => {
             'use server';
             await setTenantProduct(tenant.id, producto, activo);
@@ -216,6 +218,7 @@ export default async function ResellerBusinessPage({ params }: { params: Promise
               // columns don't come back from select('*') at all, and an
               // undefined would make the inputs uncontrolled.
               resource_label: tenant.resource_label ?? null,
+              resource_question: tenant.resource_question ?? null,
               location: tenant.location ?? null,
             }}
             onSave={updateTenantBranding.bind(null, tenant.id) as (b: TenantBranding) => Promise<void>}

@@ -3,7 +3,19 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, CalendarDays, Contact, Tag, Users, Clock3, Menu, X, ArrowUpRight, FileText } from 'lucide-react';
+import {
+  LayoutDashboard,
+  CalendarDays,
+  Contact,
+  Tag,
+  Users,
+  Clock3,
+  Menu,
+  X,
+  ArrowUpRight,
+  FileText,
+  ReceiptText,
+} from 'lucide-react';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { BusinessMark } from '@/components/tenant-dash/BusinessMark';
 import { tenantBookingPageUrl } from '@/lib/urls';
@@ -28,6 +40,7 @@ const NAV_ITEMS: {
   icon: typeof LayoutDashboard;
   exact?: boolean;
   requiresQuotes?: boolean;
+  requiresFacturacion?: boolean;
   requiresReservas?: boolean;
 }[] = [
   { href: '/dashboard', label: 'Resumen', icon: LayoutDashboard, exact: true },
@@ -39,6 +52,9 @@ const NAV_ITEMS: {
   // prendido: para quien solo agenda citas, un menú con una sección que
   // no usa es ruido permanente.
   { href: '/dashboard/cotizaciones', label: 'Cotizaciones', icon: FileText, requiresQuotes: true },
+  // Tercer producto. Debajo de cotizaciones porque ese es el orden
+  // real del trabajo: se cotiza, se cobra, y al final se factura.
+  { href: '/dashboard/facturas', label: 'Facturas', icon: ReceiptText, requiresFacturacion: true },
   { href: '/dashboard/services', label: 'Servicios', icon: Tag, requiresReservas: true },
   { href: '/dashboard/resources', label: 'Quién atiende', icon: Users, requiresReservas: true },
   { href: '/dashboard/schedule', label: 'Horario', icon: Clock3, requiresReservas: true },
@@ -67,6 +83,7 @@ export function Sidebar({
   logoUrl,
   navBase = '',
   quotesEnabled = false,
+  facturacionEnabled = false,
   reservasEnabled = true,
   bookingHref,
   footer,
@@ -91,6 +108,7 @@ export function Sidebar({
   navBase?: string;
   /** El extra de cotizaciones, prendido por negocio. */
   quotesEnabled?: boolean;
+  facturacionEnabled?: boolean;
   /** El producto de citas. Apagado, el menú pierde agenda, servicios y horario. */
   reservasEnabled?: boolean;
   // Same reason: the demo's booking page isn't on a tenant subdomain.
@@ -168,7 +186,10 @@ export function Sidebar({
 
         <nav aria-label="Secciones" className="mt-2 flex flex-1 flex-col gap-0.5 px-3">
           {NAV_ITEMS.filter(
-            (item) => (!item.requiresQuotes || quotesEnabled) && (!item.requiresReservas || reservasEnabled)
+            (item) =>
+              (!item.requiresQuotes || quotesEnabled) &&
+              (!item.requiresReservas || reservasEnabled) &&
+              (!item.requiresFacturacion || facturacionEnabled)
           ).map((item) => {
             const href = navBase ? `${navBase}${item.href.slice(DASHBOARD_ROOT.length)}` : item.href;
             const isActive = item.exact ? pathname === href : (pathname?.startsWith(href) ?? false);

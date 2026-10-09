@@ -55,12 +55,14 @@ export default async function DashboardLayout({
   // comporta como siempre (citas sí, cotizaciones no) en vez de caerse.
   const { data: ajustes } = await supabase
     .from('tenants')
-    .select('quotes_enabled, reservas_enabled')
+    .select('*')
     .eq('slug', slug)
     .maybeSingle();
   const quotesEnabled = ajustes?.quotes_enabled === true;
   // Sin la columna, true: todos los negocios de hoy contrataron citas.
   const reservasEnabled = ajustes?.reservas_enabled !== false;
+  // Tercer producto (db/035). Sin la columna, apagado.
+  const facturacionEnabled = ajustes?.facturacion_enabled === true;
 
   const { data: membership } = await supabase
     .from('business_users')
@@ -97,6 +99,7 @@ export default async function DashboardLayout({
         primaryColor={primaryColor}
         logoUrl={tenant.logo_url}
         quotesEnabled={quotesEnabled}
+        facturacionEnabled={facturacionEnabled}
         reservasEnabled={reservasEnabled}
       />
       <main className="relative z-10 min-w-0 flex-1 px-5 pb-16 pt-20 sm:px-8 lg:px-12 lg:pt-12">

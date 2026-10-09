@@ -63,6 +63,7 @@ export type TenantBranding = {
   // db/024. Nullable because a business that sets neither keeps exactly
   // the old behaviour ("Profesional", no address line).
   resource_label: string | null;
+  resource_question: string | null;
   location: string | null;
 };
 
@@ -78,7 +79,7 @@ export async function updateTenantBranding(tenantId: string, branding: TenantBra
   // two new fields rather than every colour on the form. Same fallback
   // this project already uses for page_blocks and reseller_id.
   if (error?.code === '42703') {
-    const { resource_label: _rl, location: _loc, ...rest } = branding;
+    const { resource_label: _rl, location: _loc, resource_question: _rq, ...rest } = branding;
     ({ error } = await admin.from('tenants').update(rest).eq('id', tenantId));
   }
 
@@ -231,12 +232,17 @@ export async function setTenantWhatsapp(tenantId: string, enabled: boolean) {
  */
 export async function setTenantProduct(
   tenantId: string,
-  producto: 'reservas' | 'cotizaciones',
+  producto: 'reservas' | 'cotizaciones' | 'facturacion',
   enabled: boolean
 ) {
   await requireTenantManager(tenantId);
 
-  const columna = producto === 'reservas' ? 'reservas_enabled' : 'quotes_enabled';
+  const columna =
+    producto === 'reservas'
+      ? 'reservas_enabled'
+      : producto === 'cotizaciones'
+        ? 'quotes_enabled'
+        : 'facturacion_enabled';
 
   const admin = createAdminClient();
   const { data, error } = await admin
@@ -248,7 +254,11 @@ export async function setTenantProduct(
   if (error) {
     // 42703 = la columna no existe todavía en este ambiente.
     if (error.code === '42703') {
-      throw new Error('Falta correr db/027_quotes.sql y db/028_product_flags.sql en Supabase.');
+      throw new Error(
+        producto === 'facturacion'
+          ? 'Falta correr db/035_facturacion_product.sql en Supabase.'
+          : 'Falta correr db/027_quotes.sql y db/028_product_flags.sql en Supabase.'
+      );
     }
     throw new Error(`No se pudo cambiar el producto: ${error.message}`);
   }

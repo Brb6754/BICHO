@@ -10,23 +10,33 @@ import { createClient } from '@/lib/supabase/server';
 // Los dos valores por defecto son deliberados y opuestos:
 //   · reservas en TRUE  — todos los negocios de hoy contrataron citas,
 //     y sin la columna el panel debe comportarse como siempre.
-//   · cotizaciones en FALSE — es un extra que se vende aparte; nadie lo
-//     tiene hasta que alguien lo prende.
+//   · cotizaciones y facturación en FALSE — son extras que se venden
+//     aparte; nadie los tiene hasta que alguien los prende.
+//
+// Se consulta con `select('*')` y no con la lista de columnas: un
+// ambiente sin la migración más nueva debe comportarse como "ese
+// producto no está contratado", no tumbar las seis pantallas que
+// preguntan esto.
 export type ProductosDelNegocio = {
   reservas: boolean;
   cotizaciones: boolean;
+  facturacion: boolean;
 };
 
 export async function productosDe(slug: string): Promise<ProductosDelNegocio> {
   const supabase = await createClient();
   const { data } = await supabase
     .from('tenants')
-    .select('reservas_enabled, quotes_enabled')
+    .select('*')
     .eq('slug', slug)
     .maybeSingle();
 
   return {
     reservas: data?.reservas_enabled !== false,
     cotizaciones: data?.quotes_enabled === true,
+    // Igual que cotizaciones: nadie lo tiene hasta que se vende. Y
+    // con más razón, porque emite documentos fiscales a nombre del
+    // negocio.
+    facturacion: data?.facturacion_enabled === true,
   };
 }

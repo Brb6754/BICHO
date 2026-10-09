@@ -140,7 +140,12 @@ export default async function CotizacionesPage({ params }: { params: Promise<{ s
                     {badge.texto}
                   </span>
 
-                  <QuoteRowActions slug={slug} quoteId={q.id} />
+                  <QuoteRowActions
+                    slug={slug}
+                    quoteId={q.id}
+                    folio={formatFolio(q.folio)}
+                    customerName={q.customer_name}
+                  />
                 </div>
               </li>
             );

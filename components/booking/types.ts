@@ -11,13 +11,21 @@ export type Service = {
   name: string;
   duration_minutes: number;
   price_cents: number;
+  // db/031. `undefined` = la columna todavia no existe en este
+  // ambiente, y entonces vale lo de siempre: el precio se muestra.
+  show_price?: boolean;
   // The schema has no description column today. The prop exists so a
   // card renders one the day it does, and collapses cleanly until then
   // rather than leaving a hole in the layout.
   description?: string | null;
 };
 
-export type Resource = { id: string; name: string };
+export type Resource = {
+  id: string;
+  name: string;
+  // db/032. Vacío o ausente = da TODOS los servicios.
+  service_ids?: string[];
+};
 
 export type Slot = { slot_start: string; slot_end: string };
 
@@ -50,6 +58,24 @@ export function stepsFor(resourceCount: number, resourceLabel: string): StepDef[
  * valoración, una pista incluida en la membresía. "$0" junto a "Mesa
  * para dos" se lee como un error del sistema, no como una cortesía.
  */
+// El precio TAL COMO se publica, que no es lo mismo que formatearlo.
+//
+// Tres estados y tres salidas, porque el negocio puede querer decir tres
+// cosas distintas (db/031):
+//   · no publica precio      -> '' (la ficha no se dibuja)
+//   · publica y cuesta 0     -> '' tambien, pero quien llama pone
+//                               'Sin costo': ahi SI es una afirmacion
+//   · publica y cuesta algo  -> '$450'
+export function publicPrice(service: Service): string {
+  if (service.show_price === false) return '';
+  return formatPrice(service.price_cents);
+}
+
+/** True cuando el negocio decidio no publicar el precio de este servicio. */
+export function priceHidden(service: Service): boolean {
+  return service.show_price === false;
+}
+
 export function formatPrice(cents: number): string {
   if (cents <= 0) return '';
   return new Intl.NumberFormat('es-MX', {

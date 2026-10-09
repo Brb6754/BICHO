@@ -18,6 +18,7 @@ export function ItemRow({
   inactive = false,
   lead,
   trail,
+  body,
   first = false,
 }: {
   title: React.ReactNode;
@@ -27,20 +28,23 @@ export function ItemRow({
   lead?: React.ReactNode;
   // Switch + menu, right-aligned.
   trail?: React.ReactNode;
+  // Contenido a todo lo ancho DEBAJO de la fila. Sin él, el <li> se
+  // renderiza exactamente como antes: no es un layout nuevo, es el
+  // mismo con una segunda hilera opcional.
+  body?: React.ReactNode;
   first?: boolean;
 }) {
   return (
-    <li
-      className={
-        'flex items-center gap-4 px-4 py-3.5 sm:px-5 ' + (first ? '' : 'border-t border-border')
-      }
-    >
-      {lead && <div className="w-24 shrink-0 text-sm font-medium text-muted">{lead}</div>}
-      <div className={'min-w-0 flex-1 transition-opacity ' + (inactive ? 'opacity-50' : '')}>
-        <p className="truncate font-medium text-ink">{title}</p>
-        {meta && <p className="mt-0.5 truncate text-sm tabular-nums text-muted">{meta}</p>}
+    <li className={'px-4 py-3.5 sm:px-5 ' + (first ? '' : 'border-t border-border')}>
+      <div className="flex items-center gap-4">
+        {lead && <div className="w-24 shrink-0 text-sm font-medium text-muted">{lead}</div>}
+        <div className={'min-w-0 flex-1 transition-opacity ' + (inactive ? 'opacity-50' : '')}>
+          <p className="truncate font-medium text-ink">{title}</p>
+          {meta && <p className="mt-0.5 truncate text-sm tabular-nums text-muted">{meta}</p>}
+        </div>
+        {trail && <div className="flex shrink-0 items-center gap-1.5">{trail}</div>}
       </div>
-      {trail && <div className="flex shrink-0 items-center gap-1.5">{trail}</div>}
+      {body}
     </li>
   );
 }

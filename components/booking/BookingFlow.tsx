@@ -19,7 +19,7 @@ import { EmptyCatalog, ErrorState, LoadingSlots, NoSlotsState } from './states';
 import {
   ANY_RESOURCE,
   formatDuration,
-  formatPrice,
+  publicPrice,
   stepsFor,
   type Resource,
   type ResourceChoice,
@@ -63,6 +63,8 @@ type Props = {
   // What this business calls the thing you book with. A salon picks
   // "profesional", a padel court "cancha", a clinic "consultorio".
   resourceLabel?: string;
+  /** La pregunta tal cual la escribió el negocio (db/030). Gana sobre la derivada. */
+  resourceQuestion?: string;
   // Shown in the summary and the confirmation when the business has one.
   location?: string | null;
 
@@ -89,6 +91,14 @@ type Props = {
   }) => Promise<{ ok: true; bookingId: string } | { ok: false; error: string }>;
 };
 
+// Un recurso SIN restricción guardada da todos los servicios. Esa es la
+// regla de db/032: la ausencia de filas es la restricción vacía, no la
+// prohibición total — si fuera al revés, la migración le apagaría la
+// agenda a todos los negocios que ya existen.
+function puedeDar(r: Resource, serviceId: string): boolean {
+  return !r.service_ids?.length || r.service_ids.includes(serviceId);
+}
+
 export default function BookingFlow({
   slug,
   businessName = 'este negocio',
@@ -97,6 +107,7 @@ export default function BookingFlow({
   accentColor = '#8FE24A',
   timezone,
   resourceLabel,
+  resourceQuestion,
   location,
   loadSlots,
   onSubmitBooking,
@@ -110,7 +121,14 @@ export default function BookingFlow({
   const label = resourceLabel?.trim() || 'Profesional';
   const hasOwnLabel = Boolean(resourceLabel?.trim());
 
-  const steps = useMemo(() => stepsFor(resources.length, label), [resources.length, label]);
+  // Tres niveles, del mas especifico al mas generico: la frase que
+  // escribio el negocio, la derivada de su sustantivo, y la de
+  // siempre. Derivar gramatica de un sustantivo ajeno es adivinar
+  // —genero, preposicion, y si eso que reservan es alguien o algo—
+  // asi que el negocio puede escribirla y ya.
+  const resourceHeading =
+    resourceQuestion?.trim() ||
+    (hasOwnLabel ? `¿Qué ${label.toLowerCase()} prefieres?` : '¿Con quién prefieres reservar?');
 
   const [stepIndex, setStepIndex] = useState(0);
   const [service, setService] = useState<Service | null>(null);
@@ -120,6 +138,20 @@ export default function BookingFlow({
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
   const [customer, setCustomer] = useState<CustomerFields>({ name: '', phone: '', email: '', notes: '' });
+
+  // Quien puede dar el servicio elegido (db/032). Sin servicio elegido
+  // todavía, son todos.
+  const bookableServices = useMemo(
+    () => services.filter((s) => resources.some((r) => puedeDar(r, s.id))),
+    [services, resources]
+  );
+
+  const eligible = useMemo(
+    () => (service ? resources.filter((r) => puedeDar(r, service.id)) : resources),
+    [resources, service]
+  );
+
+  const steps = useMemo(() => stepsFor(eligible.length, label), [eligible.length, label]);
 
   const [slotsByResource, setSlotsByResource] = useState<Record<string, Slot[]>>({});
   const [loading, setLoading] = useState(false);
@@ -163,7 +195,7 @@ export default function BookingFlow({
       // One call per resource, in parallel. The old flow asked for a
       // single resource's slots, which is why "cualquiera" couldn't exist.
       const results = await Promise.all(
-        resources.map(async (r) => {
+        eligible.map(async (r) => {
           const { data, error } = await supabase.rpc('get_available_slots', {
             p_resource_id: r.id,
             p_service_type_id: svc.id,
@@ -181,7 +213,7 @@ export default function BookingFlow({
       }
       setSlotsByResource(Object.fromEntries(results.map((r) => [r.id, r.slots])));
     },
-    [resources, timezone, loadSlots]
+    [eligible, timezone, loadSlots]
   );
 
   // Slots for the current choice. For "cualquiera" it's the union across
@@ -320,11 +352,11 @@ export default function BookingFlow({
   const resourceName =
     resourceChoice === ANY_RESOURCE
       ? `Cualquier ${label.toLowerCase()}`
-      : (resources.find((r) => r.id === resourceChoice)?.name ?? '');
+      : (eligible.find((r) => r.id === resourceChoice)?.name ?? '');
 
   const summaryItems: SummaryItem[] = [];
   if (service) summaryItems.push({ id: 'service', label: 'servicio', value: service.name });
-  if (resourceChoice && resources.length > 1)
+  if (resourceChoice && eligible.length > 1)
     summaryItems.push({ id: 'resource', label: label.toLowerCase(), value: resourceName });
   if (selectedDay && !selectedSlot)
     summaryItems.push({ id: 'date', label: 'fecha', value: longDate(`${selectedDay}T12:00:00Z`, timezone) });
@@ -336,8 +368,8 @@ export default function BookingFlow({
     sidePanelRows.push({ label: 'Servicio', value: service.name });
     sidePanelRows.push({ label: 'Duración', value: formatDuration(service.duration_minutes) });
   }
-  if (resourceChoice && resources.length > 1)
-    sidePanelRows.push({ label: 'Atiende', value: resourceName });
+  if (resourceChoice && eligible.length > 1)
+    sidePanelRows.push({ label: hasOwnLabel ? label : 'Atiende', value: resourceName });
   if (selectedSlot)
     sidePanelRows.push({ label: 'Cuándo', value: appointmentWhen(selectedSlot.slot_start, timezone) });
   else if (selectedDay)
@@ -423,7 +455,7 @@ export default function BookingFlow({
   function resetFlow() {
     setStepIndex(0);
     setService(null);
-    setResourceChoice(resources.length === 1 ? resources[0].id : null);
+    setResourceChoice(eligible.length === 1 ? eligible[0].id : null);
     setSelectedDay(null);
     setSelectedSlot(null);
     setCustomer({ name: '', phone: '', email: '', notes: '' });
@@ -453,7 +485,7 @@ export default function BookingFlow({
           service={service}
           when={appointmentWhen(selectedSlot.slot_start, timezone)}
           resourceName={resourceName}
-          showResource={resources.length > 1}
+          showResource={eligible.length > 1}
           location={location}
           bookingId={bookingId}
           manageUrl={manageUrl ?? tenantManageBookingUrl(slug, bookingId)}
@@ -465,10 +497,12 @@ export default function BookingFlow({
     );
   }
 
-  if (services.length === 0 || resources.length === 0) {
+  if (bookableServices.length === 0 || resources.length === 0) {
     return (
       <div className="rounded-3xl border border-border bg-surface p-5">
-        <EmptyCatalog what={services.length === 0 ? 'servicios para reservar' : 'horarios configurados'} />
+        <EmptyCatalog
+          what={bookableServices.length === 0 ? 'servicios para reservar' : 'horarios configurados'}
+        />
       </div>
     );
   }
@@ -533,7 +567,7 @@ export default function BookingFlow({
               Después eliges cuándo. Puedes cambiarlo en cualquier momento.
             </p>
             <div className="mt-4 flex flex-col gap-2.5">
-              {services.map((s) => (
+              {bookableServices.map((s) => (
                 <ServiceCard
                   key={s.id}
                   service={s}
@@ -548,7 +582,7 @@ export default function BookingFlow({
         {currentStep === 'resource' && (
           <>
             <h2 className="text-base font-semibold text-ink">
-              {hasOwnLabel ? `¿Qué ${label.toLowerCase()} prefieres?` : '¿Con quién prefieres reservar?'}
+              {resourceHeading}
             </h2>
             <p className="mt-1 text-[13px] text-muted">
               Si te da igual, elige cualquiera: vas a ver más horarios libres.
@@ -561,7 +595,7 @@ export default function BookingFlow({
                 selected={resourceChoice === ANY_RESOURCE}
                 onSelect={() => handleResource(ANY_RESOURCE)}
               />
-              {resources.map((r) => {
+              {eligible.map((r) => {
                 const slots = slotsByResource[r.id] ?? [];
                 const next = slots[0];
                 return (
@@ -628,7 +662,7 @@ export default function BookingFlow({
                   onNextDay={() => nextAvailableDay && handleDay(nextAvailableDay)}
                   onBackToDates={() => goTo('date')}
                   onAnyResource={
-                    resources.length > 1 && resourceChoice !== ANY_RESOURCE
+                    eligible.length > 1 && resourceChoice !== ANY_RESOURCE
                       ? () => {
                           handleResource(ANY_RESOURCE);
                           goTo('time');
@@ -665,7 +699,7 @@ export default function BookingFlow({
               when={appointmentWhen(selectedSlot.slot_start, timezone)}
               location={location}
               onEdit={goTo}
-              showResourceRow={resources.length > 1}
+              showResourceRow={eligible.length > 1}
             />
             {submitError && (
               <ErrorState
@@ -686,7 +720,7 @@ export default function BookingFlow({
 
         <SidePanel
           rows={sidePanelRows}
-          total={service ? formatPrice(service.price_cents) : undefined}
+          total={service ? publicPrice(service) || undefined : undefined}
           helper={missingHelper}
           actionLabel={actionLabel}
           onAction={onAction}

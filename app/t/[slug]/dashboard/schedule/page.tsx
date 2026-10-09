@@ -16,6 +16,7 @@ import { ConfirmForm } from '@/components/ui/ConfirmForm';
 import { PageHeader } from '@/components/tenant-dash/PageHeader';
 import { AddBar } from '@/components/tenant-dash/ItemList';
 import { BlocksSection, type ScheduleBlock } from '@/components/tenant-dash/BlocksSection';
+import { WeekdayPicker } from './WeekdayPicker';
 
 // Display order is Monday-first, but the value= sent to the DB is still
 // Postgres's extract(dow) convention (0=Sunday..6=Saturday) — see
@@ -102,53 +103,47 @@ export default async function SchedulePage({ params }: { params: Promise<{ slug:
         <>
           <div className="mt-8">
             <AddBar>
-              <form
-                action={createScheduleSlot.bind(null, slug)}
-                className="grid grid-cols-2 gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_7rem_7rem_auto] sm:items-end"
-              >
-                <div>
-                  <label htmlFor="sch-resource" className="mb-1.5 block text-xs font-medium text-muted">
-                    Quién
-                  </label>
-                  <Select id="sch-resource" name="resource_id" required className="w-full">
-                    {resources.map((r) => (
-                      <option key={r.id} value={r.id}>
-                        {r.name}
-                      </option>
-                    ))}
-                  </Select>
+              <form action={createScheduleSlot.bind(null, slug)} className="flex flex-col gap-4">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-[minmax(0,1fr)_7rem_7rem_auto] sm:items-end">
+                  <div className="col-span-2 sm:col-span-1">
+                    <label htmlFor="sch-resource" className="mb-1.5 block text-xs font-medium text-muted">
+                      Quién
+                    </label>
+                    <Select id="sch-resource" name="resource_id" required className="w-full">
+                      {/* Primero y por defecto: en la mayoría de los
+                          negocios todos abren a la misma hora, y ese caso
+                          debería costar un envío, no uno por persona. */}
+                      {resources.length > 1 && <option value="__todos__">Todos</option>}
+                      {resources.map((r) => (
+                        <option key={r.id} value={r.id}>
+                          {r.name}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+                  <div>
+                    <label htmlFor="sch-from" className="mb-1.5 block text-xs font-medium text-muted">
+                      Desde
+                    </label>
+                    <Input id="sch-from" type="time" name="starts_at" required defaultValue="09:00" className="w-full" />
+                  </div>
+                  <div>
+                    <label htmlFor="sch-to" className="mb-1.5 block text-xs font-medium text-muted">
+                      Hasta
+                    </label>
+                    <Input id="sch-to" type="time" name="ends_at" required defaultValue="18:00" className="w-full" />
+                  </div>
+                  <Button type="submit" className="col-span-2 sm:col-span-1">
+                    <Plus className="h-4 w-4" />
+                    Agregar
+                  </Button>
                 </div>
-                <div>
-                  <label htmlFor="sch-day" className="mb-1.5 block text-xs font-medium text-muted">
-                    Día
-                  </label>
-                  <Select id="sch-day" name="day_of_week" required className="w-full">
-                    {DAYS.map((d) => (
-                      <option key={d.value} value={d.value}>
-                        {d.label}
-                      </option>
-                    ))}
-                  </Select>
-                </div>
-                <div>
-                  <label htmlFor="sch-from" className="mb-1.5 block text-xs font-medium text-muted">
-                    Desde
-                  </label>
-                  <Input id="sch-from" type="time" name="starts_at" required defaultValue="09:00" className="w-full" />
-                </div>
-                <div>
-                  <label htmlFor="sch-to" className="mb-1.5 block text-xs font-medium text-muted">
-                    Hasta
-                  </label>
-                  <Input id="sch-to" type="time" name="ends_at" required defaultValue="18:00" className="w-full" />
-                </div>
-                <Button type="submit" className="col-span-2 sm:col-span-1">
-                  <Plus className="h-4 w-4" />
-                  Agregar
-                </Button>
+
+                <WeekdayPicker defaultDays={[1, 2, 3, 4, 5]} />
               </form>
               <p className="mt-3 text-xs text-muted">
-                ¿Cierras a mediodía? Agrega dos rangos el mismo día, por ejemplo 9:00–14:00 y 16:00–20:00.
+                Marca todos los días con ese horario y agrégalos de una. ¿Cierras a mediodía? Agrega
+                dos rangos los mismos días, por ejemplo 9:00–14:00 y 16:00–20:00.
               </p>
             </AddBar>
           </div>

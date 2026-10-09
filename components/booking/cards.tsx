@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Check, Clock, Sparkles, Users } from 'lucide-react';
-import { formatDuration, formatPrice, type Service } from './types';
+import { formatDuration, publicPrice, priceHidden, type Service } from './types';
 
 // Selection is never carried by colour alone. Every selected control here
 // changes three things at once: it gains a check mark, its border goes to
@@ -73,11 +73,13 @@ export function ServiceCard({
       {/* El precio es una ficha, no una columna de texto: es el dato que
           la gente compara, y en una fila de texto plano pesa lo mismo
           que la duración. */}
-      <span className="shrink-0">
-        <span className="block rounded-full bg-primary/[0.14] px-3 py-1 text-[14px] font-bold tabular-nums text-ink">
-          {formatPrice(service.price_cents) || 'Sin costo'}
+      {!priceHidden(service) && (
+        <span className="shrink-0">
+          <span className="block rounded-full bg-primary/[0.14] px-3 py-1 text-[14px] font-bold tabular-nums text-ink">
+            {publicPrice(service) || 'Sin costo'}
+          </span>
         </span>
-      </span>
+      )}
     </button>
   );
 }

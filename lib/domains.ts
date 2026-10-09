@@ -113,6 +113,7 @@ export const DEMO_SLUGS = new Set<string>([
   'hierro-monte',
   'clinica-alameda',
   'don-ramon',
+  'lima-laca',
 ]);
 
 export function isDemoSlug(slug: string): boolean {

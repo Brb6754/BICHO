@@ -33,7 +33,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ quoteId
   const [{ data: tenant }, { data: items }] = await Promise.all([
     db
       .from('tenants')
-      .select('name, logo_url, primary_color, accent_color, location, quote_terms')
+      .select('slug, name, logo_url, primary_color, accent_color, location, quote_terms, timezone')
       .eq('id', quote.tenant_id)
       .maybeSingle(),
     db
@@ -51,9 +51,13 @@ export async function GET(_req: Request, { params }: { params: Promise<{ quoteId
     customerEmail: quote.customer_email,
     customerPhone: quote.customer_phone,
     notes: quote.notes,
+    timezone: tenant?.timezone ?? 'America/Mexico_City',
     taxRate: Number(quote.tax_rate),
     taxLabel: quote.tax_label,
     discountCents: quote.discount_cents,
+    // El mismo enlace publico que manda el correo. Sin tenant (caso
+    // imposible, pero el tipo lo admite) el bloque no se dibuja.
+    acceptUrl: tenant?.slug ? enlacePublico(tenant.slug, quoteId) : null,
     items: (items ?? []).map((i) => ({
       description: i.description,
       quantity: Number(i.quantity),
@@ -98,4 +102,13 @@ function absolutize(url: string | null): string | null {
   const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? 'bichomx.com';
   const esquema = root.startsWith('localhost') ? 'http' : 'https';
   return `${esquema}://${root}${url.startsWith('/') ? '' : '/'}${url}`;
+}
+
+// El enlace publico de la cotizacion, identico al del correo
+// (lib/email/sendQuote.ts): si los dos divergen, uno de los dos
+// manda a la gente a una pagina que no existe.
+function enlacePublico(slug: string, quoteId: string): string {
+  const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? 'bichomx.com';
+  const esquema = root.startsWith('localhost') ? 'http' : 'https';
+  return `${esquema}://${slug}.${root}/cotizacion/${quoteId}`;
 }

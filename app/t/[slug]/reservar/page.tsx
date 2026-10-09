@@ -129,9 +129,19 @@ export default async function ReservarPage({ params }: { params: Promise<{ slug:
     .eq('slug', slug)
     .maybeSingle();
 
+  // db/030, en su propia consulta por el mismo motivo que la de
+  // arriba: si la pego a la de db/024 y la columna todavía no existe,
+  // el 42703 se lleva también el sustantivo y la dirección, que sí
+  // existen. Una columna nueva solo puede costar lo suyo.
+  const { data: question_raw } = await supabase
+    .from('tenants')
+    .select('resource_question')
+    .eq('slug', slug)
+    .maybeSingle();
+
   const { data: services } = await supabase
     .from('service_types')
-    .select('id, name, duration_minutes, price_cents')
+    .select('*')
     .eq('tenant_id', tenant.id)
     .eq('active', true)
     .order('name');
@@ -142,6 +152,21 @@ export default async function ReservarPage({ params }: { params: Promise<{ slug:
     .eq('tenant_id', tenant.id)
     .eq('active', true)
     .order('name');
+
+  // db/032, en su propia consulta por el mismo motivo que las de arriba:
+  // si la tabla todavía no existe, el costo es la restricción —que nadie
+  // tenía— y no la lista de quién atiende, que sí.
+  const { data: resourceServices } = await supabase
+    .from('resource_services')
+    .select('resource_id, service_type_id')
+    .eq('tenant_id', tenant.id);
+
+  const resourcesConServicios = (resources ?? []).map((r) => ({
+    ...r,
+    service_ids: (resourceServices ?? [])
+      .filter((l) => l.resource_id === r.id)
+      .map((l) => l.service_type_id),
+  }));
 
   const { data: template } = await supabase
     .from('templates')
@@ -212,12 +237,13 @@ export default async function ReservarPage({ params }: { params: Promise<{ slug:
     slug,
     businessName: tenant.name,
     services: services ?? [],
-    resources: resources ?? [],
+    resources: resourcesConServicios,
     timezone: tenant.timezone ?? null,
     // `|| undefined` and not `?? undefined`: an empty string saved from
     // the panel has to fall through to BookingFlow's default too, not
     // ask "¿Con qué ?".
     resourceLabel: labels_raw?.resource_label || undefined,
+    resourceQuestion: question_raw?.resource_question || undefined,
     location: labels_raw?.location || null,
   };
 

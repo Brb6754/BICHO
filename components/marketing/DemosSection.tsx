@@ -28,6 +28,7 @@ const DEMOS = [
   { slug: 'hierro-monte', nombre: 'Hierro & Monte', giro: 'Gimnasio', acento: '#FF5C2B' },
   { slug: 'alto-padel', nombre: 'Alto Pádel Club', giro: 'Club de pádel', acento: '#8CC63F' },
   { slug: 'mesa-doce', nombre: 'Mesa Doce', giro: 'Restaurante', acento: '#C8891F' },
+  { slug: 'lima-laca', nombre: 'Lima & Laca', giro: 'Nail bar', acento: '#E0576E' },
 ];
 
 const DOMINIO = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? 'bichomx.com';

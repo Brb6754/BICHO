@@ -22,6 +22,7 @@ import {
 } from '@/lib/branding/colors';
 import { safeHref } from '@/lib/branding/safeHref';
 import BookingFlow from '@/components/booking/BookingFlow';
+import type { Service, Resource } from '@/components/booking/types';
 import {
   HeroSection,
   ServicesSection,
@@ -36,12 +37,16 @@ import {
 type BookingData = {
   slug: string;
   businessName?: string;
-  services: { id: string; name: string; duration_minutes: number; price_cents: number }[];
-  resources: { id: string; name: string }[];
+  // El tipo compartido del flujo, no una copia: esta forma ya estaba
+  // escrita a mano aquí y se quedó atrás cuando el servicio ganó
+  // campos. Mientras sea una copia, cada campo nuevo nace invisible.
+  services: Service[];
+  resources: Resource[];
   timezone?: string | null;
   // db/024. Optional so the template editor's preview — which has no
   // tenant behind it — keeps rendering exactly as it does today.
   resourceLabel?: string;
+  resourceQuestion?: string;
   location?: string | null;
 };
 
@@ -486,6 +491,7 @@ function BlockItem({
               primaryColor={branding.primaryColor}
               timezone={bookingData.timezone}
               resourceLabel={bookingData.resourceLabel}
+              resourceQuestion={bookingData.resourceQuestion}
               location={bookingData.location}
             />
           </div>

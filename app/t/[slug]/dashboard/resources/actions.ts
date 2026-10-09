@@ -57,3 +57,61 @@ export async function deleteResource(resourceId: string, slug: string) {
 
   revalidatePath(`/t/${slug}/dashboard/resources`);
 }
+
+// Qué servicios da este recurso (db/032).
+//
+// Reemplaza el conjunto completo en vez de ir sumando y restando: la
+// pantalla manda las casillas que quedaron marcadas, que es el estado
+// final, y pensar en diferencias abre la puerta a quedarse a medias si
+// una de las dos escrituras falla.
+//
+// Marcar TODOS los servicios se guarda como NINGUNA fila, no como todas:
+// "hace de todo" es la ausencia de restricción, y así un servicio nuevo
+// que el negocio cree mañana lo hereda solo, sin tener que volver aquí
+// a marcarlo recurso por recurso.
+export async function setResourceServices(slug: string, resourceId: string, serviceIds: string[]) {
+  const supabase = await createClient();
+
+  const { data: tenant } = await supabase.from('tenants').select('id').eq('slug', slug).single();
+  if (!tenant) return;
+
+  // El recurso tiene que ser de ESTE negocio. RLS ya lo impediría, pero
+  // una Server Action es un endpoint POST real: se comprueba aquí.
+  const { data: recurso } = await supabase
+    .from('resources')
+    .select('id')
+    .eq('id', resourceId)
+    .eq('tenant_id', tenant.id)
+    .maybeSingle();
+  if (!recurso) throw new Error('Ese recurso no es de este negocio.');
+
+  const { data: servicios } = await supabase
+    .from('service_types')
+    .select('id')
+    .eq('tenant_id', tenant.id);
+
+  const validos = new Set((servicios ?? []).map((s) => s.id));
+  const elegidos = serviceIds.filter((id) => validos.has(id));
+  const todos = elegidos.length === validos.size;
+
+  const { error: eBorrar } = await supabase
+    .from('resource_services')
+    .delete()
+    .eq('resource_id', resourceId)
+    .eq('tenant_id', tenant.id);
+  if (eBorrar) throw new Error(`No se pudo guardar: ${eBorrar.message}`);
+
+  if (elegidos.length > 0 && !todos) {
+    const { error } = await supabase.from('resource_services').insert(
+      elegidos.map((service_type_id) => ({
+        resource_id: resourceId,
+        service_type_id,
+        tenant_id: tenant.id,
+      }))
+    );
+    if (error) throw new Error(`No se pudo guardar: ${error.message}`);
+  }
+
+  revalidatePath(`/t/${slug}/dashboard/resources`);
+  revalidatePath(`/t/${slug}/reservar`);
+}

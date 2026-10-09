@@ -2,17 +2,28 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Check, Copy, Download, Send } from 'lucide-react';
-import { sendQuote } from './actions';
+import { Check, Copy, Download, Send, Trash2 } from 'lucide-react';
+import { ConfirmForm } from '@/components/ui/ConfirmForm';
+import { sendQuote, deleteQuote } from './actions';
 
-// Las tres cosas que un vendedor hace con una cotización ya hecha:
-// mandarla por correo, copiar su enlace para WhatsApp, o bajarla en PDF.
+// Lo que un vendedor hace con una cotización ya hecha: mandarla por
+// correo, copiar su enlace para WhatsApp, bajarla en PDF, o borrarla.
 //
 // Copiar el enlace está al mismo nivel que enviar por correo, no
 // escondido: en México la mitad de las cotizaciones se mandan por
 // WhatsApp, y obligar a pasar por el correo sería diseñar para el flujo
 // que no ocurre.
-export function QuoteRowActions({ slug, quoteId }: { slug: string; quoteId: string }) {
+export function QuoteRowActions({
+  slug,
+  quoteId,
+  folio,
+  customerName,
+}: {
+  slug: string;
+  quoteId: string;
+  folio: string;
+  customerName: string;
+}) {
   const router = useRouter();
   const [enviando, setEnviando] = useState(false);
   const [copiado, setCopiado] = useState(false);
@@ -75,6 +86,24 @@ export function QuoteRowActions({ slug, quoteId }: { slug: string; quoteId: stri
         <Download className="h-3.5 w-3.5" aria-hidden="true" />
         PDF
       </a>
+
+      {/* Borrar va al final y separado del resto con `ml-auto`: las otras
+          tres acciones se usan a diario y esta una vez. Pasa por el mismo
+          ConfirmForm que el resto del panel porque no hay papelera —
+          borrar una cotización se lleva también sus conceptos, por la
+          cascada de la llave foránea. */}
+      <ConfirmForm
+        action={deleteQuote.bind(null, slug, quoteId)}
+        confirmTitle="Borrar cotización"
+        confirmMessage={`¿Borrar la #${folio} de ${customerName}? Se va con todos sus conceptos y no se puede deshacer. Si ya se la mandaste al cliente, su enlace deja de abrir.`}
+        confirmLabel="Borrar"
+        dismissLabel="No, conservarla"
+        triggerVariant="ghost"
+        triggerClassName="ml-auto h-11 w-11 !border-0 !p-0 !text-muted hover:!bg-error-soft hover:!text-error sm:ml-2"
+      >
+        <Trash2 className="h-4 w-4" aria-hidden="true" />
+        <span className="sr-only">Borrar cotización</span>
+      </ConfirmForm>
 
       {aviso && <span className="text-[12px] text-muted">{aviso}</span>}
     </div>

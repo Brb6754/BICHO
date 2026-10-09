@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/Input';
 import { ConfirmForm } from '@/components/ui/ConfirmForm';
 import { PageHeader } from '@/components/tenant-dash/PageHeader';
 import { ItemList, ItemRow, ActiveSwitch, AddBar } from '@/components/tenant-dash/ItemList';
+import { ResourceServices } from './ResourceServices';
 
 export default async function ResourcesPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -28,6 +29,23 @@ export default async function ResourcesPage({ params }: { params: Promise<{ slug
     .order('created_at');
 
   const activeCount = resources?.filter((r) => r.active).length ?? 0;
+
+  const { data: services } = await supabase
+    .from('service_types')
+    .select('id, name')
+    .eq('tenant_id', tenant!.id)
+    .eq('active', true)
+    .order('name');
+
+  // db/032, en su propia consulta: si la tabla todavía no existe, el
+  // costo es el checklist — no la pantalla de recursos entera.
+  const { data: links } = await supabase
+    .from('resource_services')
+    .select('resource_id, service_type_id')
+    .eq('tenant_id', tenant!.id);
+
+  const serviciosDe = (resourceId: string) =>
+    (links ?? []).filter((l) => l.resource_id === resourceId).map((l) => l.service_type_id);
 
   return (
     <div>
@@ -72,6 +90,17 @@ export default async function ResourcesPage({ params }: { params: Promise<{ slug
                   title={r.name}
                   meta={r.active ? 'Disponible para reservar' : 'Oculto de tu página'}
                   inactive={!r.active}
+                  body={
+                    links ? (
+                      <ResourceServices
+                        slug={slug}
+                        resourceId={r.id}
+                        resourceName={r.name}
+                        services={services ?? []}
+                        selected={serviciosDe(r.id)}
+                      />
+                    ) : null
+                  }
                   trail={
                     <>
                       <form action={toggleResourceActive.bind(null, r.id, !r.active, slug)}>

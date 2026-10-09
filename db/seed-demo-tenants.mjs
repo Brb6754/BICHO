@@ -658,6 +658,96 @@ const NEGOCIOS = [
       b('location', 'default', { heading: 'Dónde estamos', address: 'Calle Pasteur 210 Sur, Zona Centro, Durango', mapUrl: '' }, COLUMN),
     ],
   },
+
+  // ═════════════════════════════════════════════════════════════════
+  // NAIL BAR — catálogo largo y denso, y la pregunta real es cuánto
+  // dura y cuánto tarda. Formas de pastilla y círculo: la forma de una
+  // uña. Berenjena con laca cereza, para no repetir a Casa Luma.
+  // ═════════════════════════════════════════════════════════════════
+  {
+    slug: 'lima-laca',
+    logo: '/demo/logos/lima-laca.webp',
+    fonts: { heading: 'cormorant', body: 'outfit' },
+    name: 'Lima & Laca',
+    vertical: 'peluqueria',
+    description: 'Nail bar en Los Ángeles, Durango.',
+    colors: { primary: '#2E1A2B', secondary: '#1B0F1A', accent: '#E0576E' },
+    design: {
+      typeScale: 'humanist',
+      rhythm: 'compact',
+      shape: 'pill',
+      imageTreatment: 'circle',
+      headingFont: '',
+      upperHeadings: false,
+    },
+    resourceLabel: 'Manicurista',
+    location: 'Blvd. Domingo Arrieta 1204, Los Ángeles, Durango',
+    resources: ['Dafne Carrillo', 'Itzel Barraza', 'Mariana Solís'],
+    services: [
+      ['Manicure clásico', 45, 280],
+      ['Manicure en gel', 60, 420],
+      ['Acrílicas · juego nuevo', 150, 850],
+      ['Acrílicas · relleno', 105, 600],
+      ['Pedicure spa', 75, 480],
+      ['Retiro de material', 30, 180],
+    ],
+    schedule: [...week([2, 3, 4, 5], '10:00', '20:00'), ...week([6], '10:00', '18:00')],
+    blocks: () => [
+      header(
+        'Nail bar',
+        'Aparta tus uñas',
+        'Elige servicio, manicurista y hora. Te llega la confirmación al instante.'
+      , '/demo/lima-laca.webp'),
+      booking(),
+      b('services', 'menu', {
+        heading: 'Carta y tiempos',
+        intro: 'El tiempo es lo que de verdad planeas: un juego nuevo de acrílicas son dos horas y media sentada. Los diseños a mano se cotizan aparte según el detalle.',
+        items: [
+          { name: 'Manicure clásico', description: 'Limado, cutícula y esmalte tradicional.', price: '$280', duration: '45 min' },
+          { name: 'Manicure en gel', description: 'Retiro, limado y color en gel. Dura de 2 a 3 semanas.', price: '$420', duration: '60 min' },
+          { name: 'Acrílicas · juego nuevo', description: 'Construcción completa, largo y forma a elegir.', price: '$850', duration: '2 h 30' },
+          { name: 'Acrílicas · relleno', description: 'Mantenimiento cada 3 o 4 semanas.', price: '$600', duration: '1 h 45' },
+          { name: 'Pedicure spa', description: 'Remojo, exfoliación, masaje y esmalte.', price: '$480', duration: '75 min' },
+          { name: 'Retiro de material', description: 'Gel o acrílico, sin dañar la uña natural.', price: '$180', duration: '30 min' },
+        ],
+      }, COLUMN),
+      b('team', 'roster', {
+        heading: 'Con quién puedes reservar',
+        intro: 'Si es tu primera vez, cualquiera de las tres te asesora sobre largo y forma.',
+        members: [
+          { name: 'Dafne Carrillo', role: 'Acrílicas', photoUrl: '', note: 'Esculpido y formas largas.' },
+          { name: 'Itzel Barraza', role: 'Diseño', photoUrl: '', note: 'Mano alzada, encapsulado y pedrería.' },
+          { name: 'Mariana Solís', role: 'Gel y pedicure', photoUrl: '', note: 'Uña corta, natural y cuidado de cutícula.' },
+        ],
+      }, COLUMN),
+      b('faq', 'default', {
+        heading: 'Antes de venir',
+        items: [
+          { question: '¿Cuánto dura el gel?', answer: 'De 2 a 3 semanas sin que se levante. El acrílico aguanta más, pero pide relleno cada 3 o 4.' },
+          { question: 'Traigo material de otro lado, ¿lo retiran?', answer: 'Sí. Agenda "Retiro de material" junto con lo que te vayas a poner, para que el tiempo alcance.' },
+          { question: '¿Puedo llevar una foto de lo que quiero?', answer: 'Por favor. Mandala en las notas de la reserva y te decimos si alcanza en el tiempo que apartaste.' },
+          { question: '¿Cancelan si llego tarde?', answer: 'Te esperamos 15 minutos. Después de eso depende de si la siguiente cita ya llegó.' },
+        ],
+      }, COLUMN),
+      b('split', 'image-left', {
+        eyebrow: '',
+        heading: 'El estudio',
+        body: 'Cuatro mesas con extracción de polvo, luz fría para ver el color real y esterilización en autoclave a la vista.',
+        imageUrl: '/demo/lima-laca.webp',
+        ctaText: '',
+        ctaLink: '',
+      }, COLUMN),
+      b('hours', 'default', {
+        heading: 'Horario',
+        lines: ['Martes a viernes: 10:00–20:00', 'Sábado: 10:00–18:00', 'Domingo y lunes: cerrado'],
+      }, COLUMN),
+      b('location', 'default', {
+        heading: 'Dónde estamos',
+        address: 'Blvd. Domingo Arrieta 1204, Los Ángeles, Durango',
+        mapUrl: '',
+      }, COLUMN),
+    ],
+  },
 ];
 
 

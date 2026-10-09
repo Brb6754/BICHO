@@ -8,6 +8,7 @@ export async function createService(slug: string, formData: FormData) {
   const durationMinutes = Number(formData.get('duration_minutes'));
   const priceMxn = Number(formData.get('price_mxn'));
   const requiresStaff = formData.get('requires_staff') === 'on';
+  const showPrice = formData.get('show_price') === 'on';
 
   // Number(...) on a missing/malformed field silently produces NaN or 0,
   // which would otherwise hit the DB's `check (duration_minutes > 0)`
@@ -27,13 +28,26 @@ export async function createService(slug: string, formData: FormData) {
   const { data: tenant } = await supabase.from('tenants').select('id').eq('slug', slug).single();
   if (!tenant) return;
 
-  const { error } = await supabase.from('service_types').insert({
+  const fila = {
     tenant_id: tenant.id,
     name,
     duration_minutes: durationMinutes,
     price_cents: Math.round(priceMxn * 100),
     requires_staff: requiresStaff,
-  });
+    show_price: showPrice,
+  };
+
+  let { error } = await supabase.from('service_types').insert(fila);
+
+  // 42703 = la columna no existe: db/031 no se ha corrido en este
+  // ambiente. Reintenta sin ella, para que una migración pendiente
+  // cueste la casilla nueva y no la posibilidad de crear servicios.
+  // Mismo patrón que ya usan page_blocks, reseller_id y resource_label.
+  if (error?.code === '42703') {
+    const { show_price: _sp, ...sinColumna } = fila;
+    ({ error } = await supabase.from('service_types').insert(sinColumna));
+  }
+
   if (error) throw new Error(`No se pudo crear el servicio: ${error.message}`);
 
   revalidatePath(`/t/${slug}/dashboard/services`);

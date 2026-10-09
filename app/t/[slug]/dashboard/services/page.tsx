@@ -16,6 +16,15 @@ function formatPrice(cents: number) {
   return '$' + (Number.isInteger(pesos) ? pesos.toLocaleString('es-MX') : pesos.toFixed(2));
 }
 
+// Lo que el dueño lee en su propia lista. Un «$0» pelado no dice nada:
+// no distingue «es gratis» de «todavía no le pongo precio», que era justo
+// la queja. Las tres frases son las tres cosas que pueden ser ciertas.
+function precioEnLista(s: { price_cents: number; show_price?: boolean }) {
+  if (s.show_price === false) return 'Sin precio público';
+  if (s.price_cents === 0) return 'Sin costo';
+  return formatPrice(s.price_cents);
+}
+
 export default async function ServicesPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   // Sin el producto de citas, esta pantalla no aplica. Redirige en vez
@@ -30,7 +39,7 @@ export default async function ServicesPage({ params }: { params: Promise<{ slug:
 
   const { data: services } = await supabase
     .from('service_types')
-    .select('id, name, duration_minutes, price_cents, requires_staff, active')
+    .select('*')
     .eq('tenant_id', tenant!.id)
     .order('created_at');
 
@@ -84,7 +93,6 @@ export default async function ServicesPage({ params }: { params: Promise<{ slug:
                 min={0}
                 step="0.01"
                 defaultValue={0}
-                required
                 className="w-full"
               />
             </div>
@@ -95,6 +103,10 @@ export default async function ServicesPage({ params }: { params: Promise<{ slug:
             <label className="col-span-2 flex items-center gap-2 text-sm text-muted sm:col-span-4">
               <input type="checkbox" name="requires_staff" defaultChecked className="h-4 w-4 accent-primary" />
               Lo atiende una persona (desmárcalo para una pista o un espacio)
+            </label>
+            <label className="col-span-2 flex items-center gap-2 text-sm text-muted sm:col-span-4">
+              <input type="checkbox" name="show_price" defaultChecked className="h-4 w-4 accent-primary" />
+              Mostrar el precio en mi página (desmárcalo si prefieres cotizarlo aparte)
             </label>
           </form>
         </AddBar>
@@ -121,7 +133,7 @@ export default async function ServicesPage({ params }: { params: Promise<{ slug:
                   }
                   trail={
                     <>
-                      <span className="mr-2 font-semibold tabular-nums text-ink">{formatPrice(s.price_cents)}</span>
+                      <span className="mr-2 font-semibold tabular-nums text-ink">{precioEnLista(s)}</span>
                       <form action={toggleServiceActive.bind(null, s.id, !s.active, slug)}>
                         <ActiveSwitch active={s.active} label={s.name} />
                       </form>

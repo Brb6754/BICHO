@@ -50,6 +50,9 @@ export function BrandEditor({
 }) {
   const [form, setForm] = useState<TenantBranding>(initial);
   const [saving, setSaving] = useState(false);
+  const preguntaPorDefecto = form.resource_label?.trim()
+    ? `¿Qué ${form.resource_label.trim().toLowerCase()} prefieres?`
+    : '¿Con quién prefieres reservar?';
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -211,11 +214,24 @@ export function BrandEditor({
             ))}
           </datalist>
           <p className="mt-1 text-xs text-muted">
-            En singular. El paso de la reserva va a preguntar «
-            {form.resource_label?.trim()
-              ? `¿Qué ${form.resource_label.trim().toLowerCase()} prefieres?`
-              : '¿Con quién prefieres reservar?'}
-            ». Vacío = «Profesional».
+            En singular. Vacío = «Profesional». Se usa en el resumen y en «Ver mi cita».
+          </p>
+        </div>
+        <div>
+          <Label>La pregunta que ve tu cliente</Label>
+          <Input
+            value={form.resource_question ?? ''}
+            onChange={(e) => set('resource_question', e.target.value || null)}
+            placeholder={preguntaPorDefecto}
+            maxLength={120}
+            className="w-full"
+          />
+          {/* Se enseña la frase EFECTIVA, no la plantilla: con el campo
+              vacío es la única forma de saber qué va a leer el cliente,
+              y es justo el caso de casi todos los negocios. */}
+          <p className="mt-1 text-xs text-muted">
+            Hoy dice «{form.resource_question?.trim() || preguntaPorDefecto}». Escíbela como la
+            dirías tú: «¿En qué cancha quieres jugar?», «¿Con quién te gustaría?».
           </p>
         </div>
         <div>

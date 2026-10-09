@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { CalendarPlus, Check, ChevronDown, MapPin, Pencil } from 'lucide-react';
-import { formatDuration, formatPrice, type Service, type StepId } from './types';
+import { formatDuration, publicPrice, type Service, type StepId } from './types';
 
 // The last step is two blocks, not one long form: first what you are
 // about to book, then who you are. The old flow asked for a phone number
@@ -66,9 +66,7 @@ export function BookingSummary({
         )}
         <SummaryRow label="Cuándo" value={when} onEdit={() => onEdit('date')} />
         {location && <SummaryRow label="Dónde" value={location} />}
-        {formatPrice(service.price_cents) && (
-          <SummaryRow label="Precio" value={formatPrice(service.price_cents)} />
-        )}
+        {publicPrice(service) && <SummaryRow label="Precio" value={publicPrice(service)} />}
       </div>
 
       {/* No invented cancellation policy: the business hasn't set one

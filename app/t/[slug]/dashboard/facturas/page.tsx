@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { ReceiptText } from 'lucide-react';
 import { createAdminClient } from '@/lib/supabase/admin';
@@ -59,6 +60,16 @@ export default async function FacturasPage({ params }: { params: Promise<{ slug:
       <PageHeader
         title="Facturas"
         description="Los CFDI emitidos desde bicho. El SAT es la copia buena; esto es tu rastro."
+        action={
+          enlace?.organization_id ? (
+            <Link
+              href="/dashboard/facturas/nueva"
+              className="inline-flex min-h-11 items-center gap-2 rounded-full bg-gradient-to-r from-primary to-secondary px-5 text-sm font-semibold text-[rgb(var(--color-cta-fg))]"
+            >
+              Nueva factura
+            </Link>
+          ) : undefined
+        }
       />
 
       {/* Antes que la lista: si el negocio no está conectado, no hay nada
@@ -115,8 +126,16 @@ export default async function FacturasPage({ params }: { params: Promise<{ slug:
           <ReceiptText className="mx-auto h-6 w-6 text-muted" aria-hidden="true" />
           <p className="mt-3 text-sm font-medium text-ink">Todavía no has emitido ninguna factura</p>
           <p className="mx-auto mt-1 max-w-sm text-sm leading-relaxed text-muted">
-            Cuando un cliente acepte una cotización, vas a poder facturarla desde ahí.
+            Se factura una cotización que el cliente ya aceptó.
           </p>
+          {enlace?.organization_id && (
+            <Link
+              href="/dashboard/facturas/nueva"
+              className="mt-4 inline-flex min-h-11 items-center rounded-full bg-gradient-to-r from-primary to-secondary px-5 text-sm font-semibold text-[rgb(var(--color-cta-fg))]"
+            >
+              Hacer la primera
+            </Link>
+          )}
         </div>
       )}
     </div>

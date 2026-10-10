@@ -3588,3 +3588,102 @@ consola limpia. `tsc` limpio, 123 tests en verde.
 una de tres se disimulaba; con dos de tres el subtítulo promete algo que
 la sección no cumple. Hace falta la URL pública de las dos, o cambiar
 esa frase.
+
+**Sesión del 2026-10-08/09 — correos, tres módulos y la landing del
+estudio**. Sesión larga; lo que sigue es lo que un agente nuevo necesita
+saber para no repetir trabajo ni volver a pisar los mismos bugs.
+
+**LOS CORREOS LLEVABAN 26 DÍAS SIN SALIR.** Bruno preguntó «¿se están
+enviando los correos?» y la respuesta era no. La llave de Resend no
+podía enviar desde `bichomx.com` (403 «domain is not verified»), y nadie
+se enteró porque `sendBookingConfirmation` y `sendQuoteEmail` se tragan
+el fallo por diseño. Se abrió una cuenta nueva de Resend, se verificó el
+dominio con los registros actuales (tres: un TXT de DKIM y dos CNAME —
+ya NO hay MX, así que el reenvío de Cloudflare para `ventas@` no se
+toca) y se confirmó entrega real. **Lección que ya cuesta repetir: un
+mailer que nunca lanza necesita que alguien mire los logs del proveedor,
+porque la app nunca te lo va a decir.** De paso, `vercel env pull`
+devuelve `[SENSITIVE]` como VALOR para las variables de tipo Secret: una
+prueba hecha con eso no prueba nada, y llegué a afirmar que la llave de
+producción era inválida cuando en realidad nunca la había probado.
+
+**Tercer producto: FACTURACIÓN (db/033–036).** Es un módulo aparte, con
+su `facturacion_enabled` y su interruptor, al lado de reservas y
+cotizaciones. Emite CFDI 4.0 con **Facturapi** — en México nadie puede
+timbrar por su cuenta, el timbre lo pone un PAC autorizado, así que la
+experiencia vive en bicho y la emisión pasa por su API.
+
+- **`tax_included` llega en TRUE por omisión.** Las cotizaciones guardan
+  el precio SIN impuesto, así que un mapeo directo factura de menos el
+  IVA en CADA venta ($19,200 en vez de $20,474). Verificado timbrando
+  contra la API real, no leyendo la documentación. `lib/billing/
+  fromQuote.ts` manda `tax_included: false` con la tasa explícita, y diez
+  pruebas fijan el invariante: **el total de la factura es exactamente el
+  que el cliente aceptó**.
+- **El descuento es global en la cotización y por partida en Facturapi.**
+  Se reparte en proporción y el centavo sobrante cae en la partida más
+  grande; si se pierde, la suma de líneas no cuadra y el SAT rechaza.
+- **Una cotización no puede tener dos CFDI** (db/036). Pasó de verdad al
+  probar. Comprobarlo en código no alcanza —entre la lectura y la
+  escritura caben dos clics— así que vive en un índice único, igual que
+  el doble-booking vive en un `exclude constraint`. La fila se reserva
+  como `draft` ANTES de llamar al PAC: ahí se corta la carrera. `error` y
+  `cancelled` liberan el lugar, porque un fallo de red no puede dejar una
+  venta sin poder facturarse nunca.
+- **La llave de Facturapi NO va en `tenants`**: esa tabla tiene
+  `tenants_select_public` (lectura con la llave anon, que viaja en el
+  navegador). Vive en `tenant_billing_credentials`, RLS sin policies.
+- **Dos niveles de llave**: `sk_test_`/`sk_live_` son POR ORGANIZACIÓN y
+  solo facturan; dar de alta organizaciones necesita la `sk_user_` de la
+  cuenta. Los endpoints de Organizations **no se escribieron** porque la
+  documentación se trunca y no se pudieron verificar — preferible un
+  hueco marcado que código contra un endpoint recordado.
+- Facturapi expone `pending_steps` por organización (datos fiscales,
+  CSD, **Carta Manifiesto**). Ese tercer paso probablemente no se pueda
+  completar dentro de bicho; hay que confirmarlo antes de prometer «todo
+  sin salir de aquí».
+
+**Cuatro ajustes del panel, todos con la misma forma defensiva** (columna
+nueva en su propia consulta o `select('*')`, y reintento sin la columna
+ante un 42703, para que una migración pendiente cueste la función nueva
+y no la pantalla entera):
+
+- **db/030 `resource_question`**: la pregunta del paso de recurso la
+  escribe el negocio. No se deriva del sustantivo porque eso es adivinar
+  gramática ajena — el código no sabe si «Guía» es alguien o algo.
+- **db/031 `show_price`**: «gratis» y «no publico el precio» son dos
+  cosas distintas y un 0 no puede significar las dos.
+- **db/032 `resource_services`**: qué servicios da cada recurso. **Regla
+  que lo hace seguro: sin filas, hace de todo.** Si la ausencia
+  significara lo contrario, la migración apagaría la agenda de todos.
+- **Horarios en bloque** y, más importante, los rangos del mismo día se
+  **UNEN** (`lib/schedule/merge.ts`). Dos encimados ofrecían la misma
+  hora dos veces: Cabina 1 tenía 76 huecos un lunes en vez de 22. Unir y
+  NO reemplazar, porque reemplazar le borra la mañana a quien parte el
+  día en dos — que es justo lo que esa pantalla recomienda hacer.
+
+**Bug que se repitió dos veces y conviene tener presente**: `BlockRenderer`
+tenía copias escritas a mano de los tipos `Service` y `Resource`, y
+reenviaba `resourceQuestion` campo por campo. Un campo nuevo nacía
+invisible y **`tsc` pasaba limpio** (el objeto llega como variable, y
+TypeScript no revisa propiedades de más en ese caso). Ya apuntan al tipo
+compartido. Moraleja: compilar no prueba que la prop llegó; hay que
+verlo en el navegador.
+
+**Landing del estudio reescrita (`app/page.tsx` + `components/central/`).**
+Era oscura de punta a punta a propósito, y el comentario decía por qué:
+el patrón «blanco con hero oscuro» es el de `/reservas`. Bruno pidió
+unificar, así que ahora comparte sistema —blanco de suelo, morado
+estructural— pero el hero es distinto a propósito: casi negro y alineado
+a la izquierda, contra el morado vivo y centrado del producto. El
+posicionamiento es **«tecnología para pymes, accesible y muy funcional»**.
+El portafolio dejó de ser marquesina (sobre blanco se leía como widget y
+recortaba las capturas) y es una banda OSCURA con filas alternadas, que
+además parte la página — con blanco y `mist` nada más, al bajar se leía
+como una sola extensión. Se borraron siete componentes que quedaron
+huérfanos, y con ellos los 2 errores de lint que el repo arrastraba.
+
+**Pendiente de Bruno (negocio, no código)**: decidir el precio, su RFC y
+su sello digital, y cerrar a Guillermo. La nota del vault
+(`Obsidian Vault/Proyectos/Bicho/`) tiene el detalle y un `Traspaso
+2026-10-09.md`.

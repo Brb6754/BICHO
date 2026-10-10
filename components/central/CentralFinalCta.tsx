@@ -1,32 +1,28 @@
-import { PillLink } from './Primitives';
-import { Bloom } from './Flourishes';
+import { PillLink } from '@/components/marketing/Primitives';
+import { CircleStamp } from '@/components/marketing/Flourishes';
 import { Reveal } from '@/components/marketing/Reveal';
 
-// The page's last word. Marked off by a top hairline and its own bloom
-// rather than a colour change — the whole page is dark, so a slab here
-// would just be a second hero.
+// La última palabra. Un bloque oscuro de puntuación, no un segundo hero:
+// después de dos hojas blancas, el cierre tiene que pesar.
 export function CentralFinalCta() {
   return (
-    <section className="relative overflow-hidden border-t border-white/[0.08] px-6 py-24 text-center sm:py-28">
-      <Bloom
-        className="left-1/2 top-full h-[30rem] w-[46rem] -translate-x-1/2 -translate-y-2/3"
-        intensity={0.4}
-      />
+    <section className="relative overflow-hidden bg-[#1B1040] px-5 py-20 text-center sm:px-6 sm:py-28">
+      <CircleStamp className="absolute -right-10 top-10 hidden h-36 w-36 opacity-70 lg:block" />
 
       <Reveal className="relative mx-auto max-w-xl">
-        <h2 className="font-[family-name:var(--font-central)] text-[clamp(1.75rem,4vw,2.6rem)] font-semibold leading-[1.15] tracking-[-0.02em] text-white">
-          ¿Tienes un proyecto en mente?
+        <h2 className="font-[family-name:var(--font-display)] text-[clamp(1.9rem,4.4vw,3.1rem)] font-extrabold uppercase leading-[0.95] tracking-[-0.02em] text-white">
+          ¿Tienes algo en mente?
         </h2>
-        <p className="mx-auto mt-4 max-w-md text-[15px] leading-relaxed text-[#8C9BC9]">
-          Cuéntanos qué necesita tu negocio — un sistema, un sitio, un agente
-          o entender tus números — y de ahí partimos.
+        <p className="mx-auto mt-5 max-w-md text-[15px] leading-relaxed text-[#B9B1E6]">
+          Cuéntanos qué necesita tu negocio — agendar, cotizar, facturar, o algo que todavía no
+          existe — y de ahí partimos.
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-          <PillLink href="mailto:nonameynk@gmail.com" tone="core">
-            Escríbenos
+          <PillLink href="/demo" tone="lime">
+            Agenda una demo
           </PillLink>
-          <PillLink href="/reservas" tone="outlineOnDark">
-            Ver bicho reservas
+          <PillLink href="mailto:nonameynk@gmail.com" tone="outlineOnDark">
+            Escríbenos
           </PillLink>
         </div>
       </Reveal>

@@ -1,72 +1,79 @@
 import Link from 'next/link';
-import { ArrowUpRight, FolderOpen, PlayCircle } from 'lucide-react';
-import { SectionHeading } from './SectionHeading';
-import { Bloom } from './Flourishes';
-import { SpotlightCard } from './SpotlightCard';
+import { ArrowUpRight, PlayCircle } from 'lucide-react';
+import { SectionOpener } from '@/components/marketing/Primitives';
+import { Reveal } from '@/components/marketing/Reveal';
 import { PROJECTS, type Project } from './projects';
 
-// Real screenshots of real shipped pages, each linking to the live
-// thing. The screenshots are Bruno's own captures, in public/portfolio/.
+// El portafolio: capturas reales de páginas reales, cada una con su
+// enlace a lo que está en vivo. Las capturas son de Bruno, en
+// public/portfolio/.
 //
-// Two effects here, both tied to the pointer rather than running on
-// their own: the card lights up from the cursor (SpotlightCard), and a
-// band of light sweeps once across the screenshot (`.shine-host`). The
-// sweep is the one flourish on the page that exists purely to make
-// something look good — it earns it by landing on the actual product
-// shots, which is what this section is here to show off.
+// DOS CAMBIOS, 2026-10-09 (Bruno).
 //
-// The card is a CONTAINER, not a link — even for a project with a
-// single action. It carries up to two of them ("ver el sitio" and, for
-// bicho reservas, "abrir la plataforma"), and a card with two actions
-// can't be one link. Making only the two-action card different would
-// also mean two hover behaviours in the same row. This is the same
-// nested-anchor problem that already caused a real hydration error in
-// the hero, so it's settled the same way: exactly one <a> per target,
-// never one wrapping another. The corner arrow is deliberately NOT a
-// link for that reason — it's an affordance, marked aria-hidden, and
-// the real targets are the buttons in the footer.
-function ProjectCard({ project }: { project: Project }) {
+// 1. SE FUE EL DESFILE AUTOMÁTICO. Funcionaba sobre el fondo casi negro
+//    original, pero sobre blanco se leía como un widget pegado a la
+//    página y, peor, recortaba las capturas — que son exactamente la
+//    prueba que esta sección viene a enseñar. Ahora son filas que
+//    alternan lado: la captura tiene espacio de verdad.
+//    De paso se fue la pasada duplicada con `inert`, que existía solo
+//    para que el ciclo no saltara; sin desfile no hace falta, y con
+//    ella se va un enredo de accesibilidad.
+//
+// 2. ESTA SECCIÓN ES OSCURA. La página venía blanco/mist/blanco/mist, y
+//    mist está tan cerca del blanco que al bajar se leía como una sola
+//    extensión sin ritmo. Un bloque oscuro al centro parte la página en
+//    dos mitades — y las capturas, que son casi todas de interfaces
+//    oscuras o saturadas, resaltan aquí mucho más que sobre blanco.
+//
+// La tarjeta sigue siendo un CONTENEDOR, no un enlace: lleva hasta dos
+// acciones, y una tarjeta con dos acciones no puede ser un solo enlace.
+// Es el mismo problema de anclas anidadas que ya causó un error real de
+// hidratación en el hero, y se resuelve igual: exactamente un <a> por
+// destino, nunca uno dentro de otro. La flecha de la esquina NO es un
+// enlace por esa razón — es affordance, va `aria-hidden`, y los
+// destinos reales son los botones.
+function ProjectRow({ project, index }: { project: Project; index: number }) {
   const hasLink = !project.href.startsWith('#');
+  // Alterna el lado de la captura. En teléfono siempre va arriba, que
+  // es lo que una columna puede sostener.
+  const imagenDerecha = index % 2 === 1;
 
   return (
-    <SpotlightCard className="group block h-full overflow-hidden rounded-3xl border border-white/[0.09] bg-[#0B1030]">
-      <div className="shine-host relative aspect-[16/10] border-b border-white/[0.07] bg-[#080D28]">
-        {/* eslint-disable-next-line @next/next/no-img-element -- static
-            screenshot in public/, no remote host for next/image to be
-            configured against and no layout win at this size. */}
+    <article className="group grid items-center gap-8 lg:grid-cols-2 lg:gap-14">
+      <div
+        className={`shine-host relative aspect-[16/10] overflow-hidden rounded-3xl bg-[#241746] ring-1 ring-white/10 ${
+          imagenDerecha ? 'lg:order-2' : ''
+        }`}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element -- captura
+            estática en public/, sin host remoto que configurarle a
+            next/image y sin ganancia de layout a este tamaño. */}
         <img
           src={project.image}
           alt={`Captura del sitio de ${project.name}`}
-          className="h-full w-full object-cover object-top transition-transform duration-700 ease-out group-hover:scale-[1.04]"
+          className="h-full w-full object-cover object-top transition-transform duration-700 ease-out group-hover:scale-[1.03]"
           loading="lazy"
         />
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-[#0B1030] to-transparent" />
-
-        {/* The arrow. It sits over the shot's corner where a browser's
-            own "open in new tab" would, tilts a little further out on
-            hover, and says "this goes somewhere" before anyone reads a
-            single word of the card. */}
         <span
           aria-hidden="true"
-          className="pointer-events-none absolute right-3.5 top-3.5 flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-[#080D28]/70 text-white backdrop-blur-sm transition-all duration-300 group-hover:border-[#A99BFF]/60 group-hover:bg-[#3B00FF] group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+          className="pointer-events-none absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-[#140F2E] shadow-sm transition-all duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:bg-[#D4F23A]"
         >
           <ArrowUpRight className="h-4 w-4" strokeWidth={2.4} />
         </span>
       </div>
 
-      <div className="p-6 sm:p-7">
-        <span className="text-[11px] font-medium uppercase tracking-wide text-[#A99BFF]">
-          {project.tag}
-        </span>
-        <h3 className="mt-1.5 font-[family-name:var(--font-central)] text-lg font-semibold text-white">
+      <div className={imagenDerecha ? 'lg:order-1' : ''}>
+        <span className="text-[13px] font-semibold text-[#D4F23A]">{project.tag}</span>
+        <h3 className="mt-2 font-[family-name:var(--font-display)] text-[clamp(1.5rem,3vw,2.1rem)] font-extrabold uppercase leading-[1] tracking-[-0.02em] text-white">
           {project.name}
         </h3>
-        <p className="mt-2 text-sm leading-relaxed text-[#8C9BC9]">{project.blurb}</p>
-        <div className="mt-4 flex flex-wrap gap-1.5">
+        <p className="mt-4 max-w-md text-[15px] leading-relaxed text-[#B9B1E6]">{project.blurb}</p>
+
+        <div className="mt-5 flex flex-wrap gap-1.5">
           {project.stack.map((tech) => (
             <span
               key={tech}
-              className="rounded-md border border-white/[0.07] bg-white/[0.03] px-2 py-1 text-[11px] text-[#9FB0D9]"
+              className="rounded-md bg-white/[0.07] px-2 py-1 text-[11px] text-[#B9B1E6]"
             >
               {tech}
             </span>
@@ -74,11 +81,11 @@ function ProjectCard({ project }: { project: Project }) {
         </div>
 
         {(hasLink || project.demoHref) && (
-          <div className="mt-6 flex flex-wrap items-center gap-2">
+          <div className="mt-7 flex flex-wrap items-center gap-2">
             {project.demoHref && (
               <Link
                 href={project.demoHref}
-                className="inline-flex items-center gap-2 rounded-full bg-[#3B00FF] px-4 py-2 text-[13px] font-semibold text-white shadow-[0_10px_26px_-10px_rgba(59,0,255,0.9)] transition-colors hover:bg-[#5B2BFF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#A99BFF] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
+                className="inline-flex items-center gap-2 rounded-full bg-[#D4F23A] px-5 py-2.5 text-[13px] font-semibold text-[#140F2E] transition-colors hover:bg-[#B5D42B] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
               >
                 <PlayCircle className="h-4 w-4" aria-hidden="true" />
                 Ver la plataforma
@@ -90,7 +97,7 @@ function ProjectCard({ project }: { project: Project }) {
                   href={project.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 rounded-full border border-white/15 px-4 py-2 text-[13px] font-medium text-white/80 transition-colors hover:bg-white/[0.06] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-white/25 px-5 py-2.5 text-[13px] font-medium text-white transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                 >
                   Ver el sitio
                   <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
@@ -98,7 +105,7 @@ function ProjectCard({ project }: { project: Project }) {
               ) : (
                 <Link
                   href={project.href}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-white/15 px-4 py-2 text-[13px] font-medium text-white/80 transition-colors hover:bg-white/[0.06] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-white/25 px-5 py-2.5 text-[13px] font-medium text-white transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                 >
                   Ver el sitio
                   <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
@@ -107,88 +114,35 @@ function ProjectCard({ project }: { project: Project }) {
           </div>
         )}
       </div>
-    </SpotlightCard>
-  );
-}
-
-// One pass of the project list. Rendered twice inside the track, which
-// is what makes the crawl seamless — same mechanism as the services
-// ticker in the hero (globals.css, `ticker-crawl`): the keyframe moves
-// exactly -50%, so copy #2 lands where copy #1 started.
-//
-// The second pass is `aria-hidden` AND `inert`: a screen reader hears
-// three projects rather than six, and — the part that actually matters
-// here, since these cards contain real buttons — Tab never lands on a
-// duplicate of a link the visitor already passed.
-function Pass({ clone = false }: { clone?: boolean }) {
-  return (
-    <ul
-      className="flex shrink-0 items-stretch gap-5 pr-5"
-      aria-hidden={clone || undefined}
-      inert={clone || undefined}
-    >
-      {PROJECTS.map((project) => (
-        <li key={project.slug} className="w-[min(82vw,30rem)] shrink-0">
-          <ProjectCard project={project} />
-        </li>
-      ))}
-    </ul>
+    </article>
   );
 }
 
 export function PortfolioSection() {
   return (
-    <section id="portafolio" className="relative overflow-hidden py-24 sm:py-28">
-      <Bloom
-        className="left-1/2 top-1/4 h-[32rem] w-[50rem] -translate-x-1/2"
-        intensity={0.22}
-        drift
-        duration="54s"
-      />
+    <section id="portafolio" className="bg-[#1B1040] px-5 py-20 sm:px-6 sm:py-28">
+      <div className="mx-auto max-w-6xl">
+        <SectionOpener
+          eyebrow="Portafolio"
+          title={
+            <>
+              Trabajo real,
+              <br />
+              que puedes visitar
+            </>
+          }
+          intro="Sitios y productos en producción, no maquetas."
+          onDark
+        />
 
-      <div className="relative px-6">
-        <div className="mx-auto max-w-5xl">
-          <SectionHeading
-            line1="Trabajo real,"
-            line2="que puedes | visitar"
-            icon={<FolderOpen className="h-[0.5em] w-[0.5em]" strokeWidth={2.5} />}
-            sub="Sitios y productos en producción, no maquetas. Entra y pruébalos."
-          />
+        <div className="mt-14 flex flex-col gap-16 sm:gap-20">
+          {PROJECTS.map((project, i) => (
+            <Reveal key={project.slug} delay={i * 60}>
+              <ProjectRow project={project} index={i} />
+            </Reveal>
+          ))}
         </div>
       </div>
-
-      {/* Full-bleed on purpose: a crawl that stops at a 1024px container
-          reads as a widget on the page. Running edge to edge is what
-          makes it read as a band moving THROUGH the page, same as the
-          hero's ticker.
-          `ticker-shell` brings the hover pause from globals.css; the
-          focus-within pause is added there too, because these cards —
-          unlike the hero's ticker — contain buttons someone has to be
-          able to reach with the keyboard without chasing them. */}
-      <div
-        className="ticker-shell relative mt-14 overflow-hidden"
-        style={{
-          // Much slower than the hero's 16s: those are four short words,
-          // these are 480px cards carrying a screenshot and a paragraph.
-          // At this rate a card takes ~20s to cross, which is long
-          // enough to read one without waiting for the pause.
-          ['--ticker-duration' as string]: '60s',
-          maskImage: 'linear-gradient(to right, transparent, black 6%, black 94%, transparent)',
-          WebkitMaskImage:
-            'linear-gradient(to right, transparent, black 6%, black 94%, transparent)',
-        }}
-      >
-        <div className="ticker-track flex w-max">
-          <Pass />
-          <Pass clone />
-        </div>
-      </div>
-
-      {/* Hidden on a phone: there is no cursor there, so the sentence
-          would be an instruction nobody can follow. */}
-      <p className="relative mt-8 hidden px-6 text-center text-sm text-[#8C9BC9] sm:block">
-        Pasa el cursor sobre una tarjeta para detener el desfile.
-      </p>
     </section>
   );
 }

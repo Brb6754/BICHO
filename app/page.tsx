@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Hero } from '@/components/central/Hero';
+import { PlatformSection } from '@/components/central/PlatformSection';
 import { ServicesSection } from '@/components/central/ServicesSection';
 import { PortfolioSection } from '@/components/central/PortfolioSection';
 import { WhySection } from '@/components/central/WhySection';
@@ -7,30 +8,40 @@ import { CentralFinalCta } from '@/components/central/CentralFinalCta';
 import { CentralFooter } from '@/components/central/CentralFooter';
 
 export const metadata: Metadata = {
-  title: 'bicho — estudio de software, IA y datos',
+  title: 'bicho — tecnología para pymes',
   description:
-    'Estudio en Durango: SaaS a la medida, páginas y apps web, agentes de IA y data science para finanzas y marketing. Trabajo en producción, no maquetas.',
+    'Reservas, cotizaciones y facturación para negocios pequeños en México, más software a la medida. Accesible y en producción, no maquetas.',
 };
 
-// The apex/root domain serves the STUDIO's home; bicho reservas is one
-// of its services and lives at /reservas (see that file's header).
+// El dominio raíz sirve la casa de bicho; la plataforma se explica por
+// dentro en /reservas.
 //
-// Dark for the page's full length, not white-with-a-dark-hero — that
-// second pattern is bicho reservas' own, and reusing it here made this
-// page read as "the other bicho" no matter what the palette did. The
-// accent (#3B00FF) is sampled from Bruno's real logo file, not chosen.
+// CAMBIO DE RUMBO, 2026-10-09 (Bruno). Esta página era oscura de punta
+// a punta a propósito, para no leerse como "el otro bicho" junto a la
+// landing del producto. Ahora adopta ese mismo lenguaje —blanco de
+// suelo, morado como color estructural— porque el posicionamiento se
+// unificó: tecnología para pymes, accesible y muy funcional. Dos voces
+// para un mismo mensaje confundían más de lo que separaban.
 //
-// Order is deliberate: the suite first (what bicho does), then proof
-// (what it shipped), then how it works, then the ask.
+// El orden vende en el orden en que se cree: primero lo que puede ver
+// funcionando hoy (la plataforma), después lo que se construye a la
+// medida, luego la prueba de que se entregó, y al final la pregunta.
 export default function CentralHomePage() {
   return (
-    <div className="bg-[#05091C]">
+    <div className="bg-white">
       <main>
         <Hero />
-        <ServicesSection />
-        <PortfolioSection />
-        <WhySection />
-        <CentralFinalCta />
+
+        {/* La hoja blanca lapa sobre el morado: es lo que hace que el
+            blanco se lea como la página y el morado como su apertura,
+            en vez de dos bloques apilados. */}
+        <div className="relative z-10 -mt-8 rounded-t-[2rem] bg-white sm:-mt-10 sm:rounded-t-[2.5rem]">
+          <PlatformSection />
+          <ServicesSection />
+          <PortfolioSection />
+          <WhySection />
+          <CentralFinalCta />
+        </div>
       </main>
       <CentralFooter />
     </div>

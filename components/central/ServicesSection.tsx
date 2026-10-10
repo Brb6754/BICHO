@@ -1,64 +1,62 @@
-import { Layers, Check } from 'lucide-react';
-import { SectionHeading } from './SectionHeading';
-import { Bloom } from './Flourishes';
-import { SpotlightCard } from './SpotlightCard';
-import { SERVICES } from './services';
+import { Check } from 'lucide-react';
+import { SectionOpener } from '@/components/marketing/Primitives';
 import { Reveal } from '@/components/marketing/Reveal';
+import { SERVICES } from './services';
 
-// The suite. Four areas in one grid so they read as one offer rather
-// than four unrelated services side by side — which is the whole point
-// of this page existing separately from the reservas product page.
+// Lo que bicho construye a la medida, cuando la plataforma no alcanza.
 //
-// Each card is a SpotlightCard: it lights up from wherever the cursor
-// is. That replaced a fixed corner glow that brightened on hover — the
-// fixed one told you the card noticed you, this one tells you WHERE.
+// Va DESPUÉS de los módulos a propósito: primero lo que alguien puede
+// ver funcionando hoy, y recién entonces lo que se construye desde
+// cero. Al revés, un negocio chico se siente fuera de lugar antes de
+// entender que la plataforma es para él.
+//
+// La banda es `mist` y no blanca: separa esta sección de la anterior
+// sin meter una línea ni un título de más.
+//
+// `proof` se queda tal cual. Es lo que cada servicio puede afirmar hoy
+// sin inventar un caso de éxito que no existe.
 export function ServicesSection() {
   return (
-    <section id="servicios" className="relative overflow-hidden px-6 py-24 sm:py-28">
-      <Bloom
-        className="left-1/2 top-0 h-[30rem] w-[46rem] -translate-x-1/2 -translate-y-1/2"
-        intensity={0.26}
-        drift
-      />
-
-      <div className="relative mx-auto max-w-5xl">
-        <SectionHeading
-          line1="Un solo estudio"
-          line2="para todo lo | digital"
-          icon={<Layers className="h-[0.5em] w-[0.5em]" strokeWidth={2.5} />}
-          sub="Software, sitios, automatización con IA y análisis de datos. Las cuatro piezas que un negocio necesita para dejar de operar a mano."
+    <section id="servicios" className="bg-[#F5F3FC] px-5 py-20 sm:px-6 sm:py-28">
+      <div className="mx-auto max-w-6xl">
+        <SectionOpener
+          eyebrow="A la medida"
+          title={
+            <>
+              ¿Y si lo tuyo
+              <br />
+              no cabe ahí?
+            </>
+          }
+          intro="No todo negocio necesita lo mismo. Cuando la plataforma no alcanza, se construye: software propio, un sitio, un agente que conteste, o los números puestos en claro."
         />
 
-        <div className="mt-14 grid gap-4 sm:grid-cols-2">
+        <div className="mt-12 grid gap-4 sm:grid-cols-2">
           {SERVICES.map(({ id, Icon, name, blurb, bullets, proof }, i) => (
             <Reveal key={id} delay={i * 80}>
-              <SpotlightCard className="block h-full rounded-3xl border border-white/[0.09] bg-[#0B1030] p-7 transition-colors duration-300">
-                <div>
-                  <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-[#5B2BFF] to-[#3B00FF] text-white shadow-[0_10px_26px_-8px_rgba(59,0,255,0.9)]">
-                    <Icon className="h-5 w-5" strokeWidth={2} aria-hidden="true" />
-                  </span>
+              <article className="flex h-full flex-col rounded-3xl bg-white p-7">
+                <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#5B34E8]">
+                  <Icon className="h-5 w-5 text-white" strokeWidth={2} aria-hidden="true" />
+                </span>
 
-                  <h3 className="mt-5 font-[family-name:var(--font-central)] text-lg font-semibold leading-snug text-white">
-                    {name}
-                  </h3>
-                  <p className="mt-2.5 text-sm leading-relaxed text-[#8C9BC9]">{blurb}</p>
+                <h3 className="mt-5 text-[19px] font-bold leading-snug text-[#140F2E]">{name}</h3>
+                <p className="mt-2.5 text-[15px] leading-relaxed text-[#6A6488]">{blurb}</p>
 
-                  <ul className="mt-5 flex flex-col gap-2">
-                    {bullets.map((b) => (
-                      <li key={b} className="flex items-center gap-2.5 text-[13px] text-[#B9C3E4]">
-                        <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#3B00FF]/25 text-[#A99BFF]">
-                          <Check className="h-2.5 w-2.5" strokeWidth={3.5} aria-hidden="true" />
-                        </span>
-                        {b}
-                      </li>
-                    ))}
-                  </ul>
+                <ul className="mt-5 flex flex-col gap-2">
+                  {bullets.map((b) => (
+                    <li key={b} className="flex items-center gap-2.5 text-[14px] text-[#140F2E]">
+                      <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#5B34E8]/15 text-[#5B34E8]">
+                        <Check className="h-2.5 w-2.5" strokeWidth={3.5} aria-hidden="true" />
+                      </span>
+                      {b}
+                    </li>
+                  ))}
+                </ul>
 
-                  <p className="mt-6 border-t border-white/[0.07] pt-4 text-[11px] font-medium uppercase tracking-wide text-[#A99BFF]">
-                    {proof}
-                  </p>
-                </div>
-              </SpotlightCard>
+                <p className="mt-auto border-t border-[#140F2E]/10 pt-4 text-[13px] font-medium text-[#5B34E8]">
+                  {proof}
+                </p>
+              </article>
             </Reveal>
           ))}
         </div>

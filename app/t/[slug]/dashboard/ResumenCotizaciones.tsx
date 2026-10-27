@@ -1,10 +1,11 @@
 import Link from 'next/link';
-import { ArrowUpRight, Eye, FileText, Check } from 'lucide-react';
+import { ArrowUpRight, Eye, FileText, Check, Handshake } from 'lucide-react';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireTenantStaff } from '@/lib/auth/tenantStaff';
 import { PageHeader } from '@/components/tenant-dash/PageHeader';
 import { computeTotals, formatMoney, formatFolio, isExpired } from '@/lib/quotes/totals';
-import { longDate } from '@/lib/dates/tenantTime';
+import { longDate, appointmentWhen } from '@/lib/dates/tenantTime';
+import { modalidadLabel } from '@/lib/meetings/kinds';
 
 // El Resumen de un negocio que SOLO contrató cotizaciones.
 //
@@ -48,6 +49,21 @@ export async function ResumenCotizaciones({
       </div>
     );
   }
+
+  // Las próximas reuniones, en su propia consulta y tolerante: sin
+  // db/039 esto vuelve con error y la sección simplemente no aparece,
+  // en vez de tumbar el Resumen entero. Un negocio que agenda reuniones
+  // abre su panel preguntando "¿a quién veo hoy?" antes que "¿quién no
+  // me ha contestado?", así que va arriba.
+  const { data: reuniones } = await supabase
+    .from('bookings')
+    .select('id, starts_at, modality, company, service_types(name), customers(name)')
+    .eq('tenant_id', tenantId)
+    .eq('kind', 'reunion')
+    .eq('status', 'confirmed')
+    .gte('starts_at', now.toISOString())
+    .order('starts_at')
+    .limit(4);
 
   const ids = (quotes ?? []).map((q) => q.id);
   const { data: items } = ids.length
@@ -104,6 +120,48 @@ export async function ResumenCotizaciones({
           </div>
         ))}
       </section>
+
+      {(reuniones ?? []).length > 0 && (
+        <section className="mt-10">
+          <h2 className="text-[15px] font-semibold text-ink">A quién vas a ver</h2>
+          <ul className="mt-4 flex flex-col gap-2">
+            {(
+              (reuniones ?? []) as unknown as {
+                id: string;
+                starts_at: string;
+                modality: string | null;
+                company: string | null;
+                service_types: { name: string } | null;
+                customers: { name: string } | null;
+              }[]
+            ).map((r) => (
+              <li
+                key={r.id}
+                className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-2xl bg-surface px-5 py-4 ring-1 ring-border"
+              >
+                <Handshake className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[15px] text-ink">
+                    {r.customers?.name ?? 'Sin nombre'}
+                    {r.company ? ` · ${r.company}` : ''}
+                  </span>
+                  <span className="block text-[13px] text-muted">
+                    {appointmentWhen(r.starts_at, timezone)} · {modalidadLabel(r.modality)}
+                  </span>
+                </span>
+              </li>
+            ))}
+          </ul>
+
+          <Link
+            href="/dashboard/reuniones"
+            className="mt-4 inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-ink underline-offset-4 hover:underline"
+          >
+            Ver todas
+            <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+          </Link>
+        </section>
+      )}
 
       <section className="mt-10">
         <h2 className="text-[15px] font-semibold text-ink">

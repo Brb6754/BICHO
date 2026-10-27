@@ -8,6 +8,7 @@ import { PageHeader, SectionHeading } from '@/components/tenant-dash/PageHeader'
 import { AgendaList, type AgendaBooking } from '@/components/tenant-dash/AgendaList';
 import { dayKey, longDate } from '@/lib/dates/tenantTime';
 import { tenantBookingPageUrl } from '@/lib/urls';
+import { esServicio } from '@/lib/meetings/kinds';
 
 // RESUMEN — rebuilt around the one question an owner has when they open
 // this page: "what do I have today?"
@@ -47,7 +48,7 @@ export default async function DashboardOverviewPage({ params }: { params: Promis
   const from = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
   const to = new Date(now.getTime() + 8 * 24 * 60 * 60 * 1000).toISOString();
 
-  const [{ data: raw }, { count: serviceCount }, { count: resourceCount }, { count: scheduleCount }] =
+  const [{ data: raw }, { data: servicios }, { count: resourceCount }, { count: scheduleCount }] =
     await Promise.all([
       supabase
         .from('bookings')
@@ -56,9 +57,14 @@ export default async function DashboardOverviewPage({ params }: { params: Promis
         .gte('starts_at', from)
         .lte('starts_at', to)
         .order('starts_at'),
+      // Se traen las filas en vez de pedir un count: el catálogo de un
+      // negocio son unas cuantas, y un `count` no puede descontar los
+      // tipos de reunión, que viven en la misma tabla (db/039). Un
+      // "4 servicios en catálogo" que incluya "Visita técnica" manda a
+      // alguien a buscar un servicio que no existe.
       supabase
         .from('service_types')
-        .select('id', { count: 'exact', head: true })
+        .select('*')
         .eq('tenant_id', tenant!.id)
         .eq('active', true),
       supabase
@@ -78,8 +84,10 @@ export default async function DashboardOverviewPage({ params }: { params: Promis
   const todayActive = today.filter((b) => b.status !== 'cancelled');
   const nextToday = todayActive.find((b) => new Date(b.ends_at) > now && b.status === 'confirmed');
 
+  const serviceCount = (servicios ?? []).filter(esServicio).length;
+
   const setup = [
-    { done: (serviceCount ?? 0) > 0, label: 'Agrega al menos un servicio', href: '/dashboard/services' },
+    { done: serviceCount > 0, label: 'Agrega al menos un servicio', href: '/dashboard/services' },
     { done: (resourceCount ?? 0) > 0, label: 'Agrega quién o qué atiende', href: '/dashboard/resources' },
     { done: (scheduleCount ?? 0) > 0, label: 'Define tu horario de atención', href: '/dashboard/schedule' },
   ];

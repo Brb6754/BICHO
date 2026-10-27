@@ -21,6 +21,7 @@ export type ProductosDelNegocio = {
   reservas: boolean;
   cotizaciones: boolean;
   facturacion: boolean;
+  reuniones: boolean;
 };
 
 export async function productosDe(slug: string): Promise<ProductosDelNegocio> {
@@ -38,5 +39,8 @@ export async function productosDe(slug: string): Promise<ProductosDelNegocio> {
     // con más razón, porque emite documentos fiscales a nombre del
     // negocio.
     facturacion: data?.facturacion_enabled === true,
+    // Mismo criterio: extra que se vende aparte, apagado hasta que
+    // alguien lo prende.
+    reuniones: data?.reuniones_enabled === true,
   };
 }

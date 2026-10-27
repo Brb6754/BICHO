@@ -37,6 +37,16 @@ export function tenantBookingPageUrl(slug: string): string {
   return `${protocol}://${rootDomain}/t/${slug}/reservar`;
 }
 
+// La página pública de reuniones. Misma forma por path y por los
+// mismos dos motivos que la de reservas: no hay TLS wildcard en
+// *.vercel.app, y {sub}.localhost solo resuelve en la máquina de
+// desarrollo.
+export function tenantMeetingsPageUrl(slug: string): string {
+  const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? 'localhost:3000';
+  const protocol = rootDomain.startsWith('localhost') ? 'http' : 'https';
+  return `${protocol}://${rootDomain}/t/${slug}/reuniones`;
+}
+
 // The rep's own subscription screen. Same path-based form and the same
 // two reasons as the functions above: no wildcard TLS on *.vercel.app,
 // and {sub}.localhost only resolves on the dev machine. Used by the

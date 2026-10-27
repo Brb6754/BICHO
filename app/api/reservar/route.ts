@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { sendBookingConfirmation } from '@/lib/email/sendBookingConfirmation';
 import { sendBookingWhatsApp } from '@/lib/whatsapp/send';
 import { tenantManageBookingUrl } from '@/lib/urls';
+import { esServicio } from '@/lib/meetings/kinds';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_TEXT_LENGTH = 200;
@@ -109,12 +110,17 @@ export async function POST(request: Request) {
     .single();
   const { data: service } = await supabase
     .from('service_types')
-    .select('id, name')
+    // `*` para poder distinguir un servicio de un tipo de reunión
+    // (db/039) sin que la consulta truene donde la migración no esté.
+    .select('*')
     .eq('id', service_type_id)
     .eq('tenant_id', tenant.id)
     .single();
 
-  if (!resource || !service) {
+  // Un tipo de reunión no se puede agendar por aquí: este endpoint es
+  // público y no captura empresa ni dirección, así que una reunión
+  // creada por esta vía nacería sin los datos que la hacen útil.
+  if (!resource || !service || !esServicio(service)) {
     return NextResponse.json({ error: 'Recurso o servicio inválido.' }, { status: 400 });
   }
 

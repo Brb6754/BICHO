@@ -9,6 +9,7 @@ import { ConfirmForm } from '@/components/ui/ConfirmForm';
 import { PageHeader } from '@/components/tenant-dash/PageHeader';
 import { AgendaList, type AgendaBooking } from '@/components/tenant-dash/AgendaList';
 import { dayKey } from '@/lib/dates/tenantTime';
+import { esServicio } from '@/lib/meetings/kinds';
 
 // AGENDA. Same AgendaList as the Resumen — one component for "a list of
 // appointments" across the whole dashboard, so a booking reads the same
@@ -44,10 +45,12 @@ export default async function CalendarPage({ params }: { params: Promise<{ slug:
 
   // The catalog the "agendar una cita" form works from. Only active rows:
   // the form must offer exactly what the public page offers.
-  const [{ data: services }, { data: resources }] = await Promise.all([
+  const [{ data: services_raw }, { data: resources }] = await Promise.all([
     supabase
       .from('service_types')
-      .select('id, name, duration_minutes')
+      // `*` y no la lista de columnas, para poder separar servicios de
+      // tipos de reunión (db/039) aunque la migración no esté corrida.
+      .select('*')
       .eq('tenant_id', tenant!.id)
       .eq('active', true)
       .order('name'),
@@ -58,6 +61,11 @@ export default async function CalendarPage({ params }: { params: Promise<{ slug:
       .eq('active', true)
       .order('name'),
   ]);
+
+  // Un tipo de reunión no se agenda desde aquí: tiene su propia
+  // pantalla, con los campos que una reunión necesita (empresa,
+  // dirección) y que este formulario no pide.
+  const services = (services_raw ?? []).filter(esServicio);
 
   const todayKey = dayKey(now, tz);
   const bookings = ((raw ?? []) as unknown as AgendaBooking[]).filter((b) => dayKey(b.starts_at, tz) >= todayKey);

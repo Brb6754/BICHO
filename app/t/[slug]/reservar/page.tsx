@@ -3,18 +3,19 @@ import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { productosDe } from '@/lib/products';
 import { BlockRenderer } from '@/components/blocks/BlockRenderer';
-import { googleFontsHref, isFontKey, FONT_OPTIONS, type FontKey } from '@/lib/branding/fonts';
+import { isFontKey, type FontKey } from '@/lib/branding/fonts';
 import {
   PLATFORM_PRIMARY,
   PLATFORM_SECONDARY,
   PLATFORM_ACCENT,
-  tenantColorCssVars,
   tenantDarkModeCssVars,
   tenantDarkBase,
+  mixToPaper,
 } from '@/lib/branding/colors';
-import { mixToPaper, withAlpha } from '@/lib/branding/colors';
 import type { Block, TemplateDesign } from '@/lib/templates/blocks';
-import { createDefaultBlock, normalizeDesign, templateDesignCssVars } from '@/lib/templates/blocks';
+import { createDefaultBlock, normalizeDesign } from '@/lib/templates/blocks';
+import { esServicio } from '@/lib/meetings/kinds';
+import { PublicShell } from '@/components/tenant-public/PublicShell';
 
 function resolveFontKey(value: unknown): FontKey {
   return typeof value === 'string' && isFontKey(value) ? value : 'inter';
@@ -139,12 +140,19 @@ export default async function ReservarPage({ params }: { params: Promise<{ slug:
     .eq('slug', slug)
     .maybeSingle();
 
-  const { data: services } = await supabase
+  const { data: services_raw } = await supabase
     .from('service_types')
     .select('*')
     .eq('tenant_id', tenant.id)
     .eq('active', true)
     .order('name');
+
+  // Los tipos de reunión viven en la misma tabla (db/039) y NO son
+  // cosas que se vendan: ofrecerle "Visita técnica gratis" a alguien
+  // en el catálogo de servicios es ofrecerle algo que no existe. Se
+  // filtra en memoria y no en la consulta a propósito — sin la
+  // migración corrida, `kind` no existe y todo sigue siendo servicio.
+  const services = (services_raw ?? []).filter(esServicio);
 
   const { data: resources } = await supabase
     .from('resources')
@@ -271,92 +279,22 @@ export default async function ReservarPage({ params }: { params: Promise<{ slug:
   };
 
   return (
-    <>
-      {/* Runtime font choice → a real <link>, not next/font (which needs
-          the family known at build time). Next.js hoists this into <head>
-          even though it's rendered mid-tree. */}
-      <link rel="stylesheet" href={googleFontsHref([headingKey, bodyKey])} />
-
-      {/* "dark" below is a deliberate, self-contained class directly on
-          <main> — not inherited from <html> (which the admin/dashboard's
-          own ThemeToggle controls) — because this page's mode is an
-          admin-panel setting, not the visitor's or a leftover staff
-          member's OS/browser preference. Light mode keeps using
-          force-light for the same reason it always has: pin the surface
-          tokens regardless of whatever `.dark` state happens to be on an
-          ancestor. tenant-shell + tenantColorCssVars/tenantDarkModeCssVars
-          are the exact same mechanism already built for the tenant
-          dashboard's own dark mode — reused as-is. */}
-      <main
-        className={`${isDark ? 'dark tenant-shell bg-paper text-ink' : 'force-light'} relative min-h-screen overflow-hidden`}
-        style={
-          isDark
-            ? ({
-                ...tenantColorCssVars(branding.primaryColor, secondaryColor, branding.accentColor),
-                ...tenantDarkModeCssVars(branding.primaryColor, secondaryColor, branding.accentColor),
-                ...templateDesignCssVars(design),
-                fontFamily: FONT_OPTIONS[bodyKey].family,
-                '--font-heading': FONT_OPTIONS[headingKey].family,
-              } as React.CSSProperties)
-            : ({
-                // Light mode gets the tenant's colour vars too, not just
-                // dark. Without them `bg-primary` / `text-primary` inside
-                // this page resolve to the PLATFORM's indigo, which is why
-                // the booking flow used to paint brand colour through
-                // inline styles instead. With the vars bound here the flow
-                // can be written against semantic tokens only, and each
-                // business's identity arrives as a theme.
-                ...tenantColorCssVars(branding.primaryColor, secondaryColor, branding.accentColor),
-                ...templateDesignCssVars(design),
-                // El papel toma un tinte del negocio en vez de un gris fijo:
-                // con el fondo neutro, cinco negocios distintos servian la
-                // misma hoja y la pagina se leia como un documento. Sigue
-                // siendo papel —4% de color, no un campo— pero ahora es
-                // SU papel. Un background_color configurado a mano en el
-                // panel sigue mandando sobre esto.
-                backgroundColor: paperFor(branding_raw?.background_color, branding.primaryColor, branding.accentColor),
-                color: branding_raw?.text_color ?? '#1A1A1A',
-                fontFamily: FONT_OPTIONS[bodyKey].family,
-                '--font-heading': FONT_OPTIONS[headingKey].family,
-              } as React.CSSProperties)
-        }
-      >
-        {/* ATMÓSFERA. Dos manchas enormes y difusas con los colores del
-            negocio, fijas al viewport.
-
-            La versión anterior de esta página no tenía ninguna, y el
-            comentario que estaba aquí defendía esa decisión: antes eran
-            dos cuñas con clip-path que cortaban una diagonal dura y se
-            leían como un error de render. El problema era la FORMA, no
-            la existencia — una hoja plana de un solo color es
-            exactamente lo que hace que una página se vea hecha con un
-            generador de sitios.
-
-            Son radiales suaves, sin borde que recortar, al 10% y 7%, y
-            van en `fixed` para que el fondo no se desplace con el
-            scroll: la página se mueve, la luz no. */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none fixed inset-0 -z-10"
-          style={{
-            background: `radial-gradient(60rem 40rem at 12% -10%, ${withAlpha(branding.primaryColor, 0.1)}, transparent 60%), radial-gradient(45rem 35rem at 100% 15%, ${withAlpha(branding.accentColor, 0.07)}, transparent 65%)`,
-          }}
-        />
-
-        {/* Sin cuñas.
-            This used to be two large clip-path wedges tinted with the
-            tenant's colours. They cut a hard diagonal seam across the
-            page that read as a rendering artefact rather than as
-            design, and they put brand colour everywhere — which is
-            exactly what makes a page look cheap: colour spread thin
-            over everything instead of spent in one place.
-            The ground is now a quiet neutral and the tenant's colour
-            is saved for the things you act on (the CTA, the selected
-            slot, the active step). */}
-        <div className="relative z-10">
-          <BlockRenderer blocks={pageBlocks} bookingData={bookingData} branding={branding} />
-        </div>
-      </main>
-    </>
+    <PublicShell
+      headingKey={headingKey}
+      bodyKey={bodyKey}
+      design={design}
+      isDark={isDark}
+      primaryColor={branding.primaryColor}
+      secondaryColor={secondaryColor}
+      accentColor={branding.accentColor}
+      backgroundColor={paperFor(
+        branding_raw?.background_color,
+        branding.primaryColor,
+        branding.accentColor
+      )}
+      textColor={branding_raw?.text_color ?? '#1A1A1A'}
+    >
+      <BlockRenderer blocks={pageBlocks} bookingData={bookingData} branding={branding} />
+    </PublicShell>
   );
 }

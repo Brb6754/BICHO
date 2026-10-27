@@ -9,6 +9,7 @@ import { ConfirmForm } from '@/components/ui/ConfirmForm';
 import { PageHeader } from '@/components/tenant-dash/PageHeader';
 import { ItemList, ItemRow, ActiveSwitch, AddBar } from '@/components/tenant-dash/ItemList';
 import { ResourceServices } from './ResourceServices';
+import { esServicio } from '@/lib/meetings/kinds';
 
 export default async function ResourcesPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -16,7 +17,11 @@ export default async function ResourcesPage({ params }: { params: Promise<{ slug
   // de 404: un 404 dentro del propio panel se lee como un error del
   // sistema, no como "no contrataste esto".
   const productos = await productosDe(slug);
-  if (!productos.reservas) redirect('/dashboard');
+  // También la necesita el módulo de reuniones: los asesores que
+  // atienden a un prospecto son los mismos "recursos" de la agenda, y
+  // sin esta pantalla un negocio que solo contrató reuniones no
+  // tendría dónde darlos de alta.
+  if (!productos.reservas && !productos.reuniones) redirect('/dashboard');
 
   const supabase = await createClient();
 
@@ -30,12 +35,14 @@ export default async function ResourcesPage({ params }: { params: Promise<{ slug
 
   const activeCount = resources?.filter((r) => r.active).length ?? 0;
 
-  const { data: services } = await supabase
+  const { data: services_raw } = await supabase
     .from('service_types')
-    .select('id, name')
+    .select('*')
     .eq('tenant_id', tenant!.id)
     .eq('active', true)
     .order('name');
+
+  const services = (services_raw ?? []).filter(esServicio);
 
   // db/032, en su propia consulta: si la tabla todavía no existe, el
   // costo es el checklist — no la pantalla de recursos entera.

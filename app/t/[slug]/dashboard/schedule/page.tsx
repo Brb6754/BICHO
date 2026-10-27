@@ -53,7 +53,9 @@ export default async function SchedulePage({ params }: { params: Promise<{ slug:
   // de 404: un 404 dentro del propio panel se lee como un error del
   // sistema, no como "no contrataste esto".
   const productos = await productosDe(slug);
-  if (!productos.reservas) redirect('/dashboard');
+  // Igual que "quién atiende": sin horario no hay huecos que ofrecer,
+  // ni para una cita ni para una reunión.
+  if (!productos.reservas && !productos.reuniones) redirect('/dashboard');
 
   const supabase = await createClient();
   const { data: tenant } = await supabase

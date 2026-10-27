@@ -4,15 +4,24 @@ import { useEffect } from 'react';
 import { X } from 'lucide-react';
 import { Text } from './Text';
 
+// `size` es una prop y no un className a propósito: la clase base ya
+// trae un ancho, y en este proyecto un className adicional no le gana
+// de forma confiable — el orden en la hoja generada por Tailwind no es
+// el del string. Misma regla que `padded` en Card.
+const ANCHO = { sm: 'max-w-sm', lg: 'max-w-2xl' };
+
 export function Modal({
   open,
   onClose,
   title,
+  size = 'sm',
   children,
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
+  /** 'lg' para formularios con varios campos; 'sm' para confirmar algo. */
+  size?: keyof typeof ANCHO;
   children: React.ReactNode;
 }) {
   useEffect(() => {
@@ -33,7 +42,7 @@ export function Modal({
         onClick={onClose}
         aria-hidden="true"
       />
-      <div role="dialog" aria-modal="true" className="animate-pop-in glass-3 relative w-full max-w-sm rounded-[28px] p-6">
+      <div role="dialog" aria-modal="true" className={`animate-pop-in glass-3 relative w-full ${ANCHO[size]} rounded-[28px] p-6`}>
         <div className="flex items-start justify-between gap-4">
           <Text variant="h3">{title}</Text>
           <button

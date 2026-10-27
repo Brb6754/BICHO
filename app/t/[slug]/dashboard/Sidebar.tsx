@@ -15,10 +15,11 @@ import {
   ArrowUpRight,
   FileText,
   ReceiptText,
+  Handshake,
 } from 'lucide-react';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { BusinessMark } from '@/components/tenant-dash/BusinessMark';
-import { tenantBookingPageUrl } from '@/lib/urls';
+import { tenantBookingPageUrl, tenantMeetingsPageUrl } from '@/lib/urls';
 import SignOutButton from './SignOutButton';
 
 // These hrefs are the PUBLIC paths as seen on the tenant's subdomain
@@ -42,6 +43,9 @@ const NAV_ITEMS: {
   requiresQuotes?: boolean;
   requiresFacturacion?: boolean;
   requiresReservas?: boolean;
+  requiresReuniones?: boolean;
+  /** Citas O reuniones: las dos agendan sobre las mismas personas y el mismo horario. */
+  requiresAgenda?: boolean;
 }[] = [
   { href: '/dashboard', label: 'Resumen', icon: LayoutDashboard, exact: true },
   { href: '/dashboard/calendar', label: 'Agenda', icon: CalendarDays, requiresReservas: true },
@@ -52,12 +56,20 @@ const NAV_ITEMS: {
   // prendido: para quien solo agenda citas, un menú con una sección que
   // no usa es ruido permanente.
   { href: '/dashboard/cotizaciones', label: 'Cotizaciones', icon: FileText, requiresQuotes: true },
+  // Cuarto módulo. Arriba de cotizaciones no: primero se habla con el
+  // prospecto y después se le pone precio, así que este es el orden
+  // real del trabajo.
+  { href: '/dashboard/reuniones', label: 'Reuniones', icon: Handshake, requiresReuniones: true },
   // Tercer producto. Debajo de cotizaciones porque ese es el orden
   // real del trabajo: se cotiza, se cobra, y al final se factura.
   { href: '/dashboard/facturas', label: 'Facturas', icon: ReceiptText, requiresFacturacion: true },
   { href: '/dashboard/services', label: 'Servicios', icon: Tag, requiresReservas: true },
-  { href: '/dashboard/resources', label: 'Quién atiende', icon: Users, requiresReservas: true },
-  { href: '/dashboard/schedule', label: 'Horario', icon: Clock3, requiresReservas: true },
+  // "Quién atiende" y "Horario" son infraestructura compartida: una
+  // reunión ocupa al mismo asesor y el mismo horario que una cita (ver
+  // db/039). Un negocio que solo contrató reuniones los necesita igual,
+  // y sin esto se quedaría sin dónde darlos de alta.
+  { href: '/dashboard/resources', label: 'Quién atiende', icon: Users, requiresAgenda: true },
+  { href: '/dashboard/schedule', label: 'Horario', icon: Clock3, requiresAgenda: true },
 ];
 
 const ROLE_LABELS: Record<string, string> = {
@@ -85,6 +97,7 @@ export function Sidebar({
   quotesEnabled = false,
   facturacionEnabled = false,
   reservasEnabled = true,
+  reunionesEnabled = false,
   bookingHref,
   footer,
 }: {
@@ -109,8 +122,10 @@ export function Sidebar({
   /** El extra de cotizaciones, prendido por negocio. */
   quotesEnabled?: boolean;
   facturacionEnabled?: boolean;
-  /** El producto de citas. Apagado, el menú pierde agenda, servicios y horario. */
+  /** El producto de citas. Apagado, el menú pierde agenda y servicios. */
   reservasEnabled?: boolean;
+  /** El módulo de reuniones. */
+  reunionesEnabled?: boolean;
   // Same reason: the demo's booking page isn't on a tenant subdomain.
   bookingHref?: string;
   // Defaults to the real sign-out. The demo has no session to end.
@@ -189,6 +204,8 @@ export function Sidebar({
             (item) =>
               (!item.requiresQuotes || quotesEnabled) &&
               (!item.requiresReservas || reservasEnabled) &&
+              (!item.requiresReuniones || reunionesEnabled) &&
+              (!item.requiresAgenda || reservasEnabled || reunionesEnabled) &&
               (!item.requiresFacturacion || facturacionEnabled)
           ).map((item) => {
             const href = navBase ? `${navBase}${item.href.slice(DASHBOARD_ROOT.length)}` : item.href;
@@ -217,20 +234,24 @@ export function Sidebar({
             );
           })}
 
-          {/* Sin el producto de citas no hay página de reservas que
-              ver: el enlace llevaría a un 404 del propio negocio. */}
-          {reservasEnabled && (
+          {/* Sin citas ni reuniones no hay página pública que ver: el
+              enlace llevaría a un 404 del propio negocio. Con las dos,
+              gana la de reservas — es la que un negocio reparte. */}
+          {(reservasEnabled || reunionesEnabled) && (
             <>
               <div className="my-3 h-px bg-border" aria-hidden="true" />
 
               <a
-                href={bookingHref ?? tenantBookingPageUrl(slug)}
+                href={
+                  bookingHref ??
+                  (reservasEnabled ? tenantBookingPageUrl(slug) : tenantMeetingsPageUrl(slug))
+                }
                 target="_blank"
                 rel="noreferrer"
                 className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted transition-colors hover:bg-ink/[0.035] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
               >
                 <ArrowUpRight className="h-[18px] w-[18px] shrink-0" aria-hidden="true" />
-                Ver mi página de reservas
+                {reservasEnabled ? 'Ver mi página de reservas' : 'Ver mi página de reuniones'}
               </a>
             </>
           )}

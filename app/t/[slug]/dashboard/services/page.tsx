@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/Input';
 import { ConfirmForm } from '@/components/ui/ConfirmForm';
 import { PageHeader } from '@/components/tenant-dash/PageHeader';
 import { ItemList, ItemRow, ActiveSwitch, AddBar } from '@/components/tenant-dash/ItemList';
+import { esServicio } from '@/lib/meetings/kinds';
 
 function formatPrice(cents: number) {
   // Whole pesos when there are no centavos — "$450" reads as a price,
@@ -37,11 +38,16 @@ export default async function ServicesPage({ params }: { params: Promise<{ slug:
 
   const { data: tenant } = await supabase.from('tenants').select('id').eq('slug', slug).single();
 
-  const { data: services } = await supabase
+  const { data: services_raw } = await supabase
     .from('service_types')
     .select('*')
     .eq('tenant_id', tenant!.id)
     .order('created_at');
+
+  // Los tipos de reunión comparten tabla (db/039) pero se administran
+  // en su propia pantalla: aquí serían filas con precio $0 que nadie
+  // puede explicar.
+  const services = (services_raw ?? []).filter(esServicio);
 
   const activeCount = services?.filter((s) => s.active).length ?? 0;
 

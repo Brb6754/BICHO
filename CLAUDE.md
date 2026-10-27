@@ -3687,3 +3687,107 @@ huérfanos, y con ellos los 2 errores de lint que el repo arrastraba.
 su sello digital, y cerrar a Guillermo. La nota del vault
 (`Obsidian Vault/Proyectos/Bicho/`) tiene el detalle y un `Traspaso
 2026-10-09.md`.
+
+**CRM + módulo de Reuniones (2026-10-26/27)**. Dos sesiones seguidas: se
+terminó el CRM (`contacts`) y se construyó el cuarto módulo.
+
+**CRM — rediseño y categorías.** El directorio (`ContactDirectory`) pasó
+de una lista plana con pastillas de filtro a **secciones hacia abajo por
+el estado de la relación**, en el vocabulario de `AgendaList`: una
+superficie por sección, columna izquierda de escaneo (visitas, cifras
+tabulares, mismo lugar que la hora en la agenda), y solo lo accionable
+conserva color.
+
+- `lib/contacts/categories.ts` reparte en seis: **Te deben una respuesta
+  · No llegaron · Se enfriaron · Vienen pronto · Apenas te conocen · Tu
+  clientela**. Las vacías no se dibujan.
+- **La regla que lo hace confiable: cada persona cae en EXACTAMENTE UNA
+  categoría**, la primera que aplica en orden de urgencia. Es tentador
+  dejar que alguien con cotización abierta salga también en "vienen
+  pronto" —las dos cosas son ciertas— pero entonces la suma de los
+  contadores deja de ser el número de clientes, y una pantalla cuyos
+  números no suman deja de usarse. Hay un test que fija esa propiedad.
+- `seEnfriaron` usa `tenure === 'inactivo'` y NO una regla propia: dos
+  pantallas que llamen "inactivo" a cosas distintas es peor que no tener
+  la etiqueta.
+- Las secciones son `<details open>` nativos: se pliegan sin JavaScript,
+  siguen siendo buscables con Ctrl+F, y abren por defecto.
+- Cada sección lleva una línea de **qué hacer** con esa gente. Una
+  sección sin siguiente paso es un reporte, y nadie actúa sobre uno.
+
+**Reuniones (db/039) — el cuarto módulo, aplicado.** Agendar reuniones
+con prospectos: página pública tipo Calendly + pipeline interno.
+
+- **UNA REUNIÓN ES UN `bookings` CON `kind = 'reunion'`, no una tabla
+  nueva.** Es la decisión que ordena todo el módulo. Una reunión ocupa a
+  la MISMA persona en el MISMO calendario que una cita; si viviera en
+  `meetings`, el `exclude` constraint no la vería y un asesor podría
+  tener una videollamada y una instalación encimadas. Postgres no sabe
+  hacer un exclude entre dos tablas, así que la única forma de conservar
+  la decisión de arquitectura #1 es que compartan tabla. **Verificado
+  en vivo**: un `create_booking` sobre el horario de una reunión existente
+  se rechaza con `23P01`. Gratis vienen `get_available_slots`,
+  `schedule_blocks` y la transacción atómica.
+- Lo mismo con los tipos: un tipo de reunión es `service_types` con
+  `kind = 'reunion'` + `modality` (`video`/`sitio`/`oficina`). La
+  modalidad se **copia** a la reunión al agendar, no se lee por join: si
+  el negocio cambia "Visita técnica" de sitio a video, una reunión que
+  ya ocurrió no puede cambiar de lugar retroactivamente.
+- `bookings` gana además `address`, `company`, `outcome`
+  (`interesado`/`cotizado`/`ganado`/`perdido`, **NULL mientras nadie
+  captura** — un default 'pendiente' mentiría sobre una reunión que es
+  mañana), `outcome_notes` y `quote_id`.
+- `create_booking` se rehizo con `drop` + `create` (agregar parámetros
+  cambia la firma; un `replace` crearía un overload — trampa ya
+  documentada desde db/010) y ahora rellena `contacts.razon_social`
+  desde la empresa, solo si estaba vacía.
+- **El filtro servicio/reunión va en MEMORIA, no en SQL** (`esServicio`
+  / `esReunion` en `lib/meetings/kinds.ts`): sin la migración `kind` no
+  existe y todo vuelve a ser servicio, en vez de dejar seis pantallas en
+  blanco. Aplicado en `/reservar`, el catálogo, la agenda, "quién
+  atiende", el Resumen y `/api/reservar`.
+- `lib/meetings/pipeline.ts` (`buildEmbudo`): primero **lo que ya pasó y
+  nadie capturó**; el corte es el FIN de la reunión, no el inicio. La
+  tasa de cierre solo cuenta ganado+perdido — meter "interesado" en el
+  denominador la haría BAJAR cada vez que el vendedor agenda bien.
+  `null` y no 0% cuando no hay nada cerrado: "no cierras nada" es una
+  acusación, "todavía no se sabe" es la verdad.
+- Panel en `/dashboard/reuniones` (+ `/tipos`), vista separada en
+  `components/tenant-dash/ReunionesBoard.tsx` para poder verificarla
+  sin pasar el login — mismo patrón que `DemoRequestList`.
+- Página pública en `/t/[slug]/reuniones` + `/api/reuniones`. Sin
+  precios (una reunión de venta no se cobra), con **empresa** como campo
+  de primera, y la dirección **solo** en la visita a sitio, exigida
+  también del lado del servidor. Pide huecos de TODOS los asesores en
+  paralelo y los une: a esa altura de la venta el prospecto no conoce a
+  nadie, así que elegir entre dos nombres es una decisión que no puede
+  tomar.
+- "Quién atiende" y "Horario" dejaron de exigir `reservas`: ahora basta
+  citas **o** reuniones. Sin eso, un negocio que solo contrató reuniones
+  no tendría dónde dar de alta a sus asesores.
+- La piel de las páginas públicas se extrajo a
+  `components/tenant-public/PublicShell.tsx`. Dos copias acabarían con
+  una en modo oscuro y la otra no.
+
+**Nova Solar Durango (`nova-solar`)** — negocio de prueba sembrado con
+`db/seed-nova-solar.mjs`: colores del logo real (#ff6400/#fbbb35), tema
+oscuro, 2 asesores, 3 tipos de reunión, 6 prospectos con empresa, 9
+reuniones por todo el embudo y 2 cotizaciones solares con partidas
+reales. `reservas_enabled: false`, cotizaciones y reuniones prendidas.
+El seed evita domingos (el negocio cierra) porque una reunión en domingo
+delata una demo tan rápido como un "Servicio 1 · $100".
+
+**Probado de punta a punta en vivo**: se agendó una visita técnica real
+desde la página pública — la validación de dirección disparó, el
+contacto se resolvió con el teléfono normalizado (`618 999 0001` →
+`6189990001`), la razón social se rellenó desde la empresa, el horario
+desapareció de la disponibilidad, y el panel mostró el embudo correcto
+(2 sin capturar, 2 próximas, 67% de cierre). `tsc` limpio, 198 tests,
+lint en los 7 errores preexistentes de `react-hooks`.
+
+**Pendiente conocido**: la columna de escaneo del CRM dice "visitas" y
+cuenta también las reuniones (comparten tabla). Para Nova Solar, "2
+visitas" son en realidad una videollamada y una visita técnica. No es
+falso —son dos contactos reales— pero la palabra no encaja en un
+negocio que agenda reuniones; hace falta decidir si la etiqueta cambia
+según el módulo.

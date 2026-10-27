@@ -5,6 +5,7 @@ import { requireTenantStaff } from '@/lib/auth/tenantStaff';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { computeTotals } from '@/lib/quotes/totals';
 import { sendQuoteEmail } from '@/lib/email/sendQuote';
+import { resolveContact } from '@/lib/contacts/resolve';
 
 // Todo lo que escribe una cotización.
 //
@@ -93,6 +94,17 @@ export async function createQuote(
       folio = (ultima?.folio ?? 0) + 1;
     }
 
+    // El contacto se resuelve ANTES del insert para que la cotización
+    // nazca ya ligada. Si falla, se guarda igual sin contacto: una
+    // cotización sin ficha sigue siendo una cotización válida, y
+    // bloquearla por eso sería castigar al vendedor por un problema del
+    // CRM.
+    const contactId = await resolveContact(db, tenantId, {
+      name: nombre,
+      phone: datos.customerPhone,
+      email: datos.customerEmail,
+    });
+
     const insertar = (f: number) =>
       db
         .from('quotes')
@@ -111,6 +123,7 @@ export async function createQuote(
           discount_cents: Math.max(0, Math.round(Number(datos.discountMxn ?? 0) * 100)),
           valid_until: datos.validUntil || null,
           status: 'draft',
+          contact_id: contactId,
         })
         .select('id, folio')
         .single();

@@ -2,6 +2,8 @@ import { Mail, Phone } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/tenant-dash/PageHeader';
 import { buildRoster, customerTenure, type RosterBooking } from '@/lib/customers/roster';
+import { buildDirectory } from '@/lib/contacts/directory';
+import { ContactDirectory } from '@/components/tenant-dash/ContactDirectory';
 import { dayKey, dayLabel, longDate } from '@/lib/dates/tenantTime';
 
 // CLIENTES — the people behind the agenda.
@@ -47,6 +49,67 @@ export default async function CustomersPage({ params }: { params: Promise<{ slug
 
   const now = new Date();
   const tz = tenant?.timezone ?? null;
+
+  // ── El directorio nuevo (db/037) ──────────────────────────────────
+  //
+  // Si `contacts` ya existe, esta pantalla es el CRM: una fila por
+  // persona, con sus citas, sus cotizaciones y sus facturas juntas.
+  //
+  // Si NO existe todavía, el código cae al roster de siempre —que
+  // agrupa citas por teléfono al leer— en vez de enseñar un error.
+  // Una migración pendiente debe costar la función nueva, nunca la
+  // pantalla que el negocio ya usaba.
+  const { data: contactRows, error: contactsError } = await supabase
+    .from('contacts')
+    .select('id, name, phone, email, tags, notes, rfc')
+    .eq('tenant_id', tenant!.id);
+
+  if (!contactsError) {
+    const [{ data: bk }, { data: qt }, { data: inv }] = await Promise.all([
+      supabase
+        .from('bookings')
+        .select('contact_id:customers(contact_id), starts_at, status')
+        .eq('tenant_id', tenant!.id)
+        .order('starts_at', { ascending: false })
+        .limit(BOOKING_LIMIT),
+      supabase.from('quotes').select('contact_id, status').eq('tenant_id', tenant!.id),
+      supabase.from('invoices').select('contact_id, status').eq('tenant_id', tenant!.id),
+    ]);
+
+    // El embed devuelve `{ contact_id: { contact_id } }`: la cita llega
+    // a su contacto a través de `customers`, que es la foto de lo que se
+    // escribió esa vez (ver db/037).
+    const bookings = ((bk ?? []) as unknown as {
+      contact_id: { contact_id: string | null } | null;
+      starts_at: string;
+      status: string;
+    }[]).map((b) => ({
+      contact_id: b.contact_id?.contact_id ?? null,
+      starts_at: b.starts_at,
+      status: b.status,
+    }));
+
+    const entries = buildDirectory(
+      contactRows ?? [],
+      bookings,
+      qt ?? [],
+      inv ?? [],
+      now,
+      tz
+    );
+
+    return (
+      <div>
+        <PageHeader
+          title="Clientes"
+          description="Quién viene, quién dejó de venir y quién está esperando una respuesta tuya." 
+        />
+        <ContactDirectory entries={entries} now={now} timezone={tz} />
+      </div>
+    );
+  }
+
+  // ── Respaldo: la lista de siempre, derivada de las citas ──────────
 
   const { data: raw } = await supabase
     .from('bookings')

@@ -67,7 +67,7 @@ export async function facturarCotizacion(
 
     const { data: quote } = await db
       .from('quotes')
-      .select('id, folio, customer_name, tax_rate, discount_cents, status')
+      .select('id, folio, customer_name, tax_rate, discount_cents, status, contact_id')
       .eq('id', quoteId)
       .eq('tenant_id', tenantId)
       .maybeSingle();
@@ -103,6 +103,9 @@ export async function facturarCotizacion(
         quote_id: quoteId,
         receptor_rfc: datos.receptor.rfc.trim().toUpperCase(),
         receptor_nombre: datos.receptor.legalName.trim(),
+        // Hereda el contacto de la cotización: la factura es de la
+        // misma persona, y así la ficha muestra las tres cosas juntas.
+        contact_id: quote.contact_id ?? null,
         total_cents: esperado,
         status: 'draft',
       })
@@ -166,6 +169,35 @@ export async function facturarCotizacion(
         error_message: totalTimbrado !== esperado ? `Total timbrado distinto al cotizado (${esperado})` : null,
       })
       .eq('id', reserva.id);
+
+    // Los datos fiscales se guardan en la ficha del contacto para que
+    // la próxima factura venga prellenada. Es lo que hoy obliga a
+    // pedirlos por WhatsApp cada vez.
+    //
+    // Solo rellena huecos: si el contacto ya tiene un RFC, se respeta.
+    // Que una factura sobreescriba el RFC curado de una ficha sería
+    // perder trabajo humano, y además puede ser legítimo que un cliente
+    // facture a dos razones sociales distintas.
+    if (quote.contact_id) {
+      const { data: ficha } = await db
+        .from('contacts')
+        .select('rfc, razon_social, regimen, codigo_postal')
+        .eq('id', quote.contact_id)
+        .maybeSingle();
+
+      if (ficha && !ficha.rfc) {
+        await db
+          .from('contacts')
+          .update({
+            rfc: datos.receptor.rfc.trim().toUpperCase(),
+            razon_social: datos.receptor.legalName.trim(),
+            regimen: datos.receptor.taxSystem,
+            codigo_postal: datos.receptor.zip,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', quote.contact_id);
+      }
+    }
 
     revalidatePath(`/t/${slug}/dashboard/facturas`);
     revalidatePath(`/t/${slug}/dashboard/cotizaciones`);

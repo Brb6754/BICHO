@@ -6,11 +6,12 @@ import { PortfolioSection } from '@/components/central/PortfolioSection';
 import { WhySection } from '@/components/central/WhySection';
 import { CentralFinalCta } from '@/components/central/CentralFinalCta';
 import { CentralFooter } from '@/components/central/CentralFooter';
+import { Cinta } from '@/components/central/Cinta';
 
 export const metadata: Metadata = {
   title: 'bicho — tecnología para pymes',
   description:
-    'Reservas, cotizaciones y facturación para negocios pequeños en México, más software a la medida. Accesible y en producción, no maquetas.',
+    'Reservas, reuniones, cotizaciones y facturación para negocios pequeños en México, con una sola ficha por cliente, más software a la medida. Accesible y en producción, no maquetas.',
 };
 
 // El dominio raíz sirve la casa de bicho; la plataforma se explica por
@@ -38,6 +39,8 @@ export default function CentralHomePage() {
         <div className="relative z-10 -mt-8 rounded-t-[2rem] bg-white sm:-mt-10 sm:rounded-t-[2.5rem]">
           <PlatformSection />
           <ServicesSection />
+          {/* La cinta cruza del lima al berenjena, montada sobre las dos. */}
+          <Cinta />
           <PortfolioSection />
           <WhySection />
           <CentralFinalCta />

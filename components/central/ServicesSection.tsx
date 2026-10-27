@@ -1,6 +1,7 @@
 import { Check } from 'lucide-react';
 import { SectionOpener } from '@/components/marketing/Primitives';
 import { Reveal } from '@/components/marketing/Reveal';
+import { Sparkle } from '@/components/marketing/Flourishes';
 import { SERVICES } from './services';
 
 // Lo que bicho construye a la medida, cuando la plataforma no alcanza.
@@ -10,17 +11,20 @@ import { SERVICES } from './services';
 // cero. Al revés, un negocio chico se siente fuera de lugar antes de
 // entender que la plataforma es para él.
 //
-// La banda es `mist` y no blanca: separa esta sección de la anterior
-// sin meter una línea ni un título de más.
+// La banda es LIMA COMPLETO (2026-10-27, "la vibra en toda la página"):
+// es la sección más atrevida de la landing a propósito, justo después de
+// la hoja blanca de la plataforma, para que bajar nunca se lea como una
+// sola extensión blanca. Las tarjetas son papel blanco puesto encima, con
+// la sombra dura de la campaña y un grado de inclinación alternado.
 //
 // `proof` se queda tal cual. Es lo que cada servicio puede afirmar hoy
 // sin inventar un caso de éxito que no existe.
 export function ServicesSection() {
   return (
-    <section id="servicios" className="bg-[#F5F3FC] px-5 py-20 sm:px-6 sm:py-28">
-      <div className="mx-auto max-w-6xl">
+    <section id="servicios" className="bg-[#D4F23A] px-5 py-20 sm:px-6 sm:py-28">
+      <div className="relative mx-auto max-w-6xl">
+        <Sparkle className="anim-destellar absolute -top-8 right-2 hidden h-12 w-12 text-[#14092E] lg:block" />
         <SectionOpener
-          eyebrow="A la medida"
           title={
             <>
               ¿Y si lo tuyo
@@ -29,12 +33,17 @@ export function ServicesSection() {
             </>
           }
           intro="No todo negocio necesita lo mismo. Cuando la plataforma no alcanza, se construye: software propio, un sitio, un agente que conteste, o los números puestos en claro."
+          sobreColor
+          grande
         />
 
-        <div className="mt-12 grid gap-4 sm:grid-cols-2">
+        <div className="mt-12 grid gap-6 sm:grid-cols-2 sm:gap-7">
           {SERVICES.map(({ id, Icon, name, blurb, bullets, proof }, i) => (
-            <Reveal key={id} delay={i * 80}>
-              <article className="flex h-full flex-col rounded-3xl bg-white p-7">
+            <Reveal key={id} delay={i * 90} variant="pegar">
+              <article
+                className="pieza flex h-full flex-col rounded-[1.75rem] bg-white p-7 shadow-[0_7px_0_#1B1040] hover:shadow-[0_14px_0_#1B1040]"
+                style={{ ['--r' as string]: `${i % 2 === 0 ? 0.8 : -0.8}deg` }}
+              >
                 <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#5B34E8]">
                   <Icon className="h-5 w-5 text-white" strokeWidth={2} aria-hidden="true" />
                 </span>

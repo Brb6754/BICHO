@@ -749,3 +749,178 @@ html:not(.dark) .tenant-dash {
   --color-muted: 110 110 104;
   --color-border-base: 28 28 24;
 }
+
+/* ── Campaña "Desenreda" (hero del estudio) ─────────────────────────
+   Un solo momento de movimiento en toda la página: al cargar, las
+   piezas de los módulos se PEGAN sobre la mesa una tras otra. Es el
+   gesto de "armas tu kit", y por eso es el único.
+
+   Solo se anima `transform`, nunca la opacidad: si la animación no
+   corre (o tarda), cada pieza ya está visible, solo un poco fuera de
+   lugar. Cada pieza trae su propia rotación en `--r` y su retraso en
+   `--d`, así un solo keyframe sirve para todas. */
+@keyframes collage-pegar {
+  from {
+    transform: translateY(-26px) rotate(calc(var(--r, 0deg) + 10deg)) scale(1.14);
+  }
+  to {
+    transform: translateY(0) rotate(var(--r, 0deg)) scale(1);
+  }
+}
+.collage-pegar {
+  transform: rotate(var(--r, 0deg));
+  animation-duration: 700ms;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  animation-fill-mode: both;
+  animation-delay: var(--d, 0ms);
+}
+.collage-pegar {
+  animation-name: collage-pegar;
+}
+@media (prefers-reduced-motion: reduce) {
+  /* Fundido en vez de caída, por la misma razón que .anim-pegar. */
+  .collage-pegar {
+    animation-name: fade-only;
+  }
+}
+
+/* ── Landing del estudio: física de papel ──────────────────────────
+   Bruno: "métele más punch", "animaciones así chido". Todo el
+   movimiento de la página habla un solo idioma —papel— en vez de un
+   fade distinto por sección:
+
+     golpe      los títulos caen grandes y rebotan a su tamaño.
+     pegar      las tarjetas caen de arriba y se asientan ladeadas.
+     pieza      al pasar el cursor, la tarjeta se levanta, se endereza y
+                su sombra dura crece: como tomarla de la mesa.
+     destellar  las chispas lima laten despacio.
+
+   Las entradas arrancan ocultas solo hasta que el observador de `Reveal`
+   las ve: un título que ya estaba visible y de pronto salta a 135% para
+   caer otra vez se lee como un error. */
+@keyframes golpe {
+  0% {
+    opacity: 0;
+    transform: scale(1.35) rotate(-4deg);
+  }
+  45% {
+    opacity: 1;
+    transform: scale(0.96) rotate(0.6deg);
+  }
+  72% {
+    transform: scale(1.02) rotate(0deg);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+.anim-golpe {
+  transform-origin: 18% 70%;
+  animation: golpe 640ms cubic-bezier(0.2, 0.9, 0.3, 1) both;
+  animation-delay: var(--d, 0ms);
+}
+
+/* El titular del hero golpea SIN pasar por invisible. Es el elemento más
+   grande de la primera pantalla —el que Google mide como LCP— y uno que
+   arranca en opacidad 0 no cuenta como pintado hasta que la animación lo
+   revela. En una pestaña abierta en segundo plano, eso es nunca. Así
+   siempre está ahí: solo llega desde más grande. */
+@keyframes golpe-visible {
+  0% {
+    transform: scale(1.35) rotate(-4deg);
+  }
+  45% {
+    transform: scale(0.96) rotate(0.6deg);
+  }
+  72% {
+    transform: scale(1.02) rotate(0deg);
+  }
+  100% {
+    transform: none;
+  }
+}
+.anim-golpe-visible {
+  transform-origin: 18% 70%;
+  animation: golpe-visible 640ms cubic-bezier(0.2, 0.9, 0.3, 1) both;
+  animation-delay: var(--d, 0ms);
+}
+
+@keyframes pegar-scroll {
+  0% {
+    opacity: 0;
+    transform: translateY(-44px) rotate(-6deg) scale(1.06);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(5px) rotate(1deg) scale(1);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+.anim-pegar {
+  animation: pegar-scroll 680ms cubic-bezier(0.2, 0.9, 0.3, 1) both;
+  animation-delay: var(--d, 0ms);
+}
+
+/* La rotación en reposo viaja en `--r`, no en un `transform` en línea:
+   así el hover puede enderezar la pieza sin pelearse con el estilo. */
+.pieza {
+  transform: rotate(var(--r, 0deg));
+  transition:
+    transform 240ms cubic-bezier(0.2, 0.9, 0.3, 1),
+    box-shadow 240ms cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+.pieza:hover {
+  transform: translateY(-7px) rotate(0deg);
+}
+/* Las piezas del hero ya traen su giro en el `li` que las pega; la cara
+   de adentro solo se levanta y deshace ese giro. */
+.pieza-cara {
+  transition:
+    transform 240ms cubic-bezier(0.2, 0.9, 0.3, 1),
+    box-shadow 240ms cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+.pieza-cara:hover {
+  transform: translateY(-7px) rotate(calc(var(--r, 0deg) * -1)) scale(1.03);
+}
+
+@keyframes destellar {
+  0%,
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+  50% {
+    transform: scale(1.22) rotate(16deg);
+  }
+}
+.anim-destellar {
+  transform-origin: center;
+  animation: destellar 2.8s ease-in-out infinite;
+  animation-delay: var(--d, 0ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Misma regla que el resto de este archivo (ver el bloque de
+     .hero-rise): se conserva el FUNDIDO y se quita el viaje. Apagar todo
+     es el consejo de manual, pero este navegador —y el Windows de
+     Bruno— reporta `reduce`, y una landing que pidió "animaciones así
+     chido" quedaba completamente quieta. La opacidad sola no provoca
+     mareo; el golpe y la caída sí. */
+  .anim-golpe,
+  .anim-pegar {
+    animation-name: fade-only;
+  }
+  /* El titular del hero no tiene fundido que conservar: nunca fue
+     invisible. Sin el golpe, simplemente está. */
+  .anim-golpe-visible {
+    animation: none;
+  }
+  /* Las chispas laten a la mitad de velocidad en vez de pararse: es un
+     pulso chico que no se desplaza, la misma decisión que bloom-drift. */
+  .anim-destellar {
+    animation-duration: 5.6s;
+  }
+}

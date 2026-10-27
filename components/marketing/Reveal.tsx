@@ -14,14 +14,21 @@ import { useEffect, useRef, useState } from 'react';
 // `delay` (ms) staggers a group of siblings the same way Hero staggers
 // its own elements — pass increasing values (0, 80, 160...) for things
 // that should reveal in sequence rather than all at once.
+// `variant` (2026-10-27): la landing del estudio entra con física de
+// papel —`golpe` para títulos, `pegar` para tarjetas, ver globals.css—.
+// `fade` sigue siendo el default, así /reservas no cambia nada.
+const ANIM = { fade: 'animate-fade-in', golpe: 'anim-golpe', pegar: 'anim-pegar' } as const;
+
 export function Reveal({
   children,
   className = '',
   delay = 0,
+  variant = 'fade',
 }: {
   children: React.ReactNode;
   className?: string;
   delay?: number;
+  variant?: keyof typeof ANIM;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
@@ -45,7 +52,7 @@ export function Reveal({
   return (
     <div
       ref={ref}
-      className={`${visible ? 'animate-fade-in' : 'opacity-0'} ${className}`}
+      className={`${visible ? ANIM[variant] : 'opacity-0'} ${className}`}
       style={visible ? { animationDelay: `${delay}ms` } : undefined}
     >
       {children}

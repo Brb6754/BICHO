@@ -123,7 +123,6 @@ export function PortfolioSection() {
     <section id="portafolio" className="bg-[#1B1040] px-5 py-20 sm:px-6 sm:py-28">
       <div className="mx-auto max-w-6xl">
         <SectionOpener
-          eyebrow="Portafolio"
           title={
             <>
               Trabajo real,
@@ -133,6 +132,7 @@ export function PortfolioSection() {
           }
           intro="Sitios y productos en producción, no maquetas."
           onDark
+          grande
         />
 
         <div className="mt-14 flex flex-col gap-16 sm:gap-20">

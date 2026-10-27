@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { ChevronsRight, Asterisk } from 'lucide-react';
+import { Reveal } from './Reveal';
 
 // Shared marketing primitives. These exist so the landing stops being a
 // pile of one-off Tailwind strings: the reference's identity lives in a
@@ -131,28 +132,51 @@ export function SectionOpener({
   title,
   intro,
   onDark = false,
+  sobreColor = false,
+  grande = false,
 }: {
-  eyebrow: string;
+  /** Opcional. La landing del estudio no la usa: un título en mayúsculas
+   *  de 3rem no necesita una etiqueta encima que diga de qué trata. La
+   *  de /reservas la conserva — es otra página y otra decisión. */
+  eyebrow?: string;
   title: React.ReactNode;
   intro?: string;
   onDark?: boolean;
+  /** Sobre lima o lila. El gris de siempre ahí da 4.1:1, debajo del
+   *  mínimo para texto chico; la tinta al 80% da más de 9:1. */
+  sobreColor?: boolean;
+  /** Título de póster (landing del estudio): a lo ancho, casi el doble de
+   *  grande, y entra con un golpe al hacer scroll. La introducción baja
+   *  debajo, porque junto a un título de 5rem quedaba como nota al pie. */
+  grande?: boolean;
 }) {
+  const h2 = (
+    <h2
+      className={`${eyebrow ? 'mt-5 ' : ''}font-[family-name:var(--font-display)] font-extrabold uppercase tracking-[-0.02em] ${
+        grande
+          ? 'text-balance text-[clamp(2.5rem,8vw,5.5rem)] leading-[0.88]'
+          : 'text-[clamp(1.9rem,4.4vw,3.1rem)] leading-[0.95]'
+      } ${onDark ? 'text-white' : 'text-[#140F2E]'}`}
+    >
+      {title}
+    </h2>
+  );
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.85fr)] lg:items-end lg:gap-16">
+    <div
+      className={
+        grande
+          ? 'grid gap-6'
+          : 'grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.85fr)] lg:items-end lg:gap-16'
+      }
+    >
       <div>
-        <Eyebrow onDark={onDark}>{eyebrow}</Eyebrow>
-        <h2
-          className={`mt-5 font-[family-name:var(--font-display)] text-[clamp(1.9rem,4.4vw,3.1rem)] font-extrabold uppercase leading-[0.95] tracking-[-0.02em] ${
-            onDark ? 'text-white' : 'text-[#140F2E]'
-          }`}
-        >
-          {title}
-        </h2>
+        {eyebrow && <Eyebrow onDark={onDark}>{eyebrow}</Eyebrow>}
+        {grande ? <Reveal variant="golpe">{h2}</Reveal> : h2}
       </div>
       {intro && (
         <p
-          className={`text-[15px] leading-relaxed ${
-            onDark ? 'text-[#B9B1E6]' : 'text-[#6A6488]'
+          className={`${grande ? 'max-w-2xl text-[17px]' : 'text-[15px]'} leading-relaxed ${
+            onDark ? 'text-[#B9B1E6]' : sobreColor ? 'text-[#14092E]/80' : 'text-[#6A6488]'
           }`}
         >
           {intro}

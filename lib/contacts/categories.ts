@@ -92,6 +92,15 @@ const DEFINICIONES: {
 ];
 
 /**
+ * Las secciones tal como las ve el negocio, sin la lógica de reparto.
+ * Las usa la landing para enseñar el CRM con los nombres REALES: si
+ * alguien renombra una sección aquí, la página de venta cambia con ella
+ * en vez de prometer una pantalla que ya no existe.
+ */
+export const SECCIONES_DEL_DIRECTORIO: readonly { titulo: string; accionable: boolean }[] =
+  DEFINICIONES.map(({ titulo, accionable }) => ({ titulo, accionable }));
+
+/**
  * Reparte el directorio en secciones. Devuelve solo las que tienen
  * gente: una sección vacía con su texto de ayuda ocupa el mismo espacio
  * que una llena y no dice nada.

@@ -19,12 +19,33 @@ function scrollToSection(id: string, onDone?: () => void) {
   };
 }
 
-const LINKS = [
-  { id: 'funciones', label: 'Funciones' },
-  { id: 'demos', label: 'Demos' },
-  { id: 'como-funciona', label: 'Cómo funciona' },
-  { id: 'vendedores', label: 'Vendedores' },
-];
+// Dos menús, uno por página que los usa. El del producto apunta a las
+// secciones de /reservas. El del estudio apunta a las de la raíz.
+//
+// Antes había uno solo, el del producto, y la casa del estudio lo usaba
+// tal cual: los cuatro enlaces del inicio llevaban a /reservas#…, así
+// que cualquier clic en el menú sacaba al visitante de bichomx.com hacia
+// otra página, y ninguno llevaba a lo que estaba viendo.
+const MENUS = {
+  producto: {
+    base: '/reservas',
+    links: [
+      { id: 'funciones', label: 'Funciones' },
+      { id: 'demos', label: 'Demos' },
+      { id: 'como-funciona', label: 'Cómo funciona' },
+      { id: 'vendedores', label: 'Vendedores' },
+    ],
+  },
+  estudio: {
+    base: '/',
+    links: [
+      { id: 'plataforma', label: 'Plataforma' },
+      { id: 'servicios', label: 'A la medida' },
+      { id: 'portafolio', label: 'Portafolio' },
+      { id: 'nosotros', label: 'Cómo trabajamos' },
+    ],
+  },
+} as const;
 
 // Sits transparently ON the hero rather than as its own coloured band —
 // the nav is part of the hero composition, which is what lets the hero
@@ -36,8 +57,18 @@ const LINKS = [
 // through the JSX, which is how one of them ends up forgotten and
 // invisible. The logo matters most: its pixels are white, so on white it
 // has to be inverted (tone="ink") or it renders as nothing at all.
-export function MarketingNav({ tone = 'onLight' }: { tone?: 'onViolet' | 'onLight' }) {
+export function MarketingNav({
+  tone = 'onLight',
+  variant = 'producto',
+}: {
+  tone?: 'onViolet' | 'onLight';
+  /** `estudio` solo en la raíz de bichomx.com; todo lo demás es del producto. */
+  variant?: keyof typeof MENUS;
+}) {
   const [open, setOpen] = useState(false);
+  const { base, links: LINKS } = MENUS[variant];
+  // `/` + `#id` daría `//#id`, que el navegador lee como otro dominio.
+  const hrefDe = (id: string) => (base === '/' ? `/#${id}` : `${base}#${id}`);
   const close = () => setOpen(false);
 
   // Escape cierra el menú. En un panel que tapa la página, dejar el
@@ -81,7 +112,7 @@ export function MarketingNav({ tone = 'onLight' }: { tone?: 'onViolet' | 'onLigh
           collapses to zero, and the row reads as logo + actions. */}
       <div className="relative z-30 mx-auto grid max-w-7xl grid-cols-[1fr_auto_1fr] items-center gap-6 px-6 py-5">
         <a
-          href="/reservas#top"
+          href={hrefDe('top')}
           onClick={scrollToSection('top', close)}
           /* El logo medía 28px de alto, por debajo del objetivo táctil
              de 44 que recomienda Apple y Android. El -my-2 devuelve el
@@ -98,7 +129,7 @@ export function MarketingNav({ tone = 'onLight' }: { tone?: 'onViolet' | 'onLigh
           {LINKS.map((link) => (
             <a
               key={link.id}
-              href={`/reservas#${link.id}`}
+              href={hrefDe(link.id)}
               onClick={scrollToSection(link.id)}
               className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${linkTone} ${ring}`}
             >
@@ -148,7 +179,7 @@ export function MarketingNav({ tone = 'onLight' }: { tone?: 'onViolet' | 'onLigh
           {LINKS.map((link) => (
             <a
               key={link.id}
-              href={`/reservas#${link.id}`}
+              href={hrefDe(link.id)}
               onClick={scrollToSection(link.id, close)}
               className={`block rounded-xl px-4 py-3 text-sm font-medium text-[#140F2E]/75 transition-colors hover:bg-[#5B34E8]/[0.06] hover:text-[#140F2E] ${focusRingOnLight}`}
             >

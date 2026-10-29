@@ -15,6 +15,12 @@ const nextConfig = {
       "./node_modules/onnxruntime-node/bin/napi-v6/linux/x64/**",
       "./node_modules/onnxruntime-common/**",
     ],
+    "/t/[slug]/dashboard/copiloto/documentos/api": [
+      "./node_modules/onnxruntime-node/dist/**",
+      "./node_modules/onnxruntime-node/package.json",
+      "./node_modules/onnxruntime-node/bin/napi-v6/linux/x64/**",
+      "./node_modules/onnxruntime-common/**",
+    ],
   },
   async headers() {
     return [

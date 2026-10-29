@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { ArrowUp, Database, FileSearch, Loader2 } from 'lucide-react';
+import { ArrowUp, Database, FileSearch, FileText, Loader2 } from 'lucide-react';
 
 // El chat del copiloto. Deliberadamente NO es una burbuja de mensajería:
 // es el lenguaje del panel — la pregunta como encabezado, la respuesta
@@ -9,7 +9,7 @@ import { ArrowUp, Database, FileSearch, Loader2 } from 'lucide-react';
 // "Consultó: select …" es lo importante: el dueño ve de dónde salió
 // cada cifra.
 
-type Herramienta = { name: 'consultar_sql' | 'buscar_en_notas'; input: string; ok: boolean; filas?: number };
+type Herramienta = { name: 'consultar_sql' | 'buscar_en_notas' | 'buscar_en_documentos'; input: string; ok: boolean; filas?: number };
 type Mensaje = { pregunta: string; respuesta: string; herramientas: Herramienta[]; estado: 'pensando' | 'listo' | 'error' };
 
 const SUGERENCIAS = [
@@ -118,10 +118,12 @@ export function CopilotoChat() {
                     <p className="flex items-center gap-1.5 font-medium text-muted">
                       {h.name === 'consultar_sql' ? (
                         <Database className="h-3.5 w-3.5" aria-hidden />
+                      ) : h.name === 'buscar_en_documentos' ? (
+                        <FileText className="h-3.5 w-3.5" aria-hidden />
                       ) : (
                         <FileSearch className="h-3.5 w-3.5" aria-hidden />
                       )}
-                      {h.name === 'consultar_sql' ? 'Consultó' : 'Buscó en notas'}
+                      {{ consultar_sql: 'Consultó', buscar_en_notas: 'Buscó en notas', buscar_en_documentos: 'Buscó en documentos' }[h.name]}
                       <span className={h.ok ? '' : 'text-error'}>
                         · {h.ok ? `${h.filas ?? 0} resultados` : 'falló'}
                       </span>

@@ -239,3 +239,44 @@ caliente.
 varias veces más lento en CPU y transformers.js no lo usa por defecto en
 Node; habría que forzar el backend. **Descartado también:** un API de
 embeddings externo, por la misma razón de la Decisión 004.
+
+## Decisión 008 — Documentos del copiloto: tabla de vectores, sin guardar el archivo (db/041)
+
+El dueño sube PDF, Word o texto y el copiloto los consulta con una tercera
+herramienta, `buscar_en_documentos`.
+
+**Vectores en tabla, no al vuelo.** Las notas se embeben en cada pregunta
+(Decisión 004) porque son decenas. Un documento son cientos de fragmentos:
+embeberlos en cada pregunta tardaría segundos. Aquí sí hay tabla
+(`copiloto_fragmentos`, `vector(384)`), sin índice aproximado: por negocio
+son cientos de filas y el escaneo exacto gana.
+
+**La búsqueda pasa por la frontera.** Los fragmentos tienen policy de
+lectura para miembros; la consulta corre como `authenticated` con el JWT
+del dueño. El vector lo arma el servidor (384 números), no el modelo, así
+que no hay texto del modelo dentro de ese SQL. Subir y borrar escriben con
+`service_role` *después* de `requireTenantStaff` (sesión + membresía), y el
+borrado filtra por `tenant_id`.
+
+**Solo el texto, no el archivo.** Guardar el original pide un bucket de
+Storage con sus propias policies y nadie lo necesita para responder.
+Descartado por ahora; se agrega si el dueño quiere descargar sus archivos.
+
+**Fragmentos de ~900 caracteres con 150 de solape**, cortando en fin de
+párrafo u oración. Sin solape, una idea partida queda sin contexto en los
+dos lados. Descartado: fragmentar por página (un PDF de lista de precios
+mete muchas cosas distintas en una página y el embedding se diluye).
+
+**Límite de 4 MB por archivo**: Vercel corta el cuerpo de una función en
+4.5 MB. Subir directo a Storage con URL firmada lo quitaría; no vale la
+pena hasta que alguien lo necesite. Un PDF escaneado (imagen) no trae
+texto y la subida lo rechaza con un mensaje, en vez de guardar un
+documento vacío que el copiloto nunca encontraría.
+
+**El contenido es entrada hostil**, igual que las notas: va envuelto en
+`<datos>`. Un PDF de un proveedor puede traer instrucciones escondidas.
+
+Verificado en local contra la base real: un .txt y un PDF subidos, "¿qué
+garantía tienen los inversores?" y "¿cubre granizo?" respondidas citando
+el documento por nombre, y los dos borrados desde la pantalla. El modelo
+además notó solo que el documento se llamaba "prueba" y lo advirtió.

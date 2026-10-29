@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { requireTenantStaff } from '@/lib/auth/tenantStaff';
 import { productosDe } from '@/lib/products';
@@ -16,7 +17,12 @@ export default async function CopilotoPage({ params }: { params: Promise<{ slug:
       <PageHeader
         eyebrow="Copiloto"
         title="Pregúntale a tu negocio"
-        description="Consulta tus cotizaciones, reuniones y clientes en español. Solo lee: no cambia ni envía nada."
+        description="Consulta tus cotizaciones, reuniones, clientes y documentos en español. Solo lee: no cambia ni envía nada."
+        action={
+          <Link href="/dashboard/copiloto/documentos" className="text-sm font-medium text-primary hover:underline">
+            Documentos
+          </Link>
+        }
       />
       <CopilotoChat />
     </>

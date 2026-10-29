@@ -3,8 +3,9 @@ import { MODELO_COPILOTO, MAX_PASOS } from './modelo';
 import { promptDeSistema } from './esquema';
 import { ejecutarConsulta } from './frontera';
 import { buscarEnNotas } from './notas';
+import { buscarEnDocumentos } from './documentos';
 
-// El copiloto tiene exactamente dos herramientas y las dos LEEN. No hay
+// El copiloto tiene exactamente tres herramientas y las tres LEEN. No hay
 // ninguna que escriba ni que mande mensajes: el peor caso de una
 // inyección de prompt escondida en una nota es una respuesta rara, no
 // una acción.
@@ -27,13 +28,25 @@ const TOOLS: Anthropic.Tool[] = [
       required: ['texto'],
     },
   },
+  {
+    name: 'buscar_en_documentos',
+    description:
+      'Búsqueda por significado en los documentos que subió el negocio (listas de precios, fichas técnicas, políticas, garantías). Devuelve los 5 fragmentos más parecidos con el nombre del documento.',
+    input_schema: {
+      type: 'object',
+      properties: { texto: { type: 'string', description: 'Lo que buscas. Ej: "garantía de los paneles".' } },
+      required: ['texto'],
+    },
+  },
 ];
 
 export type Evento =
-  | { type: 'tool'; name: 'consultar_sql' | 'buscar_en_notas'; input: string; ok: boolean; filas?: number }
+  | { type: 'tool'; name: NombreTool; input: string; ok: boolean; filas?: number }
   | { type: 'text'; delta: string }
   | { type: 'done' }
   | { type: 'error'; message: string };
+
+export type NombreTool = 'consultar_sql' | 'buscar_en_notas' | 'buscar_en_documentos';
 
 export type Turno = { role: 'user' | 'assistant'; content: string };
 
@@ -81,6 +94,15 @@ export async function* correrAgente(opts: {
           tool_use_id: b.id,
           is_error: !r.ok,
           content: r.ok ? comoDatos({ filas: r.filas, truncado: r.truncado }) : `Error de SQL: ${r.error}`,
+        });
+      } else if (b.name === 'buscar_en_documentos') {
+        const r = await buscarEnDocumentos(opts.userId, String(input.texto ?? ''));
+        yield { type: 'tool', name: 'buscar_en_documentos', input: String(input.texto ?? ''), ok: r.ok, filas: r.ok ? r.fragmentos.length : undefined };
+        resultados.push({
+          type: 'tool_result',
+          tool_use_id: b.id,
+          is_error: !r.ok,
+          content: r.ok ? comoDatos(r.fragmentos) : `Error: ${r.error}`,
         });
       } else {
         const r = await buscarEnNotas(opts.userId, String(input.texto ?? ''));

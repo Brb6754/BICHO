@@ -222,3 +222,20 @@ gratis.
 
 Latencia: 7–20 s por pregunta (la 6 hizo 6 pasos buscando variantes del
 nombre). Aceptable para v1; el streaming hace que el texto aparezca antes.
+
+## Decisión 007 — En Vercel, el binario de ONNX se incluye a mano (solo linux-x64)
+
+Primer deploy de preview: `Cannot find module 'onnxruntime-node'`. El
+paquete carga su binario con un `require` dinámico que el trazador de
+Vercel no sigue. Se agrega con `outputFileTracingIncludes` en la ruta del
+copiloto, **solo** `bin/napi-v6/linux/x64` (45 MB): el paquete entero trae
+binarios de todas las plataformas (288 MB) y rebasa el límite de 250 MB
+por función. El caché del modelo va a `/tmp` (lo único escribible).
+
+Medido en preview: 4.5 s en frío (descarga el modelo a `/tmp`), 10 ms en
+caliente.
+
+**Descartado:** `onnxruntime-web` (WASM) — evita el binario, pero es
+varias veces más lento en CPU y transformers.js no lo usa por defecto en
+Node; habría que forzar el backend. **Descartado también:** un API de
+embeddings externo, por la misma razón de la Decisión 004.

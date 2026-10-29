@@ -10,9 +10,12 @@ let pipe: Promise<FeatureExtractionPipeline> | null = null;
 
 async function extractor() {
   if (!pipe) {
-    pipe = import('@huggingface/transformers').then(
-      ({ pipeline }) => pipeline('feature-extraction', MODELO, { dtype: 'q8' }) as Promise<FeatureExtractionPipeline>,
-    );
+    pipe = import('@huggingface/transformers').then(({ pipeline, env }) => {
+      // En Vercel solo /tmp es escribible; el caché por defecto vive en
+      // node_modules/.cache y la descarga del modelo fallaría ahí.
+      if (process.env.VERCEL) env.cacheDir = '/tmp/hf-cache';
+      return pipeline('feature-extraction', MODELO, { dtype: 'q8' }) as Promise<FeatureExtractionPipeline>;
+    });
   }
   return pipe;
 }

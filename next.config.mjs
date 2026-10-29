@@ -3,6 +3,19 @@ const nextConfig = {
   // El embedder del copiloto carga binarios nativos (onnxruntime-node):
   // no se empaquetan, se requieren en runtime.
   serverExternalPackages: ["@huggingface/transformers", "onnxruntime-node", "postgres"],
+  // onnxruntime-node carga su binario con un require dinámico que el
+  // trazador de Vercel no ve, y la función salía sin él ("Cannot find
+  // module"). Se incluye a mano y SOLO el de linux-x64 (45 MB): el paquete
+  // completo trae los de todas las plataformas (288 MB) y rebasaría el
+  // límite de 250 MB por función.
+  outputFileTracingIncludes: {
+    "/t/[slug]/dashboard/copiloto/api": [
+      "./node_modules/onnxruntime-node/dist/**",
+      "./node_modules/onnxruntime-node/package.json",
+      "./node_modules/onnxruntime-node/bin/napi-v6/linux/x64/**",
+      "./node_modules/onnxruntime-common/**",
+    ],
+  },
   async headers() {
     return [
       {

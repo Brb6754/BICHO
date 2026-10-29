@@ -1,14 +1,14 @@
-import { ArrowUpRight } from 'lucide-react';
-import { createClient } from '@/lib/supabase/server';
+import { ArrowUpRight } from "lucide-react";
+import { createClient } from "@/lib/supabase/server";
 import {
   PLATFORM_PRIMARY,
   PLATFORM_SECONDARY,
   PLATFORM_ACCENT,
   tenantColorCssVars,
   tenantDarkModeCssVars,
-} from '@/lib/branding/colors';
-import { tenantBookingPageUrl } from '@/lib/urls';
-import { BusinessMark } from './BusinessMark';
+} from "@/lib/branding/colors";
+import { tenantBookingPageUrl, tenantMeetingsPageUrl } from "@/lib/urls";
+import { BusinessMark } from "./BusinessMark";
 
 // The frame around the business owner's sign-in and password pages.
 //
@@ -31,15 +31,33 @@ export async function AuthShell({
 }) {
   const supabase = await createClient();
   const { data: tenant } = await supabase
-    .from('tenants')
-    .select('name, primary_color, secondary_color, accent_color, logo_url')
-    .eq('slug', slug)
+    .from("tenants")
+    // select('*'): las banderas de producto pueden no existir en un
+    // ambiente sin la migración, y eso no debe tumbar el login.
+    .select("*")
+    .eq("slug", slug)
     .maybeSingle();
 
   const name = tenant?.name ?? slug;
   const primary = tenant?.primary_color ?? PLATFORM_PRIMARY;
   const secondary = tenant?.secondary_color ?? PLATFORM_SECONDARY;
   const accent = tenant?.accent_color ?? PLATFORM_ACCENT;
+
+  // La página pública que se ofrece abajo depende de lo que el negocio
+  // contrató. Antes siempre apuntaba a /reservar, que da 404 en un
+  // negocio que solo agenda reuniones (Nova Solar).
+  const paginaPublica =
+    tenant?.reservas_enabled !== false
+      ? {
+          href: tenantBookingPageUrl(slug),
+          label: `Ver la página de reservas de ${name}`,
+        }
+      : tenant?.reuniones_enabled === true
+        ? {
+            href: tenantMeetingsPageUrl(slug),
+            label: `Ver la página para agendar con ${name}`,
+          }
+        : null;
 
   return (
     <main
@@ -54,9 +72,18 @@ export async function AuthShell({
       <div className="mx-auto flex min-h-screen w-full max-w-[400px] flex-col px-5 py-10 sm:py-16">
         <div className="animate-fade-in flex flex-1 flex-col justify-center">
           <div className="mb-8">
-            <BusinessMark name={name} logoUrl={tenant?.logo_url} color={primary} size="lg" />
-            <h1 className="mt-6 text-[1.625rem] font-semibold leading-tight tracking-tight text-ink">{title ?? name}</h1>
-            <p className="mt-1.5 text-[15px] leading-relaxed text-muted">{description}</p>
+            <BusinessMark
+              name={name}
+              logoUrl={tenant?.logo_url}
+              color={primary}
+              size="lg"
+            />
+            <h1 className="mt-6 text-[1.625rem] font-semibold leading-tight tracking-tight text-ink">
+              {title ?? name}
+            </h1>
+            <p className="mt-1.5 text-[15px] leading-relaxed text-muted">
+              {description}
+            </p>
           </div>
 
           <div className="rounded-2xl border border-border bg-surface p-6 shadow-[0_1px_2px_rgba(16,24,40,0.04),0_12px_32px_-16px_rgba(16,24,40,0.12)] sm:p-7">
@@ -64,13 +91,15 @@ export async function AuthShell({
           </div>
         </div>
 
-        <a
-          href={tenantBookingPageUrl(slug)}
-          className="mt-10 inline-flex items-center gap-1.5 self-start rounded-md text-sm text-muted transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-        >
-          Ver la página de reservas de {name}
-          <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
-        </a>
+        {paginaPublica && (
+          <a
+            href={paginaPublica.href}
+            className="mt-10 inline-flex items-center gap-1.5 self-start rounded-md text-sm text-muted transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+          >
+            {paginaPublica.label}
+            <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
+          </a>
+        )}
       </div>
     </main>
   );

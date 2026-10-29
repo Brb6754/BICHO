@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // El embedder del copiloto carga binarios nativos (onnxruntime-node):
+  // no se empaquetan, se requieren en runtime.
+  serverExternalPackages: ["@huggingface/transformers", "onnxruntime-node", "postgres"],
   async headers() {
     return [
       {

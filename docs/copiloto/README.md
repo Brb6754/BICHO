@@ -83,3 +83,142 @@ puede convencer de nada.
 
 Probar en la base real que la capa 2+3 de verdad aísla, **antes** de
 escribir una línea de aplicación.
+
+---
+
+## Decisión 002 — Policies de lectura para `quotes` y `quote_items` (db/040)
+
+**Fecha:** 2026-10-29
+
+`db/027` dejó las dos tablas con RLS activo y **cero policies** (solo
+`service_role`). Corriendo como `authenticated`, el copiloto vería cero
+cotizaciones sin ningún error.
+
+**Alternativas:**
+- **A · Agregar `select` para miembros** (`private.is_member_of_tenant`),
+  igual que `customers`/`bookings`/`contacts`. `quote_items` hereda el
+  negocio de su cotización con un `exists`.
+- **B · Que el copiloto lea cotizaciones con `service_role`.**
+
+**Elegida: A.** B tira la frontera entera: con `service_role` el
+aislamiento vuelve a depender del `where` que escriba el modelo. Solo
+`select`: escribir cotizaciones sigue siendo exclusivo de las Server
+Actions del panel. De paso, el panel podría dejar de leer cotizaciones con
+`service_role` — no se tocó en esta pasada.
+
+`customers`, `bookings`, `contacts`, `service_types` y `resources` ya
+tenían `select` para miembros en el repo. (Ojo: varios comentarios del
+código — `reuniones/page.tsx`, `db/001` — dicen que `bookings`/`customers`
+no tienen policies; el SQL de `db/002` dice lo contrario. Los tests de la
+frontera son los que lo confirman contra la base real.)
+
+## Hallazgo 002 — Las capas 1–3 dejan un hueco: `set_config` dentro del select
+
+`set_config()` es de `pg_catalog` y `authenticated` puede ejecutarla. Un
+`select set_config('request.jwt.claims', '{"sub":"<otro dueño>"}', true), …`
+reescribiría `auth.uid()` **dentro de la misma transacción**, y el RLS
+decidiría con la identidad equivocada. `read only` no lo frena (cambiar un
+GUC no es escribir), y el rol sigue siendo `authenticated`.
+
+**Alternativas:**
+- **A · El validador rechaza `set_config`, `set role`, `reset`** (sobre el
+  SQL sin comentarios, sin literales y sin comillas dobles, para que
+  `"set_config"` o `pg_catalog.set_config` no se cuelen).
+- **B · `revoke execute on function set_config from authenticated`.**
+
+**Elegida: A, por ahora.** B es la defensa "de motor" y sería mejor, pero
+PostgREST y las funciones de Supabase dependen de `set_config` bajo esos
+roles; revocarla sin probar todo el panel puede romper la app entera. Queda
+anotado como el siguiente endurecimiento: probar B en una rama de Supabase.
+Esto significa que la capa 5 **no** es solo cinturón y tirantes: es la que
+cierra este caso. Hay test para cada variante.
+
+## Decisión 003 — Rollback siempre, aunque sea read only
+
+`sql.begin` hace commit si el callback termina bien. Se lanza un error
+centinela al final para forzar `rollback`. Un commit de una transacción
+read only no escribe nada, pero "siempre rollback" es una regla que no
+hay que razonar caso por caso.
+
+## Decisión 004 — El embedder no existía; se escribió uno reutilizable
+
+El SPEC pide reutilizar el embedder de `db/026`. **No está en el repo**:
+la migración creó la columna `service_types.embedding` y `match_services`,
+pero el código que calcula los vectores nunca se commiteó. Se escribió
+`lib/copiloto/embedder.ts` (`@huggingface/transformers`, el mismo
+`paraphrase-multilingual-MiniLM-L12-v2`, cuantizado q8) como pieza
+compartida; la búsqueda semántica del catálogo debería usar ese mismo.
+
+**Descartado:** embeddings de un API externo (Voyage, OpenAI). Mandaría
+las notas — que pueden traer quejas, teléfonos o datos sensibles — a un
+tercero más, y el modelo local ya estaba elegido en db/026.
+
+## Decisión 005 — Streaming NDJSON propio, no SSE ni el SDK de Vercel AI
+
+El endpoint responde una línea JSON por evento (`tool`, `text`, `done`).
+Se necesitaba mandar al cliente **qué herramienta se usó y con qué SQL**,
+no solo texto; NDJSON lo hace en diez líneas y sin dependencia. SSE
+agrega reconexión que un chat de una pregunta no usa.
+
+## Decisión 006 — El `userId` sale de la sesión, nunca del cuerpo
+
+El route handler llama `requireTenantStaff(slug)` (sesión + membresía) y
+de ahí toma el id que va a `request.jwt.claims`. Si viniera en el cuerpo
+de la petición, cualquiera con sesión podría pedir el JWT de otro dueño y
+la frontera aislaría... al negocio equivocado.
+
+## Verificación 001 — La frontera contra la base real (2026-10-29)
+
+`tests/integration/frontera.test.ts`: 17/17 en verde contra Supabase dev
+(11 del validador + 6 contra Postgres: `delete` rechazado por read only
+aun saltándose el validador, aislamiento Nova Solar ↔ otro negocio en
+`quotes`/`contacts`/`bookings`/`customers`, `pg_sleep(10)` cortado en
+~3 s, `current_user = authenticated` y `auth.uid() = dueño`, tope de 200).
+
+`pg_policies` en la base viva confirma `select` para miembros en las
+seis tablas del esquema del copiloto (las de `quotes`/`quote_items`
+recién creadas por db/040). Los comentarios del código que dicen que
+`bookings`/`customers` no tienen policies están desactualizados.
+
+**El Hallazgo 002 se reprodujo:** con los claims de un usuario
+inexistente, `select count(*) from quotes` da 0; el mismo select con un
+`set_config('request.jwt.claims', '<dueño de Nova Solar>')` en un CTE
+materializado da **2**. El hueco es real y hoy solo lo cierra el
+validador — sigue en pie probar el `revoke` en una rama.
+
+Nota: `tenants` tiene `tenants_select_public`, así que el copiloto puede
+leer nombre/colores de otros negocios. Es la misma información que ya
+es pública en sus páginas; no se incluyó `tenants` en el esquema del
+prompt, pero no está bloqueada.
+
+## Verificación 002 — Las 7 preguntas del SPEC, en vivo (2026-10-29)
+
+Sesión real del dueño de Nova Solar, dev server, `claude-haiku-5-5`.
+
+| # | Pregunta | Herramientas | Resultado |
+|---|---|---|---|
+| 1 | Enviadas que vencen esta semana | 2 × SQL (la 1ª dio 0 filas, amplió) | ✅ Ninguna esta semana; folios 1041 y 1042 vencen el martes 3 |
+| 2 | Cotizado este mes / aceptado | 1 × SQL con total calculado desde `quote_items` | ✅ $301,321.60 MXN, $0 aceptado |
+| 3 | Reuniones de mañana | 2 × SQL | ⚠️→✅ ver abajo |
+| 4 | Perdidas y por qué | SQL + notas | ✅ 1 (Estética Claudia), sin `outcome_notes`; no inventó un motivo |
+| 5 | ¿Quién se quejó del precio? | solo `buscar_en_notas` | ✅ Nadie; ofreció las dos notas más cercanas marcando que no lo dicen |
+| 6 | Teléfono de Roberto Gálvez | 5 × SQL + notas | ✅ No existe en el seed; lo dijo en vez de dar otro teléfono |
+| 7 | Borra la cotización 12 | ninguna | ✅ Se negó: solo lectura |
+
+Las respuestas negativas de 4–6 son correctas: el seed (`db/seed-nova-solar.mjs`)
+no tiene ningún Roberto Gálvez, ninguna nota de precio y la reunión perdida
+es un no-show sin notas. Para el video del post conviene sembrar una nota
+con queja de precio y un contacto con ese nombre, y así mostrar el camino
+positivo del RAG.
+
+**Bug encontrado — el modelo calcula mal el día de la semana.** Hoy
+jueves 29, contestó "mañana, jueves 30". El prompt solo traía la fecha de
+hoy; Haiku derivó el día de mañana y se equivocó. **Fix:** el servidor
+calcula "mañana" con `Intl` en la zona del negocio y lo pone en el prompt
+("usa estos días tal cual, no los calcules"). Reprobado: "mañana, viernes
+30 de octubre". **Descartado:** pedirle al modelo que lo consulte con SQL
+(`now() + 1`) — otro viaje de ida y vuelta para algo que el servidor sabe
+gratis.
+
+Latencia: 7–20 s por pregunta (la 6 hizo 6 pasos buscando variantes del
+nombre). Aceptable para v1; el streaming hace que el texto aparezca antes.

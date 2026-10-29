@@ -16,6 +16,7 @@ import {
   FileText,
   ReceiptText,
   Handshake,
+  Sparkles,
 } from 'lucide-react';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { BusinessMark } from '@/components/tenant-dash/BusinessMark';
@@ -44,10 +45,14 @@ const NAV_ITEMS: {
   requiresFacturacion?: boolean;
   requiresReservas?: boolean;
   requiresReuniones?: boolean;
+  requiresCopiloto?: boolean;
   /** Citas O reuniones: las dos agendan sobre las mismas personas y el mismo horario. */
   requiresAgenda?: boolean;
 }[] = [
   { href: '/dashboard', label: 'Resumen', icon: LayoutDashboard, exact: true },
+  // Arriba de todo lo demás: es una forma de leer las otras secciones,
+  // no una sección más.
+  { href: '/dashboard/copiloto', label: 'Copiloto', icon: Sparkles, requiresCopiloto: true },
   { href: '/dashboard/calendar', label: 'Agenda', icon: CalendarDays, requiresReservas: true },
   // Above the catalogue on purpose: services and hours are setup, changed
   // a few times a year. Customers is something an owner looks up.
@@ -98,6 +103,7 @@ export function Sidebar({
   facturacionEnabled = false,
   reservasEnabled = true,
   reunionesEnabled = false,
+  copilotoEnabled = false,
   bookingHref,
   footer,
 }: {
@@ -126,6 +132,7 @@ export function Sidebar({
   reservasEnabled?: boolean;
   /** El módulo de reuniones. */
   reunionesEnabled?: boolean;
+  copilotoEnabled?: boolean;
   // Same reason: the demo's booking page isn't on a tenant subdomain.
   bookingHref?: string;
   // Defaults to the real sign-out. The demo has no session to end.
@@ -205,6 +212,7 @@ export function Sidebar({
               (!item.requiresQuotes || quotesEnabled) &&
               (!item.requiresReservas || reservasEnabled) &&
               (!item.requiresReuniones || reunionesEnabled) &&
+              (!item.requiresCopiloto || copilotoEnabled) &&
               (!item.requiresAgenda || reservasEnabled || reunionesEnabled) &&
               (!item.requiresFacturacion || facturacionEnabled)
           ).map((item) => {

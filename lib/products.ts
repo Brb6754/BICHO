@@ -26,6 +26,7 @@ export type ProductosDelNegocio = {
   caja: boolean;
   lealtad: boolean;
   regresan: boolean;
+  posts: boolean;
 };
 
 export async function productosDe(slug: string): Promise<ProductosDelNegocio> {
@@ -54,5 +55,7 @@ export async function productosDe(slug: string): Promise<ProductosDelNegocio> {
     lealtad: data?.lealtad_enabled === true,
     // Clientes que regresan (db/046): mismo criterio, apagado hasta que se prende.
     regresan: data?.regresan_enabled === true,
+    // Posts con IA (db/048): mismo criterio, apagado hasta que se prende.
+    posts: data?.posts_enabled === true,
   };
 }

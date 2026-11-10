@@ -50,6 +50,8 @@ export default async function PanelDemoLayout({
         cajaEnabled
         // Y Lealtad, con clientas inventadas (panel/lealtad).
         lealtadEnabled
+        // Y Posts con IA, con opciones pre-escritas (panel/posts).
+        postsEnabled
         bookingHref="/"
         footer={
           // El Sidebar ya trae arriba "Ver mi página de reservas", así

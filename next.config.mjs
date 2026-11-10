@@ -1,5 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Posts con IA (app/api/posts/imagen) pasa el logo subido a Storage por
+  // el optimizador para convertir webp → png. Solo el bucket público propio.
+  images: process.env.NEXT_PUBLIC_SUPABASE_URL
+    ? { remotePatterns: [new URL(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/**`)] }
+    : undefined,
   // El logo del dueño (/dashboard/marca) sube por server action, hasta
   // 2 MB + el resto del FormData. El default de Next es 1 MB.
   experimental: {

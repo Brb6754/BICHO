@@ -21,6 +21,7 @@ import {
   Wallet,
   Stamp,
   HeartHandshake,
+  Megaphone,
 } from 'lucide-react';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { BusinessMark } from '@/components/tenant-dash/BusinessMark';
@@ -53,6 +54,7 @@ const NAV_ITEMS: {
   requiresCaja?: boolean;
   requiresLealtad?: boolean;
   requiresRegresan?: boolean;
+  requiresPosts?: boolean;
   /** Citas O reuniones: las dos agendan sobre las mismas personas y el mismo horario. */
   requiresAgenda?: boolean;
   /** Solo el dueño de un negocio real (los demos con navBase no tienen esta página). */
@@ -75,6 +77,8 @@ const NAV_ITEMS: {
   // El segundo producto de bicho. Aparece solo si el negocio lo tiene
   // prendido: para quien solo agenda citas, un menú con una sección que
   // no usa es ruido permanente.
+  // Posts con IA (db/048): para traer a esas mismas clientas desde redes.
+  { href: '/dashboard/posts', label: 'Posts con IA', icon: Megaphone, requiresPosts: true },
   { href: '/dashboard/cotizaciones', label: 'Cotizaciones', icon: FileText, requiresQuotes: true },
   // Cuarto módulo. Arriba de cotizaciones no: primero se habla con el
   // prospecto y después se le pone precio, así que este es el orden
@@ -123,6 +127,7 @@ export function Sidebar({
   cajaEnabled = false,
   lealtadEnabled = false,
   regresanEnabled = false,
+  postsEnabled = false,
   bookingHref,
   footer,
 }: {
@@ -156,6 +161,7 @@ export function Sidebar({
   cajaEnabled?: boolean;
   lealtadEnabled?: boolean;
   regresanEnabled?: boolean;
+  postsEnabled?: boolean;
   // Same reason: the demo's booking page isn't on a tenant subdomain.
   bookingHref?: string;
   // Defaults to the real sign-out. The demo has no session to end.
@@ -239,6 +245,7 @@ export function Sidebar({
               (!item.requiresCaja || cajaEnabled) &&
               (!item.requiresLealtad || lealtadEnabled) &&
               (!item.requiresRegresan || regresanEnabled) &&
+              (!item.requiresPosts || postsEnabled) &&
               (!item.requiresAgenda || reservasEnabled || reunionesEnabled) &&
               (!item.requiresFacturacion || facturacionEnabled) &&
               (!item.ownerOnly || (role === 'owner' && !navBase))

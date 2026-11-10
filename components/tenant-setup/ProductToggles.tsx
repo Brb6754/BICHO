@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { CalendarDays, FileText, HeartHandshake, ReceiptText, Stamp, Wallet } from 'lucide-react';
+import { CalendarDays, FileText, HeartHandshake, Megaphone, ReceiptText, Stamp, Wallet } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 
 // Qué productos tiene contratado el negocio.
@@ -11,7 +11,7 @@ import { Card } from '@/components/ui/Card';
 // pregunta comercial es una sola: ¿qué le vendiste? El mismo componente
 // sirve al panel interno y al del vendedor; quién puede tocarlo lo
 // decide la acción, no este archivo.
-type Producto = 'reservas' | 'cotizaciones' | 'facturacion' | 'lealtad' | 'caja' | 'regresan';
+type Producto = 'reservas' | 'cotizaciones' | 'facturacion' | 'lealtad' | 'caja' | 'regresan' | 'posts';
 
 export function ProductToggles({
   reservas,
@@ -20,6 +20,7 @@ export function ProductToggles({
   lealtad = false,
   caja = false,
   regresan = false,
+  posts = false,
   onToggle,
 }: {
   reservas: boolean;
@@ -28,6 +29,7 @@ export function ProductToggles({
   lealtad?: boolean;
   caja?: boolean;
   regresan?: boolean;
+  posts?: boolean;
   onToggle: (producto: Producto, activo: boolean) => Promise<void>;
 }) {
   const router = useRouter();
@@ -98,6 +100,14 @@ export function ProductToggles({
       activo: regresan,
       detalle: 'Recordatorio de cita 24 h antes, clientas que no han vuelto y pedir reseña de Google.',
       alApagar: 'La sección desaparece del panel y dejan de salir los recordatorios.',
+    },
+    {
+      id: 'posts' as const,
+      label: 'Posts con IA',
+      Icon: Megaphone,
+      activo: posts,
+      detalle: 'Textos para redes con IA e imagen con su marca. 30 al mes.',
+      alApagar: 'La sección desaparece del panel. El historial de posts se conserva.',
     },
   ];
 

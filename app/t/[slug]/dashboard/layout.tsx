@@ -80,6 +80,8 @@ export default async function DashboardLayout({
   const lealtadEnabled = ajustes?.lealtad_enabled === true;
   // Clientes que regresan (db/046). Sin la columna, apagado.
   const regresanEnabled = ajustes?.regresan_enabled === true;
+  // Posts con IA (db/048). Sin la columna, apagado.
+  const postsEnabled = ajustes?.posts_enabled === true;
 
   const { data: membership } = await supabase
     .from('business_users')
@@ -123,6 +125,7 @@ export default async function DashboardLayout({
         cajaEnabled={cajaEnabled}
         lealtadEnabled={lealtadEnabled}
         regresanEnabled={regresanEnabled}
+        postsEnabled={postsEnabled}
       />
       <main className="relative z-10 min-w-0 flex-1 px-5 pb-16 pt-20 sm:px-8 lg:px-12 lg:pt-12">
         <div className="mx-auto max-w-4xl">

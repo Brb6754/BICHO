@@ -17,6 +17,7 @@ import {
   ReceiptText,
   Handshake,
   Sparkles,
+  Palette,
 } from 'lucide-react';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { BusinessMark } from '@/components/tenant-dash/BusinessMark';
@@ -48,6 +49,8 @@ const NAV_ITEMS: {
   requiresCopiloto?: boolean;
   /** Citas O reuniones: las dos agendan sobre las mismas personas y el mismo horario. */
   requiresAgenda?: boolean;
+  /** Solo el dueño de un negocio real (los demos con navBase no tienen esta página). */
+  ownerOnly?: boolean;
 }[] = [
   { href: '/dashboard', label: 'Resumen', icon: LayoutDashboard, exact: true },
   // Arriba de todo lo demás: es una forma de leer las otras secciones,
@@ -75,6 +78,7 @@ const NAV_ITEMS: {
   // y sin esto se quedaría sin dónde darlos de alta.
   { href: '/dashboard/resources', label: 'Quién atiende', icon: Users, requiresAgenda: true },
   { href: '/dashboard/schedule', label: 'Horario', icon: Clock3, requiresAgenda: true },
+  { href: '/dashboard/marca', label: 'Mi marca', icon: Palette, ownerOnly: true },
 ];
 
 const ROLE_LABELS: Record<string, string> = {
@@ -214,7 +218,8 @@ export function Sidebar({
               (!item.requiresReuniones || reunionesEnabled) &&
               (!item.requiresCopiloto || copilotoEnabled) &&
               (!item.requiresAgenda || reservasEnabled || reunionesEnabled) &&
-              (!item.requiresFacturacion || facturacionEnabled)
+              (!item.requiresFacturacion || facturacionEnabled) &&
+              (!item.ownerOnly || (role === 'owner' && !navBase))
           ).map((item) => {
             const href = navBase ? `${navBase}${item.href.slice(DASHBOARD_ROOT.length)}` : item.href;
             const isActive = item.exact ? pathname === href : (pathname?.startsWith(href) ?? false);

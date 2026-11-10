@@ -1,8 +1,8 @@
-// Clientes de demostración para los nueve negocios de muestra.
+// Clientes de demostración para los diez negocios de muestra.
 //
 // Correr con:  node db/seed-demo-contacts.mjs
 //
-// Idempotente: borra y recrea los contactos de esos nueve slugs. NO se
+// Idempotente: borra y recrea los contactos de esos diez slugs. NO se
 // corre sobre un negocio real.
 //
 // Para qué existe: la sección de Clientes es la que mejor vende el
@@ -33,7 +33,7 @@ const env = Object.fromEntries(
 
 const db = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
 
-// Por defecto los nueve demos; se le pueden pasar slugs sueltos para
+// Por defecto los diez demos; se le pueden pasar slugs sueltos para
 // sembrar otro negocio de pruebas:
 //   node db/seed-demo-contacts.mjs spa
 const SLUGS = process.argv.slice(2).length
@@ -48,6 +48,8 @@ const SLUGS = process.argv.slice(2).length
   'clinica-alameda',
   'don-ramon',
   'lima-laca',
+  'burbujas-bigotes',
+  'casa-norte',
 ];
 
 // Cada perfil es una historia distinta, y entre los seis cubren las tres

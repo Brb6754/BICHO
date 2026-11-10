@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { productosDe } from '@/lib/products';
 import { PublicShell } from '@/components/tenant-public/PublicShell';
+import { BookingPausedNotice, bookingPause } from '@/components/tenant-public/BookingPausedNotice';
 import { MeetingFlow, type MeetingType } from '@/components/meetings/MeetingFlow';
 import { isFontKey, type FontKey } from '@/lib/branding/fonts';
 import {
@@ -103,6 +104,9 @@ export default async function ReunionesPublicPage({
   // tiempo a alguien es peor que decirle que esa dirección no existe.
   const productos = await productosDe(slug);
   if (!productos.reuniones) notFound();
+
+  const pausa = await bookingPause(slug);
+  if (pausa) return <BookingPausedNotice {...pausa} />;
 
   const [{ data: branding_raw }, { data: mode }, { data: paginaRow }] = await Promise.all([
     supabase

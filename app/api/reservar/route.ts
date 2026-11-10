@@ -1,3 +1,4 @@
+import { acceptsNewBookings } from '@/lib/billing/trial';
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { sendBookingConfirmation } from '@/lib/email/sendBookingConfirmation';
@@ -98,6 +99,12 @@ export async function POST(request: Request) {
     .single();
   if (!tenant) {
     return NextResponse.json({ error: 'Negocio no encontrado.' }, { status: 404 });
+  }
+
+  // Prueba vencida y sin pagar: la página ya muestra el aviso, esto cierra la puerta de la API.
+  const { data: billing } = await supabase.from('tenants').select('*').eq('id', tenant.id).maybeSingle();
+  if (!acceptsNewBookings(billing)) {
+    return NextResponse.json({ error: 'Este negocio no está tomando reservas en línea por ahora.' }, { status: 403 });
   }
 
   // Don't trust client-supplied resource_id/service_type_id blindly —

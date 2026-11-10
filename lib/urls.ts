@@ -56,3 +56,26 @@ export function resellerSubscriptionUrl(): string {
   const protocol = rootDomain.startsWith('localhost') ? 'http' : 'https';
   return `${protocol}://${rootDomain}/vendedor/suscripcion`;
 }
+
+// La dirección que el dueño comparte por WhatsApp. Con un dominio real
+// es su subdominio ({slug}.bichomx.com); en localhost o *.vercel.app
+// (sin TLS wildcard) cae a la forma por path, por los mismos dos motivos
+// de arriba.
+export function tenantShareUrl(slug: string): string {
+  const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? 'localhost:3000';
+  if (rootDomain.startsWith('localhost') || rootDomain.endsWith('.vercel.app')) {
+    const protocol = rootDomain.startsWith('localhost') ? 'http' : 'https';
+    return `${protocol}://${rootDomain}/t/${slug}`;
+  }
+  return `https://${slug}.${rootDomain}`;
+}
+
+// El link de "confirma tu correo" del registro. Por path y en el dominio
+// raíz, por los mismos motivos de arriba; el callback canjea el token y
+// deja la sesión en ese mismo host antes de mandar al panel.
+export function tenantConfirmEmailUrl(slug: string, tokenHash: string, type: string): string {
+  const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? 'localhost:3000';
+  const protocol = rootDomain.startsWith('localhost') ? 'http' : 'https';
+  const q = new URLSearchParams({ token_hash: tokenHash, type, next: `/t/${slug}/dashboard` });
+  return `${protocol}://${rootDomain}/t/${slug}/auth/callback?${q}`;
+}

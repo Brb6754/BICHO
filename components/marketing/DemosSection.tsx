@@ -29,6 +29,8 @@ const DEMOS = [
   { slug: 'alto-padel', nombre: 'Alto Pádel Club', giro: 'Club de pádel', acento: '#8CC63F' },
   { slug: 'mesa-doce', nombre: 'Mesa Doce', giro: 'Restaurante', acento: '#C8891F' },
   { slug: 'lima-laca', nombre: 'Lima & Laca', giro: 'Nail bar', acento: '#E0576E' },
+  { slug: 'burbujas-bigotes', nombre: 'Burbujas & Bigotes', giro: 'Estética canina', acento: '#F2A93B' },
+  { slug: 'casa-norte', nombre: 'Casa Norte Inmobiliaria', giro: 'Inmobiliaria', acento: '#C9A24A' },
 ];
 
 const DOMINIO = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? 'bichomx.com';
@@ -43,7 +45,7 @@ export function DemosSection() {
         <Reveal>
           <SectionOpener
             eyebrow="Míralo funcionando"
-            title="Ocho negocios, ocho páginas distintas."
+            title="Once negocios, once páginas distintas."
             intro="Están abiertos, sin contraseña. Entra a cualquiera: reserva una cita como lo haría tu cliente, y luego abre el panel para ver cómo le llega al dueño."
           />
         </Reveal>

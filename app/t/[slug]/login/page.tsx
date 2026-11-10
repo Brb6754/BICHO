@@ -39,7 +39,7 @@ export default async function LoginPage({
 
   return (
     <AuthShell slug={slug} description={descripcion(productos)}>
-      <LoginForm initialError={typeof error === 'string' ? error : null} />
+      <LoginForm slug={slug} initialError={typeof error === 'string' ? error : null} />
     </AuthShell>
   );
 }

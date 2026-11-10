@@ -136,11 +136,11 @@ export function Hero() {
                 distintos, centradas bajo un titular centrado, es lo que
                 hacia ver desalineada la portada. */}
             <PillLink
-              href="/demo"
+              href="/registro"
               tone="lime"
               className="w-full justify-between sm:w-auto sm:justify-start"
             >
-              Agenda una demo
+              Crea tu página gratis
             </PillLink>
 
             {/* The other kind of demo: not "déjanos tus datos y te
@@ -149,8 +149,8 @@ export function Hero() {
                 lead — but a visitor who isn't ready to hand over a
                 phone number can still see the product instead of
                 bouncing. */}
-            <PillLink href="/plataforma" tone="outlineOnDark" className="w-full justify-center sm:w-auto">
-              Ver la plataforma
+            <PillLink href="/demo" tone="outlineOnDark" className="w-full justify-center sm:w-auto">
+              Agenda una demo
             </PillLink>
           </div>
 

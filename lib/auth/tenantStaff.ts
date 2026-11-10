@@ -17,12 +17,14 @@ export async function requireTenantStaff(slug: string): Promise<{
   tenantId: string;
   timezone: string | null;
   userId: string;
+  role: string;
 }> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new StaffAccessError('Inicia sesión para continuar.');
+  if (!user.email_confirmed_at) throw new StaffAccessError('Confirma tu correo para continuar.');
 
   const admin = createAdminClient();
   const { data: tenant } = await admin
@@ -34,11 +36,11 @@ export async function requireTenantStaff(slug: string): Promise<{
 
   const { data: membership } = await admin
     .from('business_users')
-    .select('user_id')
+    .select('role')
     .eq('tenant_id', tenant.id)
     .eq('user_id', user.id)
     .maybeSingle();
   if (!membership) throw new StaffAccessError('No tienes acceso a este negocio.');
 
-  return { tenantId: tenant.id, timezone: tenant.timezone, userId: user.id };
+  return { tenantId: tenant.id, timezone: tenant.timezone, userId: user.id, role: membership.role as string };
 }

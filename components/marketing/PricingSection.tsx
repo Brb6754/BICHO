@@ -3,7 +3,7 @@ import { SectionOpener } from './Primitives';
 import { Reveal } from './Reveal';
 import { DotField } from './DotField';
 
-// $300 MXN al mes, un solo plan, decidido por Bruno el 2026-10-02.
+// $299 MXN al mes, un solo plan (antes $300; cambio de Bruno el 2026-11-09).
 //
 // Antes eran tres columnas con precios inventados ($399/$699/$1,199) y
 // un comentario que pedía confirmarlos antes de publicar. Esto reemplaza
@@ -45,7 +45,7 @@ export function PricingSection() {
             <div>
               <div className="flex items-baseline gap-2">
                 <span className="font-[family-name:var(--font-display)] text-[clamp(3.5rem,9vw,5rem)] font-bold leading-none text-[#140F2E]">
-                  $300
+                  $299
                 </span>
                 <span className="text-lg font-semibold text-[#6A6488]">MXN</span>
               </div>

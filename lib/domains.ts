@@ -55,7 +55,8 @@ export const ROOT_ALIAS_SUBDOMAINS: Record<string, string> = {
 /**
  * Subdomains of this domain that a DIFFERENT Vercel project serves.
  *
- * choose.bichomx.com → the Choose project (choose-web)
+ * choose.bichomx.com         → the Choose project (choose-web)
+ * punto-y-fiesta.bichomx.com → Punto y Fiesta (invitaciones-digitales/)
  *
  * This app never routes these: Vercel matches an explicitly assigned
  * hostname before the `*.bichomx.com` wildcard, so the request reaches
@@ -64,7 +65,7 @@ export const ROOT_ALIAS_SUBDOMAINS: Record<string, string> = {
  * resulting page would be shadowed by the other project and simply
  * never load, with no error anywhere to explain it.
  */
-export const EXTERNAL_SUBDOMAINS = new Set<string>(['choose']);
+export const EXTERNAL_SUBDOMAINS = new Set<string>(['choose', 'punto-y-fiesta']);
 
 /**
  * Names a business can never take as its slug. Two sources:
@@ -79,6 +80,7 @@ export const RESERVED_SLUGS = new Set<string>([
   'demo',
   'ia',
   'plataforma',
+  'registro',
   'privacidad',
   'terminos',
   'api',
@@ -114,6 +116,8 @@ export const DEMO_SLUGS = new Set<string>([
   'clinica-alameda',
   'don-ramon',
   'lima-laca',
+  'burbujas-bigotes',
+  'casa-norte',
 ]);
 
 export function isDemoSlug(slug: string): boolean {

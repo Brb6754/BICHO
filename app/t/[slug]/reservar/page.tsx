@@ -16,6 +16,7 @@ import type { Block, TemplateDesign } from '@/lib/templates/blocks';
 import { createDefaultBlock, normalizeDesign } from '@/lib/templates/blocks';
 import { esServicio } from '@/lib/meetings/kinds';
 import { PublicShell } from '@/components/tenant-public/PublicShell';
+import { BookingPausedNotice, bookingPause } from '@/components/tenant-public/BookingPausedNotice';
 
 function resolveFontKey(value: unknown): FontKey {
   return typeof value === 'string' && isFontKey(value) ? value : 'inter';
@@ -100,6 +101,10 @@ export default async function ReservarPage({ params }: { params: Promise<{ slug:
   // perder el tiempo a un cliente del negocio.
   const productos = await productosDe(slug);
   if (!productos.reservas) notFound();
+
+  // Prueba vencida y sin pagar (lib/billing/trial.ts): aviso amable, nunca 404.
+  const pausa = await bookingPause(slug);
+  if (pausa) return <BookingPausedNotice {...pausa} />;
 
   const { data: branding_raw } = await supabase
     .from('tenants')

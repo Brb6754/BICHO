@@ -748,6 +748,177 @@ const NEGOCIOS = [
       }, COLUMN),
     ],
   },
+
+  // ═════════════════════════════════════════════════════════════════
+  // ESTÉTICA CANINA — el precio depende del tamaño del perro y el
+  // tiempo, de la raza y el pelaje; eso es lo que el cliente necesita
+  // ver antes de apartar. Verde azulado con amarillo cálido, formas
+  // redondeadas y letra amigable: ni clínica ni barbería.
+  // Todavía sin foto (/public/demo/burbujas-bigotes.webp) ni logo.
+  // ═════════════════════════════════════════════════════════════════
+  {
+    slug: 'burbujas-bigotes',
+    logo: null,
+    fonts: { heading: 'poppins', body: 'inter' },
+    name: 'Burbujas & Bigotes',
+    vertical: 'peluqueria',
+    description: 'Estética canina en Durango: baño, corte y spa para tu perro.',
+    colors: { primary: '#0F4C4A', secondary: '#08302F', accent: '#F2A93B' },
+    design: {
+      typeScale: 'humanist',
+      rhythm: 'balanced',
+      shape: 'rounded',
+      imageTreatment: 'soft',
+      headingFont: '',
+      upperHeadings: false,
+    },
+    resourceLabel: 'Estilista',
+    location: 'Av. Universidad 512, Valle del Sur, Durango',
+    resources: ['Fernanda Quiñones', 'Óscar Meraz'],
+    services: [
+      ['Baño perro chico', 60, 250],
+      ['Baño perro mediano', 75, 330],
+      ['Baño perro grande', 90, 450],
+      ['Corte de raza', 120, 480],
+      ['Corte higiénico', 30, 150],
+      ['Baño medicado', 75, 380],
+      ['Corte de uñas', 15, 90],
+      ['Deslanado', 120, 550],
+    ],
+    schedule: [...week([1, 2, 3, 4, 5], '09:00', '19:00'), ...week([6], '09:00', '15:00')],
+    blocks: () => [
+      header(
+        'Estética canina',
+        'Agenda el baño de tu perro',
+        'Elige servicio, estilista y hora. Lo recoges limpio, perfumado y con moño.'
+      ),
+      booking(),
+      b('services', 'menu', {
+        heading: 'Servicios y precios',
+        intro: 'El baño se cobra por tamaño: chico hasta 10 kg, mediano de 10 a 25 kg, grande de 25 kg en adelante. Todos incluyen secado, cepillado, limpieza de oídos y perfume.',
+        items: [
+          { name: 'Baño perro chico', description: 'Chihuahua, pug, schnauzer mini y similares.', price: '$250', duration: '60 min' },
+          { name: 'Baño perro mediano', description: 'Beagle, cocker, border collie y similares.', price: '$330', duration: '75 min' },
+          { name: 'Baño perro grande', description: 'Labrador, golden, pastor alemán y similares.', price: '$450', duration: '90 min' },
+          { name: 'Corte de raza', description: 'Incluye baño. Poodle, schnauzer, yorkie, shih tzu; el precio sube con el tamaño.', price: 'desde $480', duration: '2 h' },
+          { name: 'Corte higiénico', description: 'Patas, cara y zona íntima, entre cortes.', price: '$150', duration: '30 min' },
+          { name: 'Baño medicado', description: 'Shampoo indicado por su veterinario, o el nuestro para piel sensible.', price: '$380', duration: '75 min' },
+          { name: 'Corte de uñas', description: 'Con limado. Quince minutos y listo.', price: '$90', duration: '15 min' },
+          { name: 'Deslanado', description: 'Retiro de subpelo para husky, golden o pastor. Incluye baño.', price: '$550', duration: '2 h' },
+        ],
+      }, COLUMN),
+      b('team', 'roster', {
+        heading: 'Quién lo atiende',
+        intro: '',
+        members: [
+          { name: 'Fernanda Quiñones', role: 'Cortes de raza', photoUrl: '', note: 'Poodle, schnauzer y razas de pelo largo.' },
+          { name: 'Óscar Meraz', role: 'Perros grandes', photoUrl: '', note: 'Deslanado y perros nerviosos, con paciencia.' },
+        ],
+      }, COLUMN),
+      b('faq', 'default', {
+        heading: 'Antes de traerlo',
+        items: [
+          { question: '¿Necesita vacunas?', answer: 'Sí: cartilla con rabia y múltiple vigentes. Tráela la primera vez y la anotamos.' },
+          { question: 'Mi perro es nervioso o muerde, ¿lo atienden?', answer: 'Sí. Avísanos en las notas de la reserva para darle más tiempo y que lo atienda Óscar.' },
+          { question: '¿Cuánto tarda en estar listo?', answer: 'Lo que dice cada servicio. Te mandamos WhatsApp cuando ya puedes pasar por él.' },
+          { question: '¿Y si trae pulgas o garrapatas?', answer: 'Agenda baño medicado. Si llega con pulgas a un baño normal, se cambia al medicado.' },
+        ],
+      }, COLUMN),
+      b('hours', 'default', {
+        heading: 'Horario',
+        lines: ['Lunes a viernes: 9:00–19:00', 'Sábado: 9:00–15:00', 'Domingo: cerrado'],
+      }, COLUMN),
+      b('location', 'default', {
+        heading: 'Dónde estamos',
+        address: 'Av. Universidad 512, Valle del Sur, Durango',
+        mapUrl: '',
+      }, COLUMN),
+    ],
+  },
+
+  // ═════════════════════════════════════════════════════════════════
+  // INMOBILIARIA — validación con agentes reales antes de construir un
+  // módulo: cada "servicio" es la visita a UNA propiedad (precio de la
+  // propiedad en el nombre; la visita es sin costo) y cada recurso es
+  // un asesor. Azul pizarra con dorado, serif en titulares.
+  // Sin foto ni logo.
+  // ═════════════════════════════════════════════════════════════════
+  {
+    slug: 'casa-norte',
+    logo: null,
+    fonts: { heading: 'playfair', body: 'inter' },
+    name: 'Casa Norte Inmobiliaria',
+    vertical: 'inmobiliaria',
+    description: 'Casas, departamentos, terrenos y locales en Durango. Agenda tu visita en línea.',
+    colors: { primary: '#1E3A5F', secondary: '#12243B', accent: '#C9A24A' },
+    design: {
+      typeScale: 'editorial',
+      rhythm: 'balanced',
+      shape: 'soft',
+      imageTreatment: 'square',
+      headingFont: '',
+      upperHeadings: false,
+    },
+    resourceLabel: 'Asesor',
+    location: 'Blvd. Felipe Pescador 1010, Zona Centro, Durango',
+    resources: ['Daniela Villarreal', 'Rodrigo Soto', 'Alejandra Cháirez'],
+    services: [
+      ['Casa en Valle del Sur · 3 rec, 2 baños · $2,450,000', 45, 0],
+      ['Casa en Jardines de Durango · 4 rec, 3 baños · $3,850,000', 45, 0],
+      ['Depa en Los Remedios · 2 rec, 2 baños · $1,690,000', 45, 0],
+      ['Casa en Fracc. Huizache · 2 rec, 1 baño · $1,180,000', 45, 0],
+      ['Terreno en Las Alamedas · 250 m² · $980,000', 45, 0],
+      ['Local en renta, Zona Centro · 80 m² · $14,500/mes', 45, 0],
+    ],
+    schedule: [...week([1, 2, 3, 4, 5], '09:00', '19:00'), ...week([6], '10:00', '14:00')],
+    blocks: () => [
+      header(
+        'Inmobiliaria en Durango',
+        'Agenda tu visita',
+        'Elige la propiedad, el asesor y la hora. Te mandamos la ubicación exacta por WhatsApp.'
+      ),
+      booking(),
+      b('services', 'menu', {
+        heading: 'Propiedades disponibles',
+        intro: 'La visita no tiene costo y dura unos 45 minutos. Precios de venta, salvo el local (renta mensual).',
+        items: [
+          { name: 'Casa en Valle del Sur', description: '3 recámaras, 2 baños, cochera para 2. Terreno 160 m², construcción 140 m².', price: '$2,450,000', duration: '45 min' },
+          { name: 'Casa en Jardines de Durango', description: '4 recámaras, 3 baños, jardín y estudio. Terreno 250 m², construcción 230 m².', price: '$3,850,000', duration: '45 min' },
+          { name: 'Depa en Los Remedios', description: '2 recámaras, 2 baños, 3er piso con elevador, un cajón de estacionamiento.', price: '$1,690,000', duration: '45 min' },
+          { name: 'Casa en Fracc. Huizache', description: '2 recámaras, 1 baño, una planta. Acepta Infonavit.', price: '$1,180,000', duration: '45 min' },
+          { name: 'Terreno en Las Alamedas', description: '250 m² escriturado, con servicios a pie de lote.', price: '$980,000', duration: '45 min' },
+          { name: 'Local en renta, Zona Centro', description: '80 m² a pie de calle, baño y bodega. Depósito de un mes.', price: '$14,500/mes', duration: '45 min' },
+        ],
+      }, COLUMN),
+      b('team', 'roster', {
+        heading: 'Tu asesor',
+        intro: '',
+        members: [
+          { name: 'Daniela Villarreal', role: 'Casas y crédito', photoUrl: '', note: 'Infonavit, Fovissste y crédito bancario.' },
+          { name: 'Rodrigo Soto', role: 'Terrenos y locales', photoUrl: '', note: 'Inversión y propiedades comerciales.' },
+          { name: 'Alejandra Cháirez', role: 'Departamentos', photoUrl: '', note: 'Primera vivienda y rentas.' },
+        ],
+      }, COLUMN),
+      b('faq', 'default', {
+        heading: 'Antes de tu visita',
+        items: [
+          { question: '¿Dónde nos vemos?', answer: 'En la propiedad. Al confirmar tu cita te mandamos la ubicación exacta por WhatsApp.' },
+          { question: '¿La visita tiene costo?', answer: 'No. Agendar y visitar es gratis y sin compromiso.' },
+          { question: '¿Aceptan crédito Infonavit o bancario?', answer: 'En la mayoría sí. Escríbelo en las notas de la reserva y tu asesor te dice cuáles aplican.' },
+          { question: '¿Puedo ver varias propiedades el mismo día?', answer: 'Sí: agenda una cita por propiedad con el mismo asesor y él arma la ruta.' },
+        ],
+      }, COLUMN),
+      b('hours', 'default', {
+        heading: 'Horario de visitas',
+        lines: ['Lunes a viernes: 9:00–19:00', 'Sábado: 10:00–14:00', 'Domingo: cerrado'],
+      }, COLUMN),
+      b('location', 'default', {
+        heading: 'Oficina',
+        address: 'Blvd. Felipe Pescador 1010, Zona Centro, Durango',
+        mapUrl: '',
+      }, COLUMN),
+    ],
+  },
 ];
 
 
@@ -829,9 +1000,14 @@ async function seed(negocio) {
   );
 }
 
-for (const negocio of NEGOCIOS) {
+// Sin argumentos siembra todos; con slugs, solo esos (y no toca las
+// citas de los demás demos):  node db/seed-demo-tenants.mjs burbujas-bigotes
+const SOLO = process.argv.slice(2);
+const ELEGIDOS = SOLO.length ? NEGOCIOS.filter((x) => SOLO.includes(x.slug)) : NEGOCIOS;
+
+for (const negocio of ELEGIDOS) {
   await seed(negocio);
 }
 
 console.log('\nListos:');
-NEGOCIOS.forEach((x) => console.log(`  https://${x.slug}.bichomx.com`));
+ELEGIDOS.forEach((x) => console.log(`  https://${x.slug}.bichomx.com`));

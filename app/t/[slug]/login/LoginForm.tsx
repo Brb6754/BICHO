@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, MailCheck } from 'lucide-react';
 import { signIn, requestPasswordReset } from '../actions';
+import { resendConfirmation } from '@/app/registro/actions';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
@@ -16,11 +17,14 @@ function ErrorNote({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default function LoginForm({ initialError = null }: { initialError?: string | null }) {
+export default function LoginForm({ slug, initialError = null }: { slug: string; initialError?: string | null }) {
   const router = useRouter();
   const [mode, setMode] = useState<'login' | 'forgot' | 'sent'>('login');
   const [error, setError] = useState<string | null>(initialError);
   const [email, setEmail] = useState('');
+  const [resent, setResent] = useState<string | null>(null);
+  // Correo sin confirmar (registro propio): ofrecer el reenvío ahí mismo.
+  const needsConfirm = !!error && /confirmad|enlace ya venció/i.test(error);
   const [showPassword, setShowPassword] = useState(false);
   const [isPending, startTransition] = useTransition();
 
@@ -122,6 +126,26 @@ export default function LoginForm({ initialError = null }: { initialError?: stri
   return (
     <form action={handleSubmit} className="flex flex-col gap-5">
       {error && <ErrorNote>{error}</ErrorNote>}
+      {needsConfirm && (
+        <div className="-mt-2 text-sm text-muted">
+          {resent ?? (
+            <button
+              type="button"
+              disabled={isPending}
+              onClick={() =>
+                startTransition(async () => {
+                  if (!email.trim()) return setResent('Escribe tu correo abajo y vuelve a tocar «Reenviar».');
+                  const r = await resendConfirmation(slug, email);
+                  setResent(r.ok ? 'Si ese correo es del dueño y falta confirmarlo, te llegará un enlace nuevo.' : (r.error ?? null));
+                })
+              }
+              className="font-medium text-ink underline decoration-ink/25 underline-offset-4 hover:decoration-ink"
+            >
+              Reenviar correo de confirmación
+            </button>
+          )}
+        </div>
+      )}
       <div>
         <Label htmlFor="login-email">Correo</Label>
         <Input

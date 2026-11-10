@@ -28,7 +28,7 @@ function buildHref(searchParams: Record<string, string | undefined>, page: numbe
   return qs ? `/tenants?${qs}` : '/tenants';
 }
 
-// MRR is derived from real numbers (active tenant count × the $300 MXN
+// MRR is derived from real numbers (active tenant count × the $299 MXN
 // plan price from CLAUDE.md's business model) and is labelled as an
 // estimate wherever it appears. Churn used to sit beside it as a flat
 // hard-coded 4.2% — that number was invented, and giving an invented
@@ -37,7 +37,7 @@ function buildHref(searchParams: Record<string, string | undefined>, page: numbe
 // the disabled "resetear onboarding" button on the tenant detail page:
 // show the gap, don't fill it with fiction). It becomes real when
 // billing history exists — step 7, Stripe, currently paused.
-const MONTHLY_PLAN_PRICE_MXN = 300;
+const MONTHLY_PLAN_PRICE_MXN = 299;
 
 export default async function TenantsPage({
   searchParams: searchParamsPromise,
@@ -129,6 +129,15 @@ export default async function TenantsPage({
       row.id,
       row.reseller_id,
     ])
+  );
+
+  // WhatsApp del dueño de las altas self-serve (db/043, tabla aparte
+  // porque `tenants` es de lectura pública). Sin la migración, vacío.
+  const { data: contactRows } = pageTenantIds.length
+    ? await admin.from('tenant_owner_contacts').select('tenant_id, whatsapp').in('tenant_id', pageTenantIds)
+    : { data: [] };
+  const whatsappByTenant = new Map(
+    ((contactRows ?? []) as { tenant_id: string; whatsapp: string }[]).map((r) => [r.tenant_id, r.whatsapp])
   );
 
   return (
@@ -261,6 +270,16 @@ export default async function TenantsPage({
                         {t.name}
                       </Link>
                       <p className="text-xs text-muted">{t.slug}</p>
+                      {whatsappByTenant.get(t.id) && (
+                        <a
+                          href={`https://wa.me/${whatsappByTenant.get(t.id)!.slice(1)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-muted underline-offset-2 hover:text-ink hover:underline"
+                        >
+                          WhatsApp {whatsappByTenant.get(t.id)}
+                        </a>
+                      )}
                     </Td>
                     <Td className="capitalize text-muted">{t.vertical}</Td>
                     <Td>

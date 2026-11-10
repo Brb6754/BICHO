@@ -1,3 +1,4 @@
+import { acceptsNewBookings } from '@/lib/billing/trial';
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { esReunion, pideDireccion } from '@/lib/meetings/kinds';
@@ -121,6 +122,11 @@ export async function POST(request: Request) {
     .maybeSingle();
   if (flag?.reuniones_enabled !== true) {
     return NextResponse.json({ error: 'Este negocio no agenda reuniones.' }, { status: 404 });
+  }
+
+  const { data: billing } = await db.from('tenants').select('*').eq('id', tenant.id).maybeSingle();
+  if (!acceptsNewBookings(billing)) {
+    return NextResponse.json({ error: 'Este negocio no está tomando reuniones en línea por ahora.' }, { status: 403 });
   }
 
   const [{ data: resource }, { data: tipo }] = await Promise.all([

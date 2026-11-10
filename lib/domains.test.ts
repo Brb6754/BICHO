@@ -79,4 +79,9 @@ describe('the two kinds of subdomain stay distinct', () => {
     expect(ROOT_ALIAS_SUBDOMAINS.choose).toBeUndefined();
     expect(PREFIXED_SUBDOMAINS.choose).toBeUndefined();
   });
+
+  it('punto-y-fiesta is external too: no business can take its slug', () => {
+    expect(EXTERNAL_SUBDOMAINS.has('punto-y-fiesta')).toBe(true);
+    expect(isReservedSlug('punto-y-fiesta')).toBe(true);
+  });
 });

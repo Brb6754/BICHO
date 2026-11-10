@@ -1,5 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // El logo del dueño (/dashboard/marca) sube por server action, hasta
+  // 2 MB + el resto del FormData. El default de Next es 1 MB.
+  experimental: {
+    serverActions: { bodySizeLimit: '3mb' },
+  },
   // El embedder del copiloto carga binarios nativos (onnxruntime-node):
   // no se empaquetan, se requieren en runtime.
   serverExternalPackages: ["@huggingface/transformers", "onnxruntime-node", "postgres"],

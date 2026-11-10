@@ -71,7 +71,7 @@ export async function sendSignupNotice(n: SignupNotice): Promise<boolean> {
 
 // Confirmación de correo del dueño. El link lo arma el caller (token de
 // Supabase generateLink) y aterriza en /t/{slug}/auth/callback.
-export async function sendSignupConfirmation(to: string, business: string, link: string): Promise<boolean> {
+export async function sendSignupConfirmation(to: string, business: string, link: string, pageUrl: string): Promise<boolean> {
   return send('sendSignupConfirmation', {
     to,
     replyTo: REPLY_TO,
@@ -81,6 +81,9 @@ export async function sendSignupConfirmation(to: string, business: string, link:
         <h2 style="margin-bottom:4px;">Confirma tu correo</h2>
         <p style="color:#555;line-height:1.5;">Tu página de <strong>${escapeHtml(business)}</strong> ya está creada. Para entrar a tu panel (citas, servicios, horario) confirma que este correo es tuyo:</p>
         <p style="margin:28px 0;"><a href="${escapeHtml(link)}" style="background:#5B34E8;color:#fff;padding:14px 26px;border-radius:999px;text-decoration:none;font-weight:600;">Confirmar mi correo</a></p>
+        <p style="color:#555;font-size:14px;line-height:1.6;">Guarda tus links:<br>
+          Página de reservas (compártela): <a href="${escapeHtml(pageUrl)}" style="color:#5B34E8;">${escapeHtml(pageUrl)}</a><br>
+          Tu panel: <a href="${escapeHtml(pageUrl)}/dashboard" style="color:#5B34E8;">${escapeHtml(pageUrl)}/dashboard</a></p>
         <p style="color:#888;font-size:13px;line-height:1.5;">Si no creaste una cuenta en bicho, ignora este correo.</p>
       </div>`,
   });

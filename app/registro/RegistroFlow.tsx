@@ -146,6 +146,7 @@ export function RegistroFlow() {
 
   if (doneSlug) {
     const url = tenantShareUrl(doneSlug);
+    const dashboardUrl = `${url}/dashboard`;
     const wa = `https://wa.me/?text=${encodeURIComponent(`¡Ya puedes agendar tu cita en ${name.trim()} en línea! ${url}`)}`;
     return (
       <div className="rounded-[28px] bg-white p-6 text-center ring-1 ring-[#140F2E]/[0.06] sm:p-10">
@@ -182,7 +183,16 @@ export function RegistroFlow() {
         <p className="mx-auto mt-4 max-w-sm text-[15px] leading-relaxed text-[#6A6488]">
           Tu página ya se puede compartir. Tienes 15 días de prueba gratis, sin tarjeta.
         </p>
-        <p className="mt-6 break-all rounded-2xl bg-[#F4F1FF] px-4 py-3 text-sm font-semibold text-[#5B34E8]">{url}</p>
+        <dl className="mt-6 space-y-2 text-left">
+          <div className="rounded-2xl bg-[#F4F1FF] px-4 py-3">
+            <dt className="text-xs font-semibold text-[#6A6488]">Tu página de reservas (compártela)</dt>
+            <dd className="break-all text-sm font-semibold text-[#5B34E8]">{url}</dd>
+          </div>
+          <div className="rounded-2xl bg-[#F4F1FF] px-4 py-3">
+            <dt className="text-xs font-semibold text-[#6A6488]">Tu panel (aquí ves tus citas)</dt>
+            <dd className="break-all text-sm font-semibold text-[#5B34E8]">{dashboardUrl}</dd>
+          </div>
+        </dl>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <button
             type="button"
@@ -208,6 +218,10 @@ export function RegistroFlow() {
           <a href={url} target="_blank" rel="noopener noreferrer" className={SECONDARY}>
             Ver mi página
           </a>
+          <a href={dashboardUrl} className={SECONDARY}>
+            Ir a mi panel
+          </a>
+          <p className="text-xs text-[#6A6488]">Para entrar al panel primero confirma tu correo.</p>
         </div>
       </div>
     );

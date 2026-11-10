@@ -245,7 +245,7 @@ export async function registerBusiness(input: RegistroInput): Promise<RegistroRe
   // final o desde el login. Sin sesión: el panel exige correo confirmado.
   const props = created.properties;
   try {
-    await sendSignupConfirmation(email, name, tenantConfirmEmailUrl(slug, props.hashed_token, props.verification_type));
+    await sendSignupConfirmation(email, name, tenantConfirmEmailUrl(slug, props.hashed_token, props.verification_type), tenantShareUrl(slug));
   } catch (err) {
     console.error('registro: confirmación no enviada', slug, err);
   }
@@ -300,7 +300,8 @@ export async function resendConfirmation(slug: string, email: string): Promise<{
     await sendSignupConfirmation(
       cleanEmail,
       tenant.name,
-      tenantConfirmEmailUrl(cleanSlug, link.properties.hashed_token, link.properties.verification_type)
+      tenantConfirmEmailUrl(cleanSlug, link.properties.hashed_token, link.properties.verification_type),
+      tenantShareUrl(cleanSlug)
     );
     break;
   }

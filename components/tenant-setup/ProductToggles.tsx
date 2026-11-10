@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { CalendarDays, FileText, ReceiptText } from 'lucide-react';
+import { CalendarDays, FileText, HeartHandshake, ReceiptText, Stamp, Wallet } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 
 // Qué productos tiene contratado el negocio.
@@ -11,17 +11,23 @@ import { Card } from '@/components/ui/Card';
 // pregunta comercial es una sola: ¿qué le vendiste? El mismo componente
 // sirve al panel interno y al del vendedor; quién puede tocarlo lo
 // decide la acción, no este archivo.
-type Producto = 'reservas' | 'cotizaciones' | 'facturacion';
+type Producto = 'reservas' | 'cotizaciones' | 'facturacion' | 'lealtad' | 'caja' | 'regresan';
 
 export function ProductToggles({
   reservas,
   cotizaciones,
   facturacion,
+  lealtad = false,
+  caja = false,
+  regresan = false,
   onToggle,
 }: {
   reservas: boolean;
   cotizaciones: boolean;
   facturacion: boolean;
+  lealtad?: boolean;
+  caja?: boolean;
+  regresan?: boolean;
   onToggle: (producto: Producto, activo: boolean) => Promise<void>;
 }) {
   const router = useRouter();
@@ -68,6 +74,30 @@ export function ProductToggles({
       // Apagarlo no invalida nada ante el SAT: lo ya timbrado existe en
       // el SAT, no en bicho. Decir "se cancelan" sería falso y caro.
       alApagar: 'Deja de poder emitir. Las facturas ya timbradas siguen siendo válidas.',
+    },
+    {
+      id: 'lealtad' as const,
+      label: 'Lealtad',
+      Icon: Stamp,
+      activo: lealtad,
+      detalle: 'Tarjeta de sellos digital y promociones en su página de reservas.',
+      alApagar: 'La sección desaparece del panel y dejan de sumarse sellos. Las tarjetas se conservan.',
+    },
+    {
+      id: 'caja' as const,
+      label: 'Caja',
+      Icon: Wallet,
+      activo: caja,
+      detalle: 'Ventas, gastos, cuánto le quedó y el corte de caja del día.',
+      alApagar: 'La sección desaparece del panel. Las ventas y gastos anotados se conservan.',
+    },
+    {
+      id: 'regresan' as const,
+      label: 'Clientes que regresan',
+      Icon: HeartHandshake,
+      activo: regresan,
+      detalle: 'Recordatorio de cita 24 h antes, clientas que no han vuelto y pedir reseña de Google.',
+      alApagar: 'La sección desaparece del panel y dejan de salir los recordatorios.',
     },
   ];
 

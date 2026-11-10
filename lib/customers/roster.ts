@@ -48,6 +48,8 @@ export type CustomerRecord = {
   total: number;
   /** Most recent past appointment that wasn't cancelled, as an ISO instant. */
   lastVisit: string | null;
+  /** The service of that most recent visit ("Clientes que regresan" lo usa en el mensaje). */
+  lastService?: string | null;
   /** Next confirmed appointment, as an ISO instant. */
   nextVisit: string | null;
   /** What they booked most often, for the one line of context a row can hold. */
@@ -125,7 +127,10 @@ export function buildRoster(bookings: RosterBooking[], now: Date): CustomerRecor
     const attended = b.status === 'completed' || (b.status === 'confirmed' && !isFuture);
     if (attended) {
       rec.visits += 1;
-      if (!rec.lastVisit || b.starts_at > rec.lastVisit) rec.lastVisit = b.starts_at;
+      if (!rec.lastVisit || b.starts_at > rec.lastVisit) {
+        rec.lastVisit = b.starts_at;
+        rec.lastService = b.service_types?.name ?? null;
+      }
     }
     if (b.status === 'confirmed' && isFuture && (!rec.nextVisit || b.starts_at < rec.nextVisit)) {
       rec.nextVisit = b.starts_at;

@@ -18,6 +18,9 @@ import {
   Handshake,
   Sparkles,
   Palette,
+  Wallet,
+  Stamp,
+  HeartHandshake,
 } from 'lucide-react';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { BusinessMark } from '@/components/tenant-dash/BusinessMark';
@@ -47,6 +50,9 @@ const NAV_ITEMS: {
   requiresReservas?: boolean;
   requiresReuniones?: boolean;
   requiresCopiloto?: boolean;
+  requiresCaja?: boolean;
+  requiresLealtad?: boolean;
+  requiresRegresan?: boolean;
   /** Citas O reuniones: las dos agendan sobre las mismas personas y el mismo horario. */
   requiresAgenda?: boolean;
   /** Solo el dueño de un negocio real (los demos con navBase no tienen esta página). */
@@ -57,9 +63,15 @@ const NAV_ITEMS: {
   // no una sección más.
   { href: '/dashboard/copiloto', label: 'Copiloto', icon: Sparkles, requiresCopiloto: true },
   { href: '/dashboard/calendar', label: 'Agenda', icon: CalendarDays, requiresReservas: true },
+  // Caja (db/045): justo después de la agenda, porque las citas completadas son sus ventas.
+  { href: '/dashboard/caja', label: 'Caja', icon: Wallet, requiresCaja: true },
   // Above the catalogue on purpose: services and hours are setup, changed
   // a few times a year. Customers is something an owner looks up.
   { href: '/dashboard/customers', label: 'Clientes', icon: Contact },
+  // Lealtad (db/047): junto a Clientes, es sobre las mismas personas.
+  { href: '/dashboard/lealtad', label: 'Lealtad', icon: Stamp, requiresLealtad: true },
+  // Clientes que regresan (db/046): también sobre las mismas personas.
+  { href: '/dashboard/regresan', label: 'Clientes que regresan', icon: HeartHandshake, requiresRegresan: true },
   // El segundo producto de bicho. Aparece solo si el negocio lo tiene
   // prendido: para quien solo agenda citas, un menú con una sección que
   // no usa es ruido permanente.
@@ -108,6 +120,9 @@ export function Sidebar({
   reservasEnabled = true,
   reunionesEnabled = false,
   copilotoEnabled = false,
+  cajaEnabled = false,
+  lealtadEnabled = false,
+  regresanEnabled = false,
   bookingHref,
   footer,
 }: {
@@ -137,6 +152,10 @@ export function Sidebar({
   /** El módulo de reuniones. */
   reunionesEnabled?: boolean;
   copilotoEnabled?: boolean;
+  /** Módulo Caja (db/045). */
+  cajaEnabled?: boolean;
+  lealtadEnabled?: boolean;
+  regresanEnabled?: boolean;
   // Same reason: the demo's booking page isn't on a tenant subdomain.
   bookingHref?: string;
   // Defaults to the real sign-out. The demo has no session to end.
@@ -217,6 +236,9 @@ export function Sidebar({
               (!item.requiresReservas || reservasEnabled) &&
               (!item.requiresReuniones || reunionesEnabled) &&
               (!item.requiresCopiloto || copilotoEnabled) &&
+              (!item.requiresCaja || cajaEnabled) &&
+              (!item.requiresLealtad || lealtadEnabled) &&
+              (!item.requiresRegresan || regresanEnabled) &&
               (!item.requiresAgenda || reservasEnabled || reunionesEnabled) &&
               (!item.requiresFacturacion || facturacionEnabled) &&
               (!item.ownerOnly || (role === 'owner' && !navBase))

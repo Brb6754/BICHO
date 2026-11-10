@@ -184,6 +184,9 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ t
     reservas: flags?.reservas_enabled !== false,
     cotizaciones: flags?.quotes_enabled === true,
     facturacion: flags?.facturacion_enabled === true,
+    caja: flags?.caja_enabled === true,
+    lealtad: flags?.lealtad_enabled === true,
+    regresan: flags?.regresan_enabled === true,
   };
 
   const whatsapp = await getWhatsappAddon(tenant.id);
@@ -311,6 +314,9 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ t
           reservas={productos.reservas}
           cotizaciones={productos.cotizaciones}
           facturacion={productos.facturacion}
+          caja={productos.caja}
+          lealtad={productos.lealtad}
+          regresan={productos.regresan}
           onToggle={async (producto, activo) => {
             'use server';
             await setTenantProduct(tenant.id, producto, activo);

@@ -56,7 +56,9 @@ export async function sendBookingConfirmation({
   // "¡Cita confirmada!" there would read like a brand new booking
   // instead of an updated time for an existing one. Everything else
   // (styling, the "Ver mi cita" button, escaping) stays identical.
-  kind?: 'confirmed' | 'rescheduled';
+  // 'reminder' = el recordatorio de 24 h del módulo "Clientes que
+  // regresan" (app/api/cron/recordatorios).
+  kind?: 'confirmed' | 'rescheduled' | 'reminder';
   // tenants.timezone. REQUIRED for a correct time: this runs in a
   // serverless function whose process timezone is UTC, so formatting
   // without it told a customer in Mexico City that their 17:30
@@ -75,16 +77,21 @@ export async function sendBookingConfirmation({
     const resend = new Resend(apiKey);
     const when = appointmentWhen(startsAt, timezone);
     const buttonColor = accentColor ?? '#4F46E5';
-    const heading = kind === 'rescheduled' ? 'Tu cita se reprogramó' : '¡Cita confirmada!';
+    const heading =
+      kind === 'rescheduled' ? 'Tu cita se reprogramó' : kind === 'reminder' ? 'Te esperamos pronto' : '¡Cita confirmada!';
     const intro =
       kind === 'rescheduled'
         ? `Hola ${escapeHtml(customerName)}, tu cita en <strong>${escapeHtml(businessName)}</strong> se movió a un nuevo horario.`
-        : `Hola ${escapeHtml(customerName)}, tu cita en <strong>${escapeHtml(businessName)}</strong> quedó agendada.`;
+        : kind === 'reminder'
+          ? `Hola ${escapeHtml(customerName)}, te recordamos tu cita en <strong>${escapeHtml(businessName)}</strong>.`
+          : `Hola ${escapeHtml(customerName)}, tu cita en <strong>${escapeHtml(businessName)}</strong> quedó agendada.`;
+    const subject =
+      kind === 'rescheduled' ? 'Cita reprogramada' : kind === 'reminder' ? 'Recordatorio de tu cita' : 'Cita confirmada';
     await resend.emails.send({
       from: FROM_BOOKINGS,
       ...(REPLY_TO ? { replyTo: REPLY_TO } : {}),
       to: customerEmail,
-      subject: `${kind === 'rescheduled' ? 'Cita reprogramada' : 'Cita confirmada'} — ${businessName}`,
+      subject: `${subject} — ${businessName}`,
       html: `
         <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
           <h2 style="margin-bottom: 4px;">${heading}</h2>

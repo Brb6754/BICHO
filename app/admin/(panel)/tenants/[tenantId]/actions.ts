@@ -232,17 +232,23 @@ export async function setTenantWhatsapp(tenantId: string, enabled: boolean) {
  */
 export async function setTenantProduct(
   tenantId: string,
-  producto: 'reservas' | 'cotizaciones' | 'facturacion',
+  producto: 'reservas' | 'cotizaciones' | 'facturacion' | 'lealtad' | 'caja' | 'regresan',
   enabled: boolean
 ) {
   await requireTenantManager(tenantId);
 
   const columna =
-    producto === 'reservas'
+    producto === 'caja'
+      ? 'caja_enabled'
+      : producto === 'reservas'
       ? 'reservas_enabled'
       : producto === 'cotizaciones'
         ? 'quotes_enabled'
-        : 'facturacion_enabled';
+        : producto === 'lealtad'
+          ? 'lealtad_enabled'
+          : producto === 'regresan'
+            ? 'regresan_enabled'
+          : 'facturacion_enabled';
 
   const admin = createAdminClient();
   const { data, error } = await admin
@@ -255,9 +261,15 @@ export async function setTenantProduct(
     // 42703 = la columna no existe todavía en este ambiente.
     if (error.code === '42703') {
       throw new Error(
-        producto === 'facturacion'
+        producto === 'caja'
+          ? 'Falta correr db/045_caja.sql en Supabase.'
+          : producto === 'facturacion'
           ? 'Falta correr db/035_facturacion_product.sql en Supabase.'
-          : 'Falta correr db/027_quotes.sql y db/028_product_flags.sql en Supabase.'
+          : producto === 'lealtad'
+            ? 'Falta correr db/047_lealtad.sql en Supabase.'
+            : producto === 'regresan'
+              ? 'Falta correr db/046_clientes_regresan.sql en Supabase.'
+            : 'Falta correr db/027_quotes.sql y db/028_product_flags.sql en Supabase.'
       );
     }
     throw new Error(`No se pudo cambiar el producto: ${error.message}`);

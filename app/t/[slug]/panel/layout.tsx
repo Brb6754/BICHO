@@ -45,6 +45,11 @@ export default async function PanelDemoLayout({
         primaryColor={tenant.primaryColor}
         logoUrl={tenant.logoUrl}
         navBase="/panel"
+        regresanEnabled
+        // La demo enseña la Caja con datos inventados (panel/caja).
+        cajaEnabled
+        // Y Lealtad, con clientas inventadas (panel/lealtad).
+        lealtadEnabled
         bookingHref="/"
         footer={
           // El Sidebar ya trae arriba "Ver mi página de reservas", así

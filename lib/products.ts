@@ -23,6 +23,9 @@ export type ProductosDelNegocio = {
   facturacion: boolean;
   reuniones: boolean;
   copiloto: boolean;
+  caja: boolean;
+  lealtad: boolean;
+  regresan: boolean;
 };
 
 export async function productosDe(slug: string): Promise<ProductosDelNegocio> {
@@ -45,5 +48,11 @@ export async function productosDe(slug: string): Promise<ProductosDelNegocio> {
     reuniones: data?.reuniones_enabled === true,
     // Copiloto (db/040): mismo criterio, apagado hasta que se prende.
     copiloto: data?.copiloto_enabled === true,
+    // Caja (db/045): mismo criterio, apagado hasta que se prende.
+    caja: data?.caja_enabled === true,
+    // Lealtad (db/047): mismo criterio, apagado hasta que se prende.
+    lealtad: data?.lealtad_enabled === true,
+    // Clientes que regresan (db/046): mismo criterio, apagado hasta que se prende.
+    regresan: data?.regresan_enabled === true,
   };
 }

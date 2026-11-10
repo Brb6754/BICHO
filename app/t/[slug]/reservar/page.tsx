@@ -17,6 +17,7 @@ import { createDefaultBlock, normalizeDesign } from '@/lib/templates/blocks';
 import { esServicio } from '@/lib/meetings/kinds';
 import { PublicShell } from '@/components/tenant-public/PublicShell';
 import { BookingPausedNotice, bookingPause } from '@/components/tenant-public/BookingPausedNotice';
+import { PromosVigentes } from '@/components/tenant-public/PromosVigentes';
 
 function resolveFontKey(value: unknown): FontKey {
   return typeof value === 'string' && isFontKey(value) ? value : 'inter';
@@ -299,6 +300,13 @@ export default async function ReservarPage({ params }: { params: Promise<{ slug:
       )}
       textColor={branding_raw?.text_color ?? '#1A1A1A'}
     >
+      <PromosVigentes
+        slug={slug}
+        tenantId={tenant.id}
+        timezone={tenant.timezone ?? null}
+        enabled={productos.lealtad}
+        accentColor={branding.accentColor}
+      />
       <BlockRenderer blocks={pageBlocks} bookingData={bookingData} branding={branding} />
     </PublicShell>
   );

@@ -79,3 +79,11 @@ export function tenantConfirmEmailUrl(slug: string, tokenHash: string, type: str
   const q = new URLSearchParams({ token_hash: tokenHash, type, next: `/t/${slug}/dashboard` });
   return `${protocol}://${rootDomain}/t/${slug}/auth/callback?${q}`;
 }
+
+// La tarjeta de lealtad de una clienta (db/047). Por path, por los mismos
+// motivos de arriba: el link viaja por WhatsApp y se abre en otro teléfono.
+export function tenantLoyaltyCardUrl(slug: string, token: string): string {
+  const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? 'localhost:3000';
+  const protocol = rootDomain.startsWith('localhost') ? 'http' : 'https';
+  return `${protocol}://${rootDomain}/t/${slug}/tarjeta/${token}`;
+}

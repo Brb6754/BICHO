@@ -15,7 +15,8 @@ import {
 } from '@/lib/branding/colors';
 import { googleFontsHref, isFontKey, FONT_OPTIONS, type FontKey } from '@/lib/branding/fonts';
 import { normalizeDesign, templateDesignCssVars, type TemplateDesign } from '@/lib/templates/blocks';
-import { appointmentWhen, minutesBetween } from '@/lib/dates/tenantTime';
+import { appointmentWhen, dayKey, formatTime, minutesBetween } from '@/lib/dates/tenantTime';
+import motion from '@/components/booking/motion.module.css';
 import { tenantBookingPageUrl } from '@/lib/urls';
 
 type BookingRow = {
@@ -176,11 +177,13 @@ export default async function BookingDetailPage({
             ctaLink: '',
           }}
           branding={{ primaryColor, accentColor, logoUrl: brandingRow?.logo_url ?? null, isDark, darkBase }}
+          tucked
         />
 
-        <div className="mx-auto max-w-2xl sm:px-6 sm:py-14">
+        {/* Same sheet as the booking page: it rises into the band. */}
+        <div className="relative mx-auto -mt-7 max-w-2xl sm:-mt-16 sm:px-6 sm:pb-14">
           <div
-            className="-mt-px border-y border-ink/[0.08] px-5 pb-8 pt-7 sm:mt-0 sm:rounded-3xl sm:border sm:p-8 sm:shadow-[0_1px_2px_rgba(16,24,40,0.04),0_12px_32px_-12px_rgba(16,24,40,0.14)]"
+            className={`${motion.rise} rounded-t-[28px] border-t border-ink/[0.08] px-5 pb-8 pt-7 shadow-[0_-12px_32px_-18px_rgba(16,24,40,0.35)] sm:rounded-[28px] sm:border sm:p-8 sm:shadow-[0_1px_2px_rgba(16,24,40,0.05),0_24px_48px_-20px_rgba(16,24,40,0.28)]`}
             style={{ background: tenantGlassBackground(primaryColor, accentColor, 3, darkBase) }}
           >
             {!booking ? (
@@ -209,17 +212,34 @@ export default async function BookingDetailPage({
                       {status.label}
                     </p>
                   )}
-                  <h2
-                    className={`mt-3 text-[1.75rem] font-semibold leading-tight sm:text-[2rem] ${
-                      canChange ? 'text-ink' : 'text-ink/60'
-                    }`}
-                    style={headingStyle}
-                  >
-                    {booking.service_types?.name ?? 'Tu cita'}
-                  </h2>
-                  <p className={`mt-1.5 text-lg tabular-nums ${canChange ? 'text-ink' : 'text-muted'}`}>
-                    {appointmentWhen(booking.starts_at, timezone)}
-                  </p>
+                  <div className="mt-4 flex items-center gap-4">
+                    {/* The date as a tile, the way it reads on a ticket:
+                        day number big, in the business's colour. Greyed
+                        out once the appointment can't be changed. */}
+                    <div
+                      className={`flex w-[76px] shrink-0 flex-col items-center rounded-2xl py-2.5 ${canChange ? '' : 'opacity-50'}`}
+                      style={tenantCtaStyle(primaryColor, accentColor)}
+                      aria-hidden="true"
+                    >
+                      <span className="text-[2rem] font-bold leading-none tabular-nums" style={headingStyle}>
+                        {Number(dayKey(booking.starts_at, timezone).slice(8, 10))}
+                      </span>
+                      <span className="mt-1 text-[11px] font-semibold tabular-nums">{formatTime(booking.starts_at, timezone)}</span>
+                    </div>
+                    <div className="min-w-0">
+                      <h2
+                        className={`text-[1.6rem] font-semibold leading-tight sm:text-[2rem] ${
+                          canChange ? 'text-ink' : 'text-ink/60'
+                        }`}
+                        style={headingStyle}
+                      >
+                        {booking.service_types?.name ?? 'Tu cita'}
+                      </h2>
+                      <p className={`mt-1 text-base tabular-nums sm:text-lg ${canChange ? 'text-ink' : 'text-muted'}`}>
+                        {appointmentWhen(booking.starts_at, timezone)}
+                      </p>
+                    </div>
+                  </div>
                 </div>
 
                 <dl className="divide-y divide-ink/[0.07] border-y border-ink/[0.07] text-sm">

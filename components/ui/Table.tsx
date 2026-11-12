@@ -15,7 +15,7 @@ export function Thead(props: HTMLAttributes<HTMLTableSectionElement>) {
 export function Th({ className = '', ...props }: ThHTMLAttributes<HTMLTableCellElement>) {
   return (
     <th
-      className={`px-5 py-3 text-xs font-semibold uppercase tracking-wide text-muted ${className}`}
+      className={`px-5 py-3 text-xs font-semibold text-muted ${className}`}
       {...props}
     />
   );

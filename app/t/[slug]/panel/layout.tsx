@@ -50,8 +50,6 @@ export default async function PanelDemoLayout({
         cajaEnabled
         // Y Lealtad, con clientas inventadas (panel/lealtad).
         lealtadEnabled
-        // Y Posts con IA, con opciones pre-escritas (panel/posts).
-        postsEnabled
         // Y la Guía RESICO, con la Caja demo para la calculadora (panel/resico).
         resicoEnabled
         // Y Comisiones, con citas inventadas por persona (panel/comisiones).
@@ -71,7 +69,7 @@ export default async function PanelDemoLayout({
         }
       />
 
-      <div className="min-w-0 flex-1 pt-14 lg:pt-0">
+      <div className="relative z-10 min-w-0 flex-1 pb-24 pt-14 lg:pb-0 lg:pt-0">
         {/* La franja que dice qué es esto. Sin ella alguien podría creer
             que está viendo la agenda real de un negocio, y son citas
             inventadas. */}
@@ -82,7 +80,7 @@ export default async function PanelDemoLayout({
           </p>
         </div>
 
-        <div className="mx-auto max-w-5xl px-5 py-8 sm:px-8 sm:py-10">{children}</div>
+        <div className="dash-page mx-auto max-w-5xl px-4 py-7 sm:px-8 sm:py-10 lg:px-12">{children}</div>
       </div>
     </div>
   );

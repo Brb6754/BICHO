@@ -924,3 +924,159 @@ html:not(.dark) .tenant-dash {
     animation-duration: 5.6s;
   }
 }
+
+/* ── Panel del negocio: piel (2026-11) ─────────────────────────────
+   Todo scoped a `.tenant-dash` (solo los layouts de /dashboard y
+   /panel lo llevan), así que la página pública, el admin y el sitio
+   no cambian. Cero colores de marca fijos: todo sale de los tokens que
+   pone tenantColorCssVars() en el layout. */
+
+/* Light mode gets the same idea dark mode already had: the brand comes
+   in as light from the top corner, not as paint. Low enough that a
+   cream, a wine or a near-black brand all read as "tinted paper". */
+html:not(.dark) .tenant-dash {
+  background-image:
+    radial-gradient(60rem 30rem at 10% -14%, rgb(var(--color-primary) / 0.11), transparent 62%),
+    radial-gradient(42rem 26rem at 106% 108%, rgb(var(--color-accent) / 0.06), transparent 60%);
+  background-attachment: fixed;
+}
+
+.tenant-dash ::selection {
+  background: rgb(var(--color-primary) / 0.3);
+  color: rgb(var(--color-ink));
+}
+.tenant-dash,
+.tenant-dash .dash-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--color-ink) / 0.18) transparent;
+}
+
+/* Cards inside the panel: a neutral, offset shadow instead of the
+   platform's indigo-tinted one (it read blue next to a warm brand). */
+.tenant-dash .glass-2,
+.tenant-dash .dash-card,
+.tenant-dash .dash-row {
+  border-color: rgb(var(--color-border-base) / 0.09);
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 0.04),
+    0 10px 28px -16px rgb(0 0 0 / 0.14);
+}
+.dark .tenant-dash .glass-2,
+.dark .tenant-dash .dash-card,
+.dark .tenant-dash .dash-row {
+  border-color: rgb(255 255 255 / 0.07);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.04),
+    0 14px 32px -18px rgb(0 0 0 / 0.7);
+}
+
+/* Actionable rows (Pendientes): they lift a hair on hover and give
+   under the finger, so they read as things you press, not as text. */
+.dash-row {
+  transition:
+    transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.25s ease,
+    border-color 0.25s ease;
+}
+@media (hover: hover) {
+  .tenant-dash .dash-row:hover {
+    transform: translateY(-2px);
+    border-color: rgb(var(--color-border-base) / 0.18);
+    box-shadow:
+      0 1px 2px rgb(0 0 0 / 0.05),
+      0 16px 32px -16px rgb(0 0 0 / 0.22);
+  }
+}
+.dash-row:active {
+  transform: scale(0.985);
+}
+
+/* The day piece on Resumen. One soft light from the top-right corner
+   gives the brand slab a material instead of a flat fill; the inset
+   hairline keeps a cream brand from dissolving into cream paper. */
+.dash-hero {
+  isolation: isolate;
+  box-shadow:
+    inset 0 0 0 1px rgb(var(--color-border-base) / 0.08),
+    inset 0 1px 0 rgb(255 255 255 / 0.2),
+    0 2px 4px rgb(0 0 0 / 0.06),
+    0 28px 56px -28px rgb(var(--color-primary) / 0.65);
+}
+.dash-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(44rem 22rem at 100% -10%, rgb(255 255 255 / 0.16), transparent 62%),
+    radial-gradient(32rem 20rem at -10% 130%, rgb(0 0 0 / 0.1), transparent 60%);
+}
+
+/* THE authored moment: the day piece arrives (content rises in order)
+   and the timeline wipes in from the first appointment to the last.
+   Everything starts already legible (no opacity-0 start), so if the
+   animation never runs, nothing is missing. */
+@keyframes dash-rise {
+  from {
+    transform: translateY(14px);
+    opacity: 0.25;
+    filter: blur(6px);
+  }
+}
+.dash-hero [style*='--i'] {
+  animation: dash-rise 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--i) * 80ms + 60ms);
+}
+@keyframes dash-wipe {
+  from {
+    clip-path: inset(-10px 100% -10px 0);
+  }
+  to {
+    clip-path: inset(-10px 0 -10px 0);
+  }
+}
+.dash-track {
+  animation: dash-wipe 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.35s both;
+}
+@keyframes dash-grow {
+  from {
+    transform: scaleY(0.12);
+  }
+}
+.dash-bar {
+  transform-origin: bottom;
+  animation: dash-grow 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--i, 0) * 45ms + 200ms);
+}
+@keyframes dash-ping {
+  75%,
+  100% {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+.dash-ping {
+  animation: dash-ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+/* Touch: every button in the panel reaches 44px under a finger. */
+@media (pointer: coarse) {
+  .tenant-dash .ui-btn {
+    min-height: 2.75rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dash-hero [style*='--i'],
+  .dash-track,
+  .dash-bar,
+  .dash-ping {
+    animation: none;
+  }
+  .dash-row,
+  .tenant-dash .dash-row:hover {
+    transition: none;
+    transform: none;
+  }
+}

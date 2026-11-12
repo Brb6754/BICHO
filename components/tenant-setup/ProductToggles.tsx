@@ -6,6 +6,7 @@ import { Landmark, CalendarDays, FileText, HeartHandshake, Megaphone, ReceiptTex
 import { HandCoins } from 'lucide-react';
 import { Package } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
+import { PLANES, moduloIncluido, planMinimoPara, type PlanId } from '@/lib/billing/planes';
 
 // Qué productos tiene contratado el negocio.
 //
@@ -16,6 +17,7 @@ import { Card } from '@/components/ui/Card';
 type Producto = 'reservas' | 'cotizaciones' | 'facturacion' | 'lealtad' | 'caja' | 'regresan' | 'posts' | 'resico' | 'comisiones' | 'inventario';
 
 export function ProductToggles({
+  plan = null,
   reservas,
   cotizaciones,
   facturacion,
@@ -28,6 +30,8 @@ export function ProductToggles({
   inventario = false,
   onToggle,
 }: {
+  /** Plan del negocio (lib/billing/planes.ts); null = sin plan nuevo, nada bloqueado. */
+  plan?: PlanId | null;
   reservas: boolean;
   cotizaciones: boolean;
   facturacion: boolean;
@@ -149,7 +153,10 @@ export function ProductToggles({
       <p className="mt-1 text-sm text-muted">El panel del negocio se arma con lo que esté prendido.</p>
 
       <div className="mt-5 flex flex-col gap-3">
-        {productos.map(({ id, label, Icon, activo, detalle, alApagar }) => (
+        {productos.map(({ id, label, Icon, activo, detalle, alApagar }) => {
+          // Fuera del plan no se prende; si ya estaba prendido, sí se puede apagar.
+          const bloqueado = !activo && !moduloIncluido(plan, id);
+          return (
           <div
             key={id}
             className="flex flex-wrap items-start gap-x-4 gap-y-3 rounded-2xl bg-paper p-4 ring-1 ring-border"
@@ -158,7 +165,7 @@ export function ProductToggles({
             <div className="min-w-0 flex-1">
               <p className="text-[15px] font-medium text-ink">{label}</p>
               <p className="mt-0.5 text-[13px] leading-relaxed text-muted">
-                {activo ? detalle : alApagar}
+                {bloqueado ? `Incluido en ${PLANES[planMinimoPara(id)].nombre}.` : activo ? detalle : alApagar}
               </p>
             </div>
             <button
@@ -166,7 +173,7 @@ export function ProductToggles({
               role="switch"
               aria-checked={activo}
               aria-label={`${activo ? 'Desactivar' : 'Activar'} ${label}`}
-              disabled={guardando === id}
+              disabled={guardando === id || bloqueado}
               onClick={() => cambiar(id, !activo)}
               className={`relative h-7 w-12 shrink-0 rounded-full transition-colors disabled:opacity-60 ${
                 activo ? 'bg-primary' : 'bg-ink/[0.18]'
@@ -180,7 +187,8 @@ export function ProductToggles({
               />
             </button>
           </div>
-        ))}
+          );
+        })}
       </div>
 
       {error && <p className="mt-3 text-sm text-error">{error}</p>}

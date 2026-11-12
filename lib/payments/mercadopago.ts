@@ -1,5 +1,4 @@
 import { randomUUID } from 'node:crypto';
-import { PLAN_PRICE_MXN } from '@/lib/billing/trial';
 
 // Cliente mínimo de la API de Mercado Pago (REST con fetch, sin SDK).
 // Server-only: lee MP_ACCESS_TOKEN, que jamás debe llegar al navegador.
@@ -39,6 +38,7 @@ export type MpPreapproval = {
   status: string; // pending | authorized | paused | cancelled
   external_reference?: string | null;
   init_point?: string;
+  auto_recurring?: { transaction_amount?: number } | null;
 };
 
 export type MpAuthorizedPayment = {
@@ -58,6 +58,8 @@ export async function createTenantPreapproval(input: {
   tenantId: string;
   payerEmail: string;
   backUrl: string;
+  /** Pesos al mes, según plan/fundador (lib/billing/planes.ts). */
+  amountMxn: number;
 }): Promise<MpPreapproval> {
   return mpFetch<MpPreapproval>('/preapproval', {
     method: 'POST',
@@ -71,10 +73,18 @@ export async function createTenantPreapproval(input: {
       auto_recurring: {
         frequency: 1,
         frequency_type: 'months',
-        transaction_amount: Number(PLAN_PRICE_MXN.toFixed(2)),
+        transaction_amount: Number(input.amountMxn.toFixed(2)),
         currency_id: 'MXN',
       },
     }),
+  });
+}
+
+/** Cambio de plan de un negocio que ya paga: el siguiente cobro sale con el monto nuevo. */
+export function updatePreapprovalAmount(id: string, amountMxn: number): Promise<MpPreapproval> {
+  return mpFetch<MpPreapproval>(`/preapproval/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    body: JSON.stringify({ auto_recurring: { transaction_amount: Number(amountMxn.toFixed(2)), currency_id: 'MXN' } }),
   });
 }
 

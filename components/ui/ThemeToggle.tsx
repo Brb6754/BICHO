@@ -28,7 +28,7 @@ export function ThemeToggle({ className = '' }: { className?: string }) {
       onClick={toggle}
       aria-label={isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
       title={isDark ? 'Modo claro' : 'Modo oscuro'}
-      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition ${className}`}
+      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition sm:h-9 sm:w-9 sm:rounded-lg ${className}`}
     >
       {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
     </button>

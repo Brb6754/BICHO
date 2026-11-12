@@ -5,6 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { computeTotals, formatMoney, formatFolio, isExpired, lineTotalCents } from '@/lib/quotes/totals';
 import { tenantColorCssVars, mixToPaper, readableFgRgb, darkenHex } from '@/lib/branding/colors';
 import { AcceptQuote } from './AcceptQuote';
+import motion from '@/components/booking/motion.module.css';
 
 export const dynamic = 'force-dynamic';
 
@@ -88,7 +89,7 @@ export default async function CotizacionPage({
           abre esto llega desde un WhatsApp y lo primero que necesita
           saber es de quién es. */}
       <header
-        className="px-5 py-8 sm:px-6 sm:py-10"
+        className="px-5 pb-16 pt-8 sm:px-6 sm:pb-24 sm:pt-10"
         style={{ background: `linear-gradient(135deg, ${primary}, ${darkenHex(primary, 22)})`, color: fg }}
       >
         <div className="mx-auto flex max-w-2xl items-center gap-4">
@@ -102,18 +103,43 @@ export default async function CotizacionPage({
             />
           )}
           <div className="min-w-0">
-            <p className="text-[12px] font-semibold uppercase tracking-wide" style={{ opacity: 0.75 }}>
+            <h1 className="text-[1.6rem] font-bold leading-tight sm:text-[2rem]">{tenant.name}</h1>
+            <p className="mt-1 text-sm tabular-nums" style={{ opacity: 0.8 }}>
               Cotización #{formatFolio(quote.folio)}
             </p>
-            <h1 className="mt-0.5 text-[1.4rem] font-bold leading-tight sm:text-2xl">{tenant.name}</h1>
           </div>
         </div>
       </header>
 
-      <div className="mx-auto max-w-2xl px-5 py-8 sm:px-6 sm:py-10">
-        <p className="text-[15px] text-ink">
-          Hola <span className="font-semibold">{quote.customer_name}</span>, esta es tu cotización.
-        </p>
+      <div className="relative mx-auto -mt-9 max-w-2xl px-3 pb-10 sm:-mt-14 sm:px-6">
+        {/* Lo que decide va arriba y elevado, entrando en la banda: a
+            nombre de quién, cuánto es en total y los botones para
+            responder. El desglose viene después, para quien lo revise. */}
+        <section
+          className={`${motion.rise} rounded-[28px] bg-surface p-5 shadow-[0_1px_2px_rgba(16,24,40,0.05),0_24px_48px_-20px_rgba(16,24,40,0.28)] ring-1 ring-border sm:p-7`}
+        >
+          <p className="text-[15px] text-ink">
+            Hola <span className="font-semibold">{quote.customer_name}</span>, esta es tu cotización.
+          </p>
+          <p className="mt-5 text-sm text-muted">Total</p>
+          <p className="text-[2.6rem] font-bold leading-none tabular-nums text-ink sm:text-5xl">
+            {formatMoney(totals.totalCents)}
+          </p>
+          {quote.valid_until && !vencida && (
+            <p className="mt-2 text-[13px] text-muted">Válida hasta el {quote.valid_until}.</p>
+          )}
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+            {!vencida && <AcceptQuote slug={slug} quoteId={quoteId} yaAceptada={quote.status === 'accepted'} />}
+            <a
+              href={`/api/cotizacion/${quoteId}/pdf`}
+              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-border px-6 text-[15px] font-medium text-ink transition-colors hover:bg-ink/[0.04]"
+            >
+              <Download className="h-4 w-4" aria-hidden="true" />
+              Descargar PDF
+            </a>
+          </div>
+        </section>
+        <div className="px-2 sm:px-0">
 
         {vencida && (
           <p className="mt-4 rounded-xl bg-warning-soft px-4 py-3 text-sm text-warning">
@@ -122,7 +148,8 @@ export default async function CotizacionPage({
           </p>
         )}
 
-        <section className="mt-6 overflow-hidden rounded-2xl bg-surface ring-1 ring-border">
+        <h2 className="mt-8 text-[15px] font-semibold text-ink">Desglose</h2>
+        <section className="mt-3 overflow-hidden rounded-2xl bg-surface ring-1 ring-border">
           <ul className="divide-y divide-border">
             {partidas.map((p, i) => (
               <li key={i} className="flex items-start justify-between gap-4 px-5 py-4">
@@ -159,46 +186,32 @@ export default async function CotizacionPage({
             </div>
             <div className="mt-1 flex items-baseline justify-between border-t border-border pt-3">
               <dt className="font-semibold text-ink">Total</dt>
-              <dd className="text-2xl font-bold tabular-nums text-ink">{formatMoney(totals.totalCents)}</dd>
+              <dd className="text-xl font-bold tabular-nums text-ink">{formatMoney(totals.totalCents)}</dd>
             </div>
           </dl>
         </section>
 
         {quote.notes && (
           <section className="mt-6">
-            <h2 className="text-[13px] font-semibold uppercase tracking-wide text-muted">Notas</h2>
+            <h2 className="text-[15px] font-semibold text-ink">Notas</h2>
             <p className="mt-2 whitespace-pre-line text-[15px] leading-relaxed text-ink">{quote.notes}</p>
           </section>
         )}
 
         {tenant.quote_terms && (
           <section className="mt-6">
-            <h2 className="text-[13px] font-semibold uppercase tracking-wide text-muted">Condiciones</h2>
+            <h2 className="text-[15px] font-semibold text-ink">Condiciones</h2>
             <p className="mt-2 whitespace-pre-line text-[14px] leading-relaxed text-muted">
               {tenant.quote_terms}
             </p>
           </section>
         )}
 
-        <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-          {!vencida && <AcceptQuote slug={slug} quoteId={quoteId} yaAceptada={quote.status === 'accepted'} />}
-          <a
-            href={`/api/cotizacion/${quoteId}/pdf`}
-            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-border px-6 text-[15px] font-medium text-ink transition-colors hover:bg-ink/[0.04]"
-          >
-            <Download className="h-4 w-4" aria-hidden="true" />
-            Descargar PDF
-          </a>
-        </div>
-
-        {quote.valid_until && !vencida && (
-          <p className="mt-6 text-[13px] text-muted">Válida hasta el {quote.valid_until}.</p>
-        )}
-
         <p className="mt-10 border-t border-border pt-5 text-[12px] leading-relaxed text-muted">
           Esta cotización no es un comprobante fiscal (CFDI). Si necesitas factura, pídesela a{' '}
           {tenant.name}.
         </p>
+        </div>
       </div>
     </main>
   );

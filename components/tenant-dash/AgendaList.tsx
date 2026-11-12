@@ -1,4 +1,4 @@
-import { Check, UserX, X } from 'lucide-react';
+import { CalendarDays, Check, UserX, X } from 'lucide-react';
 import { dayKey, dayLabel, formatTime, groupByDay, minutesBetween } from '@/lib/dates/tenantTime';
 
 export type AgendaBooking = {
@@ -49,8 +49,11 @@ export function AgendaList({
 }) {
   if (bookings.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-border px-6 py-12 text-center">
-        <p className="text-sm font-medium text-ink">{emptyTitle}</p>
+      <div className="flex flex-col items-center rounded-2xl border border-dashed border-border-strong px-6 py-12 text-center">
+        <span className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 ring-1 ring-inset ring-primary/20" aria-hidden="true">
+          <CalendarDays className="h-5 w-5 text-ink/70" />
+        </span>
+        <p className="text-[15px] font-semibold text-ink">{emptyTitle}</p>
         <p className="mx-auto mt-1 max-w-sm text-sm leading-relaxed text-muted">{emptyHint}</p>
       </div>
     );
@@ -72,6 +75,11 @@ export function AgendaList({
         // everything says nothing the times don't already say.
         const nowIndex = isToday ? day.items.findIndex((b) => new Date(b.starts_at) > now) : -1;
         const showNow = nowIndex > 0;
+        // The appointment that's up next (or happening now) gets a brand
+        // wash, so the eye lands on it before reading a single time.
+        const nextId = isToday
+          ? day.items.find((b) => b.status === 'confirmed' && new Date(b.ends_at) > now)?.id
+          : undefined;
 
         return (
           <section key={day.key} aria-label={label}>
@@ -87,7 +95,7 @@ export function AgendaList({
             )}
 
             {/* One surface per DAY, not one card per booking. */}
-            <ul className="overflow-hidden rounded-2xl border border-border bg-surface">
+            <ul className="dash-card overflow-hidden rounded-2xl border border-border bg-surface">
               {day.items.map((b, i) => {
                 const cancelled = b.status === 'cancelled';
                 const completed = b.status === 'completed';
@@ -109,15 +117,20 @@ export function AgendaList({
                         </span>
                       </div>
                     )}
-                    <div className="grid grid-cols-[4rem_minmax(0,1fr)_auto] items-center gap-x-4 px-4 py-3.5 sm:grid-cols-[4.5rem_minmax(0,1fr)_auto] sm:px-5">
+                    <div
+                      className={`grid min-h-[3.75rem] grid-cols-[4rem_minmax(0,1fr)_auto] items-center gap-x-4 px-4 py-3 transition-colors duration-150 sm:grid-cols-[4.5rem_minmax(0,1fr)_auto] sm:px-5 ${
+                        b.id === nextId ? 'bg-primary/[0.09] dark:bg-primary/[0.14]' : 'hover:bg-ink/[0.025]'
+                      }`}
+                    >
                       <div className={dim ? 'opacity-50' : ''}>
-                        <p className="font-semibold tabular-nums text-ink">{formatTime(b.starts_at, timezone)}</p>
+                        <p className="text-[15px] font-semibold tabular-nums tracking-tight text-ink">{formatTime(b.starts_at, timezone)}</p>
                         <p className="text-xs tabular-nums text-muted">{minutesBetween(b.starts_at, b.ends_at)} min</p>
                       </div>
 
                       <div className={'min-w-0 ' + (dim ? 'opacity-50' : '')}>
                         <p className={'truncate font-medium text-ink ' + (cancelled ? 'line-through decoration-ink/40' : '')}>
                           {b.service_types?.name ?? 'Servicio'}
+                          {b.id === nextId && <span className="sr-only"> (siguiente)</span>}
                         </p>
                         <p className="truncate text-sm text-muted">
                           {b.customers?.name ?? 'Cliente'}

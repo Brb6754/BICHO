@@ -13,8 +13,8 @@ export const metadata: Metadata = {
 // Alta sin Bruno: el dueño crea cuenta, negocio y página solo. Mismo
 // marco visual que /demo; el formulario va primero porque en teléfono es
 // lo único que importa en esta página.
-export default async function RegistroPage({ searchParams }: { searchParams: Promise<{ ref?: string | string[] }> }) {
-  const { ref } = await searchParams;
+export default async function RegistroPage({ searchParams }: { searchParams: Promise<{ ref?: string | string[]; plan?: string | string[] }> }) {
+  const { ref, plan } = await searchParams;
   return (
     <div className="min-h-screen bg-[#5B34E8] text-[#140F2E]">
       <section className="relative isolate overflow-hidden">
@@ -30,7 +30,7 @@ export default async function RegistroPage({ searchParams }: { searchParams: Pro
           </h1>
           <p className="mt-3 text-[15px] leading-relaxed text-[#E3DEFA]">15 días gratis, sin tarjeta. Tus clientes agendan solos, tú ves tus citas en el panel.</p>
           <div className="mt-8">
-            <RegistroFlow refCode={typeof ref === 'string' ? ref.slice(0, 64) : undefined} />
+            <RegistroFlow refCode={typeof ref === 'string' ? ref.slice(0, 64) : undefined} initialPlan={typeof plan === 'string' ? plan : undefined} />
           </div>
         </div>
       </section>

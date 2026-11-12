@@ -4,6 +4,8 @@ import { revalidatePath } from 'next/cache';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireAdmin, requireTenantManager } from '@/lib/auth/access';
 import { syncSubscriptionForTenant } from '@/lib/payments/resellerSubscription';
+import { COLUMNA_MODULO, PLANES, moduloIncluido, planDe, planMinimoPara } from '@/lib/billing/planes';
+import { cambiarPlan } from '@/lib/billing/planServer';
 
 // Real writes, no redirect() involved — safe from the Server-Action
 // redirect-bypasses-middleware issue documented in CLAUDE.md.
@@ -37,9 +39,10 @@ export async function setTenantStatus(tenantId: string, status: string) {
 
 export async function setTenantPlan(tenantId: string, formData: FormData) {
   await requireAdmin();
-  const plan = formData.get('plan') as string;
-  const admin = createAdminClient();
-  await admin.from('tenants').update({ plan }).eq('id', tenantId);
+  const plan = planDe(formData.get('plan'));
+  if (!plan) throw new Error('Ese plan no existe.');
+  // Mismo camino que el dueño: banderas del plan + monto de MP si ya paga.
+  await cambiarPlan(tenantId, plan);
   revalidatePath(`/admin/tenants/${tenantId}`);
   revalidatePath('/admin/tenants');
 }
@@ -237,28 +240,18 @@ export async function setTenantProduct(
 ) {
   await requireTenantManager(tenantId);
 
-  const columna =
-    producto === 'inventario'
-      ? 'inventario_enabled'
-      : producto === 'comisiones'
-      ? 'comisiones_enabled'
-      : producto === 'posts'
-      ? 'posts_enabled'
-      : producto === 'resico'
-      ? 'resico_enabled'
-      : producto === 'caja'
-      ? 'caja_enabled'
-      : producto === 'reservas'
-      ? 'reservas_enabled'
-      : producto === 'cotizaciones'
-        ? 'quotes_enabled'
-        : producto === 'lealtad'
-          ? 'lealtad_enabled'
-          : producto === 'regresan'
-            ? 'regresan_enabled'
-          : 'facturacion_enabled';
-
+  const columna = COLUMNA_MODULO[producto];
   const admin = createAdminClient();
+
+  // Un módulo fuera del plan no se prende (apagar siempre se puede).
+  if (enabled) {
+    const { data: t } = await admin.from('tenants').select('plan').eq('id', tenantId).maybeSingle();
+    const plan = planDe(t?.plan);
+    if (!moduloIncluido(plan, producto)) {
+      throw new Error(`Incluido en ${PLANES[planMinimoPara(producto)].nombre}. Cambia el plan del negocio primero.`);
+    }
+  }
+
   const { data, error } = await admin
     .from('tenants')
     .update({ [columna]: enabled })

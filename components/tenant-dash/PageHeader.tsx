@@ -12,14 +12,19 @@ export function PageHeader({
   description?: string;
   action?: React.ReactNode;
 }) {
+  // `eyebrow` (a date, a count) renders UNDER the title as its meta
+  // line, not above it as a kicker: the title is what the eye should
+  // land on first. The prop keeps its name so no page had to change.
   return (
-    <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4 border-b border-border pb-6">
+    <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4 pb-2">
       <div className="min-w-0">
-        {eyebrow && <p className="text-sm font-medium text-muted first-letter:uppercase">{eyebrow}</p>}
-        <h1 className="mt-1 text-[1.75rem] font-semibold leading-tight tracking-tight text-ink sm:text-[2rem]">
+        <h1 className="text-[1.9rem] font-semibold leading-[1.08] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-[2.35rem]">
           {title}
         </h1>
-        {description && <p className="mt-2 max-w-xl text-[15px] leading-relaxed text-muted">{description}</p>}
+        {eyebrow && <p className="mt-2 text-[15px] font-medium text-muted first-letter:uppercase">{eyebrow}</p>}
+        {description && (
+          <p className="mt-2 max-w-xl text-[15px] leading-relaxed text-muted [text-wrap:pretty]">{description}</p>
+        )}
       </div>
       {action && <div className="shrink-0">{action}</div>}
     </header>
@@ -39,10 +44,12 @@ export function SectionHeading({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="mb-3 flex items-baseline justify-between gap-4">
-      <h2 className="flex items-baseline gap-2.5 text-base font-semibold text-ink">
+    <div className="mb-3 flex min-h-[2.75rem] items-center justify-between gap-4">
+      <h2 className="flex items-center gap-2 text-[17px] font-semibold tracking-tight text-ink">
         {title}
-        {meta !== undefined && <span className="text-sm font-normal tabular-nums text-muted">{meta}</span>}
+        {meta !== undefined && (
+          <span className="rounded-full bg-ink/[0.07] px-2 py-0.5 text-xs font-semibold tabular-nums text-ink">{meta}</span>
+        )}
       </h2>
       {action}
     </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import { AlertCircle, CalendarX2, Loader2, RefreshCw, WifiOff } from 'lucide-react';
+import motion from './motion.module.css';
 
 // Every one of these replaced a blank area. A flow that shows nothing
 // while it thinks, or nothing when a day is full, reads as broken — and
@@ -15,7 +16,7 @@ export function LoadingSlots({ label = 'Buscando horarios disponibles' }: { labe
           jump when the real times land. */}
       <div className="mt-6 grid grid-cols-3 gap-2 sm:grid-cols-4" aria-hidden="true">
         {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="h-12 animate-pulse rounded-xl bg-ink/[0.06]" />
+          <div key={i} className={`${motion.shimmer} h-[50px] rounded-2xl`} style={{ animationDelay: `${i * 80}ms` }} />
         ))}
       </div>
     </div>

@@ -2,6 +2,7 @@
 
 import { ArrowLeft, Check, Pencil } from 'lucide-react';
 import type { StepDef, StepId } from './types';
+import motion from './motion.module.css';
 
 // The flow's furniture: the header that never moves, the progress it
 // reports, the summary of what's already decided, and the action bar
@@ -20,18 +21,15 @@ export function ProgressIndicator({
 }) {
   return (
     <>
-      {/* Phone: segments, not labels. Five words of step names eat the
-          whole width and get truncated into nonsense. */}
-      <ol className="flex gap-1.5 sm:hidden" aria-hidden="true">
-        {steps.map((s, i) => (
-          <li
-            key={s.id}
-            className={`h-1 flex-1 rounded-full transition-colors ${
-              i < currentIndex ? 'bg-primary' : i === currentIndex ? 'bg-primary' : 'bg-ink/10'
-            } ${i === currentIndex ? '' : i < currentIndex ? 'opacity-60' : ''}`}
-          />
-        ))}
-      </ol>
+      {/* Phone: one track that fills, not labels. Five words of step
+          names eat the whole width and get truncated into nonsense. The
+          fill glides, so moving forward feels like progress. */}
+      <div className="h-1.5 overflow-hidden rounded-full bg-ink/10 sm:hidden" aria-hidden="true">
+        <div
+          className="h-full rounded-full bg-primary transition-[width] duration-500 ease-out motion-reduce:transition-none"
+          style={{ width: `${((currentIndex + 1) / steps.length) * 100}%` }}
+        />
+      </div>
 
       {/* Desktop has room for the names, so it uses them: a labelled
           step is a map, an unlabelled bar is only a percentage. */}
@@ -78,7 +76,7 @@ export function StepHeader({
 }) {
   const step = steps[currentIndex];
   return (
-    <header className="sticky top-0 z-20 -mx-5 border-b border-border bg-surface/95 px-5 py-3 backdrop-blur sm:mx-0 sm:rounded-t-[inherit] sm:px-6">
+    <header className="sticky top-0 z-20 rounded-t-[inherit] border-b border-border bg-surface/90 px-5 py-3 backdrop-blur-md sm:px-6">
       <div className="flex items-center gap-3">
         {/* The back control keeps its space even when disabled, so the
             title doesn't shift sideways between steps. */}
@@ -93,19 +91,37 @@ export function StepHeader({
         </button>
 
         <div className="min-w-0 flex-1">
-          <p className="truncate text-xs font-medium text-muted">{businessName}</p>
-          <p className="truncate text-sm font-semibold text-ink">{step.label}</p>
+          <p className="truncate text-[13px] font-semibold text-ink">{businessName}</p>
+          <p className="truncate text-xs text-muted" aria-live="polite">
+            Paso {currentIndex + 1} de {steps.length} · {step.label}
+          </p>
         </div>
-
-        <p className="shrink-0 text-xs font-medium tabular-nums text-muted" aria-live="polite">
-          Paso {currentIndex + 1} de {steps.length}
-        </p>
       </div>
 
-      <div className="mt-3">
+      <div className="mt-2.5">
         <ProgressIndicator steps={steps} currentIndex={currentIndex} />
       </div>
     </header>
+  );
+}
+
+// Each step opens with its question set large, in the template's own
+// heading face. The question IS the page at that moment; at 16px
+// semibold it read like a form label and every template looked the same.
+export function StepTitle({ title, hint }: { title: string; hint?: string }) {
+  return (
+    <div className="mb-5">
+      <h2
+        className="text-balance text-[1.65rem] font-semibold leading-[1.1] text-ink sm:text-[2rem]"
+        style={{
+          fontFamily: 'var(--tpl-heading-font, var(--font-heading))',
+          letterSpacing: 'var(--tpl-heading-tracking)',
+        }}
+      >
+        {title}
+      </h2>
+      {hint && <p className="mt-2 text-sm leading-relaxed text-muted">{hint}</p>}
+    </div>
   );
 }
 
@@ -128,16 +144,17 @@ export function SelectionSummary({
   if (items.length === 0) return null;
   return (
     <div className="flex flex-wrap items-center gap-2 border-b border-border px-5 py-3 sm:px-6">
+      <Check className="h-3.5 w-3.5 shrink-0 text-muted" strokeWidth={2.5} aria-hidden="true" />
       {items.map((item) => (
         <button
-          key={item.id}
+          key={item.id + item.value}
           type="button"
           onClick={() => onEdit(item.id)}
-          className="group inline-flex max-w-full items-center gap-1.5 rounded-full border border-border bg-paper px-3 py-1.5 text-xs font-medium text-ink transition-colors hover:border-primary/40 hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+          className={`${motion.chipIn} group inline-flex min-h-[32px] max-w-full items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-xs font-semibold text-ink transition-colors hover:bg-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40`}
         >
           <span className="sr-only">Cambiar {item.label}: </span>
           <span className="truncate">{item.value}</span>
-          <Pencil className="h-3 w-3 shrink-0 text-muted group-hover:text-primary" aria-hidden="true" />
+          <Pencil className="h-3 w-3 shrink-0 opacity-50 transition-opacity group-hover:opacity-100" aria-hidden="true" />
         </button>
       ))}
     </div>
@@ -149,6 +166,7 @@ export function SelectionSummary({
 // clear of the home indicator.
 export function StickyActionBar({
   hint,
+  hintSub,
   helper,
   actionLabel,
   onAction,
@@ -156,6 +174,7 @@ export function StickyActionBar({
   loading,
 }: {
   hint?: string;
+  hintSub?: string;
   // What's missing, shown next to the button rather than leaving a dead
   // disabled control with no explanation.
   helper?: string;
@@ -165,7 +184,7 @@ export function StickyActionBar({
   loading?: boolean;
 }) {
   return (
-    <div className="sticky bottom-0 z-20 -mx-5 mt-6 border-t border-border bg-surface/95 px-5 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur sm:mx-0 sm:rounded-b-[inherit] sm:px-6">
+    <div className="sticky bottom-0 z-20 mt-6 border-t border-border bg-surface/90 px-5 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur-md sm:rounded-b-[inherit] sm:px-6">
       {helper && (
         <p className="mb-2 text-xs font-medium text-error" role="status">
           {helper}
@@ -175,13 +194,15 @@ export function StickyActionBar({
         {hint && (
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold text-ink">{hint}</p>
+            {hintSub && <p className="truncate text-xs tabular-nums text-muted">{hintSub}</p>}
           </div>
         )}
         <button
+          key={disabled ? 'off' : 'on'}
           type="button"
           onClick={onAction}
           disabled={disabled || loading}
-          className={`inline-flex min-h-[48px] items-center justify-center gap-2 rounded-full bg-primary px-6 text-sm font-semibold text-[rgb(var(--color-cta-fg))] transition active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-ink/15 disabled:text-muted ${hint ? '' : 'flex-1'}`}
+          className={`${disabled ? '' : motion.wake} inline-flex min-h-[52px] items-center justify-center gap-2 rounded-full bg-primary px-6 text-sm font-semibold text-[rgb(var(--color-cta-fg))] transition active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 shadow-[0_6px_18px_-6px_rgb(var(--color-primary)/0.6)] disabled:cursor-not-allowed disabled:bg-ink/10 disabled:text-muted disabled:shadow-none ${hint ? 'shrink-0' : 'flex-1'}`}
         >
           {loading && (
             <span
@@ -221,8 +242,13 @@ export function SidePanel({
 }) {
   return (
     <aside className="hidden lg:block">
-      <div className="sticky top-28 rounded-2xl border border-border bg-paper p-5">
-        <h2 className="text-sm font-semibold text-ink">Tu reserva</h2>
+      <div className="sticky top-28 rounded-2xl bg-paper p-5 ring-1 ring-border">
+        <h2
+          className="text-lg font-semibold text-ink"
+          style={{ fontFamily: 'var(--tpl-heading-font, var(--font-heading))', letterSpacing: 'var(--tpl-heading-tracking)' }}
+        >
+          Tu reserva
+        </h2>
 
         {rows.length === 0 ? (
           <p className="mt-2 text-[13px] leading-relaxed text-muted">
@@ -232,8 +258,8 @@ export function SidePanel({
           <dl className="mt-3">
             {rows.map((row) => (
               <div
-                key={row.label}
-                className="flex items-start justify-between gap-3 border-b border-border py-2 last:border-b-0"
+                key={row.label + row.value}
+                className={`${motion.chipIn} flex items-start justify-between gap-3 border-b border-border py-2.5 last:border-b-0`}
               >
                 <dt className="shrink-0 text-xs text-muted">{row.label}</dt>
                 <dd className="text-right text-[13px] font-medium text-ink">{row.value}</dd>
@@ -245,7 +271,12 @@ export function SidePanel({
         {total && (
           <div className="mt-3 flex items-baseline justify-between border-t border-border pt-3">
             <span className="text-xs text-muted">Total</span>
-            <span className="text-lg font-bold tabular-nums text-ink">{total}</span>
+            <span
+              className="text-2xl font-semibold tabular-nums text-ink"
+              style={{ fontFamily: 'var(--tpl-heading-font, var(--font-heading))' }}
+            >
+              {total}
+            </span>
           </div>
         )}
 
@@ -256,10 +287,11 @@ export function SidePanel({
         )}
 
         <button
+          key={disabled ? 'off' : 'on'}
           type="button"
           onClick={onAction}
           disabled={disabled || loading}
-          className="mt-4 inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-full bg-primary px-6 text-sm font-semibold text-[rgb(var(--color-cta-fg))] transition active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-ink/15 disabled:text-muted"
+          className={`${disabled ? '' : motion.wake} mt-5 inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-full bg-primary px-6 text-sm font-semibold text-[rgb(var(--color-cta-fg))] shadow-[0_6px_18px_-6px_rgb(var(--color-primary)/0.6)] transition hover:-translate-y-px active:translate-y-0 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-ink/10 disabled:text-muted disabled:shadow-none motion-reduce:transform-none`}
         >
           {loading && (
             <span

@@ -3,29 +3,31 @@ import { SectionOpener } from './Primitives';
 import { Reveal } from './Reveal';
 import { DotField } from './DotField';
 
-// $299 MXN al mes, un solo plan (antes $300; cambio de Bruno el 2026-11-09).
-//
-// Antes eran tres columnas con precios inventados ($399/$699/$1,199) y
-// un comentario que pedía confirmarlos antes de publicar. Esto reemplaza
-// eso con el número real.
-//
-// Y por eso el layout cambió de raíz: tres columnas existen para que se
-// comparen entre ellas. Con un solo precio no hay nada que comparar, y
-// una sola tarjeta angosta en medio de una página ancha se lee como si
-// se hubieran caído las otras dos. Un panel: el número a la izquierda,
-// lo que incluye a la derecha.
-//
-// La lista dice solo lo que el producto HACE hoy. WhatsApp no está aquí
-// a propósito: es un extra que se prende por negocio y cuesta aparte, y
-// todavía le falta la configuración en Meta.
-const INCLUDED = [
-  'Tu página de reservas lista en menos de 24 horas',
-  'Con tu marca: tu logo, tus colores, tus servicios',
-  'Recursos y servicios sin límite',
-  'Confirmación automática por correo',
-  'Tus clientes reagendan o cancelan solos, sin escribirte',
-  'Panel para tu equipo: agenda del día, clientes y bloqueos',
-];
+import { PLANES, PLAN_IDS, PRECIO_FUNDADOR_MXN, CUPO_FUNDADOR, type PlanId } from '@/lib/billing/planes';
+
+// Tres planes (decisión de Bruno, 2026-11-11): Esencial $299, Negocio $499
+// (destacado), Pro $799. Precios y contenido salen de lib/billing/planes.ts;
+// aquí solo las líneas de venta. WhatsApp no aparece: es un extra aparte.
+const INCLUDED: Record<PlanId, string[]> = {
+  esencial: [
+    'Tu página de reservas con tu logo, colores y servicios',
+    'Agenda, clientes y servicios sin límite',
+    'Confirmación y recordatorios por correo',
+    'Tus clientes reagendan o cancelan solos',
+  ],
+  negocio: [
+    'Todo lo de Esencial',
+    'Caja: ventas, gastos y corte del día',
+    'Tarjeta de lealtad y clientes que regresan',
+    'Inventario y comisiones por persona',
+  ],
+  pro: [
+    'Todo lo de Negocio',
+    'Cotizaciones y reuniones',
+    'Facturación con 100 timbres al mes',
+    'Copiloto con IA (500 preguntas al mes)',
+  ],
+};
 
 export function PricingSection() {
   return (
@@ -35,50 +37,65 @@ export function PricingSection() {
         <Reveal>
           <SectionOpener
             eyebrow="Precios"
-            title="Un precio, todo incluido."
-            intro="Sin planes que comparar ni funciones apagadas esperando a que pagues más. Los 15 días de prueba no piden tarjeta: decides con tu página ya montada y recibiendo citas."
+            title="Tres planes, sin letras chiquitas."
+            intro={`Guía RESICO y referidos van gratis en todos. Los 15 días de prueba no piden tarjeta, y los primeros ${CUPO_FUNDADOR} negocios que paguen Negocio se quedan en $${PRECIO_FUNDADOR_MXN} para siempre.`}
           />
         </Reveal>
 
         <Reveal delay={90}>
-          <div className="mt-10 grid gap-8 rounded-[28px] bg-white p-6 ring-1 ring-inset ring-[#140F2E]/[0.06] sm:mt-16 sm:gap-10 sm:p-12 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1fr)] lg:gap-16">
-            <div>
-              <div className="flex items-baseline gap-2">
-                <span className="font-[family-name:var(--font-display)] text-[clamp(3.5rem,9vw,5rem)] font-bold leading-none text-[#140F2E]">
-                  $299
-                </span>
-                <span className="text-lg font-semibold text-[#6A6488]">MXN</span>
-              </div>
-              <p className="mt-2 text-sm text-[#6A6488]">al mes, por negocio</p>
+          <div className="mt-10 grid gap-6 sm:mt-16 lg:grid-cols-3">
+            {PLAN_IDS.map((id) => {
+              const plan = PLANES[id];
+              const destacado = id === 'negocio';
+              return (
+                <div
+                  key={id}
+                  className={`flex flex-col rounded-[28px] bg-white p-6 sm:p-8 ${
+                    destacado ? 'ring-2 ring-inset ring-[#5B34E8]' : 'ring-1 ring-inset ring-[#140F2E]/[0.06]'
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-lg font-semibold text-[#140F2E]">{plan.nombre}</p>
+                    {/* El lima nunca es texto sobre blanco (1.4:1): relleno con tinta encima. */}
+                    {destacado && (
+                      <span className="rounded-full bg-[#D4F23A] px-3 py-1 text-xs font-semibold text-[#140F2E]">
+                        El más elegido
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-4 flex items-baseline gap-2">
+                    <span className="font-[family-name:var(--font-display)] text-[clamp(2.75rem,7vw,3.5rem)] font-bold leading-none text-[#140F2E]">
+                      ${plan.precio}
+                    </span>
+                    <span className="text-base font-semibold text-[#6A6488]">MXN</span>
+                  </div>
+                  <p className="mt-2 text-sm text-[#6A6488]">al mes, por negocio</p>
 
-              {/* El lima nunca es texto sobre blanco (1.4:1): aquí es
-                  relleno con tinta encima, que es la única forma en que
-                  este color funciona fuera del campo violeta. */}
-              <p className="mt-6 inline-flex rounded-full bg-[#D4F23A] px-4 py-2 text-sm font-semibold text-[#140F2E]">
-                15 días gratis, sin tarjeta
-              </p>
+                  <ul className="mt-6 flex-1 space-y-3 border-t border-[#140F2E]/[0.08] pt-6">
+                    {INCLUDED[id].map((item) => (
+                      <li key={item} className="flex gap-3 text-[15px] leading-snug text-[#3A3170]">
+                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-[#5B34E8]" strokeWidth={2.5} aria-hidden="true" />
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
 
-              <a
-                href="/demo"
-                className="mt-8 inline-flex items-center justify-center rounded-full bg-[#140F2E] px-6 py-3.5 text-sm font-semibold text-[#D4F23A] transition-colors duration-200 hover:bg-[#2A1B5E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#140F2E] focus-visible:ring-offset-2 focus-visible:ring-offset-white"
-              >
-                Empezar prueba de 15 días
-              </a>
-              <p className="mt-3 text-[13px] leading-snug text-[#6A6488]">
-                Cancela cuando quieras. Si cancelas, tu página deja de recibir citas nuevas y
-                tus datos siguen siendo tuyos.
-              </p>
-            </div>
-
-            <ul className="space-y-4 border-t border-[#140F2E]/[0.08] pt-8 lg:border-l lg:border-t-0 lg:pl-16 lg:pt-0">
-              {INCLUDED.map((item) => (
-                <li key={item} className="flex gap-3 text-[15px] leading-snug text-[#3A3170]">
-                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-[#5B34E8]" strokeWidth={2.5} aria-hidden="true" />
-                  {item}
-                </li>
-              ))}
-            </ul>
+                  <a
+                    href={`/registro?plan=${id}`}
+                    className={`mt-8 inline-flex items-center justify-center rounded-full px-6 py-3.5 text-sm font-semibold transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#140F2E] focus-visible:ring-offset-2 focus-visible:ring-offset-white ${
+                      destacado ? 'bg-[#140F2E] text-[#D4F23A] hover:bg-[#2A1B5E]' : 'bg-[#140F2E]/[0.06] text-[#140F2E] hover:bg-[#140F2E]/[0.1]'
+                    }`}
+                  >
+                    Empezar prueba de 15 días
+                  </a>
+                </div>
+              );
+            })}
           </div>
+          <p className="mt-6 text-center text-[13px] leading-snug text-[#6A6488]">
+            Cambias de plan o cancelas cuando quieras. Si cancelas, tu página deja de recibir citas nuevas y tus datos siguen
+            siendo tuyos.
+          </p>
         </Reveal>
       </div>
     </section>

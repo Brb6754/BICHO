@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { CalendarDays, X } from 'lucide-react';
 import { AvailabilityCalendar } from './AvailabilityCalendar';
+import motion from './motion.module.css';
 
 // Dates come in two sizes. The strip answers "this week?" in one glance
 // and one tap, which is what most people want; the full month is one tap
@@ -15,6 +16,12 @@ export type StripDay = {
   dayNumber: string; // "30"
   available: boolean;
   isToday: boolean;
+  // Free start times that day. Optional: a caller that doesn't count
+  // (the meetings flow) keeps the plain availability dot.
+  count?: number;
+  // "noviembre" on the first day of each month in the strip, so a row
+  // that crosses a month boundary doesn't read 30, 1, 2 without context.
+  monthLabel?: string;
 };
 
 export function DateStrip({
@@ -28,6 +35,7 @@ export function DateStrip({
   onSelect: (key: string) => void;
   onOpenCalendar: () => void;
 }) {
+  const hasMonths = days.some((d) => d.monthLabel);
   return (
     <div>
       {/* Horizontal scroll with snap, and `-mx-5 px-5` so the row bleeds
@@ -37,35 +45,58 @@ export function DateStrip({
         {days.map((day) => {
           const selected = day.key === selectedKey;
           return (
-            <li key={day.key} className="snap-start">
+            <li key={day.key} className={`relative snap-start ${hasMonths ? "pt-5" : ""}`}>
+              {day.monthLabel && (
+                <span className="absolute left-1 top-0 whitespace-nowrap text-[11px] font-semibold capitalize text-muted">
+                  {day.monthLabel}
+                </span>
+              )}
               <button
                 type="button"
                 onClick={() => onSelect(day.key)}
                 disabled={!day.available}
                 aria-pressed={selected}
-                className={`flex min-h-[72px] w-[60px] flex-col items-center justify-center gap-0.5 rounded-2xl border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
+                className={`flex min-h-[84px] w-[62px] flex-col items-center justify-center gap-1 rounded-2xl border transition duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
                   selected
-                    ? 'border-primary bg-primary text-[rgb(var(--color-cta-fg))] ring-1 ring-primary'
+                    ? `${motion.pop} border-primary bg-primary text-[rgb(var(--color-cta-fg))] shadow-[0_10px_24px_-12px_rgb(var(--color-primary)/0.75)]`
                     : day.available
-                      ? 'border-border bg-surface text-ink hover:border-primary/50 hover:bg-primary/5'
-                      : 'cursor-not-allowed border-border bg-paper text-muted opacity-60'
+                      ? 'border-transparent bg-accent/[0.09] text-ink hover:-translate-y-px hover:bg-accent/[0.16] motion-reduce:transform-none'
+                      : 'cursor-not-allowed border-dashed border-ink/15 bg-transparent text-muted opacity-60'
                 }`}
               >
-                <span className="text-[11px] font-medium uppercase">{day.weekday}</span>
-                <span className={`text-lg leading-none tabular-nums ${selected ? 'font-bold' : 'font-semibold'}`}>
+                <span className="text-[11px] font-medium capitalize">{day.isToday ? 'Hoy' : day.weekday}</span>
+                <span
+                  className={`text-[22px] leading-none tabular-nums ${selected ? 'font-bold' : 'font-semibold'}`}
+                  style={{ fontFamily: 'var(--tpl-heading-font, var(--font-heading))' }}
+                >
                   {day.dayNumber}
                 </span>
-                {/* Availability is a dot AND the disabled treatment, so it
-                    survives without colour. */}
-                <span
-                  aria-hidden="true"
-                  className={`mt-0.5 h-1.5 w-1.5 rounded-full ${
-                    selected ? 'bg-[rgb(var(--color-cta-fg))]' : day.available ? 'bg-primary' : 'bg-transparent'
-                  }`}
-                />
+                {/* How many times are free, not just whether: "2" against
+                    "11" is the difference between "go now" and "any time".
+                    Plus the disabled treatment, so it survives without
+                    colour. */}
+                {day.count !== undefined && day.available ? (
+                  <span
+                    aria-hidden="true"
+                    className={`text-[10px] font-semibold tabular-nums ${selected ? '' : 'text-muted'}`}
+                  >
+                    {day.count} {day.count === 1 ? 'hora' : 'horas'}
+                  </span>
+                ) : (
+                  <span
+                    aria-hidden="true"
+                    className={`mt-0.5 h-1.5 w-1.5 rounded-full ${
+                      selected ? 'bg-[rgb(var(--color-cta-fg))]' : day.available ? 'bg-primary' : 'bg-transparent'
+                    }`}
+                  />
+                )}
                 <span className="sr-only">
                   {day.isToday ? 'Hoy. ' : ''}
-                  {day.available ? 'Con horarios' : 'Sin horarios'}
+                  {day.available
+                    ? day.count !== undefined
+                      ? `${day.count} ${day.count === 1 ? 'horario libre' : 'horarios libres'}`
+                      : 'Con horarios'
+                    : 'Sin horarios'}
                 </span>
               </button>
             </li>
@@ -76,7 +107,7 @@ export function DateStrip({
       <button
         type="button"
         onClick={onOpenCalendar}
-        className="mt-3 inline-flex items-center gap-2 rounded-full border border-border bg-surface px-4 py-2 text-sm font-medium text-ink transition-colors hover:border-primary/40 hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+        className="mt-4 inline-flex min-h-[44px] items-center gap-2 rounded-full border border-border bg-surface px-4 py-2 text-sm font-medium text-ink transition-colors hover:border-primary/40 hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
       >
         <CalendarDays className="h-4 w-4" aria-hidden="true" />
         Ver calendario completo
@@ -132,7 +163,7 @@ export function CalendarSheet({
         role="dialog"
         aria-modal="true"
         aria-label="Elegir fecha"
-        className="animate-fade-in relative w-full max-w-sm rounded-t-3xl border border-border bg-surface p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-lg sm:rounded-3xl sm:pb-5"
+        className={`${motion.rise} relative w-full max-w-sm rounded-t-3xl border border-border bg-surface p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-lg sm:rounded-3xl sm:pb-5`}
       >
         <div className="mb-3 flex items-center justify-between gap-3">
           <h2 className="text-sm font-semibold text-ink">Elige una fecha</h2>

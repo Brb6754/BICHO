@@ -162,13 +162,21 @@ export function BlockRenderer({
         }))
       : [];
 
+  const visible = blocks.filter((b) => !b.hidden);
   return (
     <>
-      {blocks.filter((b) => !b.hidden).map((rawBlock) => {
+      {visible.map((rawBlock, i) => {
         const block = normalizeBlock(rawBlock);
+        // The identity band and the booking sheet are drawn as one piece
+        // when they sit together: the band leaves room at its foot and the
+        // sheet rises into it. Only between those two, never otherwise.
+        const prev = visible[i - 1];
+        const next = visible[i + 1];
+        const isHeader = (b?: Block) => b?.type === 'hero' && normalizeBlock(b).variant === 'header';
         return (
           <BlockItem
             key={block.id}
+            tucked={(isHeader(block) && next?.type === 'booking') || (block.type === 'booking' && isHeader(prev))}
             block={block}
             bookingData={bookingData}
             branding={branding}
@@ -223,7 +231,9 @@ function BlockItem({
   bookingData,
   branding,
   sampleServices = [],
+  tucked = false,
 }: {
+  tucked?: boolean;
   block: Block;
   bookingData?: BookingData;
   branding: Branding;
@@ -236,7 +246,7 @@ function BlockItem({
     // own its own edges, and BlockBox's centred max-width column is
     // exactly what made every hero look the same.
     case 'hero':
-      return <HeroSection variant={block.variant} props={block.props} branding={branding} />;
+      return <HeroSection variant={block.variant} props={block.props} branding={branding} tucked={tucked} />;
 
     case 'text':
       return (
@@ -480,7 +490,11 @@ function BlockItem({
         // surface, border and elevation, so wrapping it in a second one
         // was drawing two cards inside each other. This is now only a
         // measure and some page padding.
-        <div className="mx-auto max-w-2xl sm:px-6 sm:py-14 lg:max-w-4xl">
+        <div
+          className={`relative mx-auto max-w-2xl sm:px-6 lg:max-w-4xl ${
+            tucked ? '-mt-7 sm:-mt-16 sm:pb-14' : 'sm:py-14'
+          }`}
+        >
           <div>
             <BookingFlow
               slug={bookingData.slug}
@@ -530,10 +544,10 @@ function BookingFlowMockPreview({
       >
         <div className="flex flex-col gap-5">
           <h2
-            className="text-xl font-semibold text-ink"
+            className="text-[1.65rem] font-semibold leading-[1.1] text-ink sm:text-[2rem]"
             style={{ fontFamily: 'var(--tpl-heading-font, var(--font-heading))', letterSpacing: 'var(--tpl-heading-tracking)' }}
           >
-            Elige un servicio
+            ¿Qué vas a reservar?
           </h2>
           <ul className="-mx-2 flex flex-col">
             {services.map((s, i) => (

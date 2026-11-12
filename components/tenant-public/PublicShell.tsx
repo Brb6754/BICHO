@@ -62,7 +62,7 @@ export function PublicShell({
           are the exact same mechanism already built for the tenant
           dashboard's own dark mode — reused as-is. */}
       <main
-        className={`${isDark ? 'dark tenant-shell bg-paper text-ink' : 'force-light'} relative min-h-screen overflow-hidden`}
+        className={`${isDark ? 'dark tenant-shell bg-paper text-ink' : 'force-light'} relative min-h-screen overflow-x-clip`}
         style={
           isDark
             ? ({

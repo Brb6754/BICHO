@@ -1,7 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { CalendarPlus, Check, ChevronDown, MapPin, Pencil } from 'lucide-react';
+import { CalendarPlus, Check, ChevronDown, MapPin, MessageCircle, Pencil } from 'lucide-react';
+import { dayKey, formatTime } from '@/lib/dates/tenantTime';
+import motion from './motion.module.css';
 import { formatDuration, publicPrice, type Service, type StepId } from './types';
 
 // The last step is two blocks, not one long form: first what you are
@@ -56,8 +58,8 @@ export function BookingSummary({
   showResourceRow: boolean;
 }) {
   return (
-    <section className="rounded-2xl border border-border bg-surface p-4">
-      <h2 className="mb-1 text-sm font-semibold text-ink">Tu reserva</h2>
+    <section className="rounded-2xl bg-paper px-4 py-3 ring-1 ring-border">
+      <h3 className="mb-1 pt-1 text-sm font-semibold text-ink">Tu reserva</h3>
       <div>
         <SummaryRow label="Servicio" value={service.name} onEdit={() => onEdit('service')} />
         <SummaryRow label="Duración" value={formatDuration(service.duration_minutes)} />
@@ -72,7 +74,7 @@ export function BookingSummary({
       {/* No invented cancellation policy: the business hasn't set one
           (see CLAUDE.md). What IS true is that the confirmation carries a
           link to change or cancel, so that's what this says. */}
-      <p className="mt-3 flex items-start gap-2 rounded-xl bg-paper px-3 py-2.5 text-[12px] leading-relaxed text-muted">
+      <p className="mt-2 flex items-start gap-2 border-t border-border pt-3 text-[12px] leading-relaxed text-muted">
         <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-success" aria-hidden="true" />
         Puedes cambiar o cancelar tu cita desde el enlace que te llega al confirmar.
       </p>
@@ -123,8 +125,8 @@ export function CustomerForm({
   }
 
   return (
-    <section className="rounded-2xl border border-border bg-surface p-4">
-      <h2 className="mb-3 text-sm font-semibold text-ink">Tus datos</h2>
+    <section className="pt-2">
+      <h3 className="mb-3 text-sm font-semibold text-ink">Tus datos</h3>
 
       <div className="flex flex-col gap-4">
         <div>
@@ -224,10 +226,17 @@ export function CustomerForm({
   );
 }
 
+// The last screen is the one people screenshot, so it's built like a
+// ticket: the date and time set large enough to read at a glance from a
+// lock-screen photo, a perforated stub with the code, and every way to
+// keep the appointment (manage link, calendar file, WhatsApp) one tap away.
 export function ConfirmationScreen({
   businessName,
   service,
   when,
+  startsAt,
+  endsAt,
+  timezone,
   resourceName,
   showResource,
   location,
@@ -240,6 +249,9 @@ export function ConfirmationScreen({
   businessName: string;
   service: Service;
   when: string;
+  startsAt: string;
+  endsAt: string;
+  timezone?: string | null;
   resourceName: string;
   showResource: boolean;
   location?: string | null;
@@ -250,40 +262,144 @@ export function ConfirmationScreen({
   emailed: boolean;
   onBookAnother: () => void;
 }) {
+  // Date parts in the BUSINESS's timezone: the calendar day comes from
+  // dayKey, then it's spelled out from noon UTC of that day (same trick
+  // the date strip uses) so the browser's own clock never gets a say.
+  const key = dayKey(startsAt, timezone);
+  const noon = new Date(`${key}T12:00:00Z`);
+  const part = (o: Intl.DateTimeFormatOptions) =>
+    new Intl.DateTimeFormat('es-MX', { ...o, timeZone: 'UTC' }).format(noon);
+  const code = bookingId.slice(0, 8).toUpperCase();
+
+  const icsHref = `data:text/calendar;charset=utf-8,${encodeURIComponent(
+    icsFile({ title: `${service.name} — ${businessName}`, startsAt, endsAt, location, uid: bookingId })
+  )}`;
+  const shareText = [
+    `Ya aparté mi cita en ${businessName}:`,
+    `${service.name} — ${when}`,
+    location ? `Dirección: ${location}` : null,
+  ]
+    .filter(Boolean)
+    .join('\n');
+
   return (
-    <div className="px-5 py-8 text-center sm:px-6">
-      <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-success/15">
-        <Check className="h-7 w-7 text-success" strokeWidth={3} aria-hidden="true" />
-      </span>
-
-      <h1 className="mt-4 text-xl font-bold text-ink">Tu reserva está confirmada</h1>
-      <p className="mt-1.5 text-sm text-muted">
-        {businessName} te espera. Ya quedó apartado tu lugar.
-      </p>
-
-      <div className="mx-auto mt-6 max-w-sm rounded-2xl border border-border bg-surface p-4 text-left">
-        <SummaryRow label="Servicio" value={service.name} />
-        <SummaryRow label="Cuándo" value={when} />
-        {showResource && <SummaryRow label="Atiende" value={resourceName} />}
-        {location && <SummaryRow label="Dónde" value={location} />}
-        <SummaryRow label="Código" value={bookingId.slice(0, 8).toUpperCase()} />
+    <div className="px-5 pb-8 pt-10 sm:px-8">
+      <div className="relative mx-auto flex h-16 w-16 items-center justify-center" aria-hidden="true">
+        <span className={`${motion.ring} absolute inset-0 rounded-full bg-success`} />
+        {BURST_ANGLES.map((a, i) => (
+          <span
+            key={a}
+            className={motion.burst}
+            style={
+              {
+                '--a': `${a}deg`,
+                background: i % 2 ? 'rgb(var(--color-primary))' : 'rgb(var(--color-accent))',
+              } as React.CSSProperties
+            }
+          />
+        ))}
+        <svg
+          viewBox="0 0 24 24"
+          className="relative h-8 w-8"
+          fill="none"
+          stroke="white"
+          strokeWidth={3}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path className={motion.drawCheck} d="M5 12.5l4.5 4.5L19 7.5" />
+        </svg>
       </div>
 
-      <div className="mx-auto mt-5 flex max-w-sm flex-col gap-2.5">
+      <h1
+        className="mt-5 text-balance text-center text-[1.75rem] font-semibold leading-tight text-ink sm:text-[2.1rem]"
+        style={{ fontFamily: 'var(--tpl-heading-font, var(--font-heading))', letterSpacing: 'var(--tpl-heading-tracking)' }}
+      >
+        ¡Listo! Tu cita está apartada
+      </h1>
+      <p className="mt-2 text-center text-sm text-muted">{businessName} te espera.</p>
+
+      {/* The ticket */}
+      <div className={`${motion.ticket} mx-auto mt-7 max-w-sm overflow-clip rounded-3xl bg-paper ring-1 ring-border`}>
+        <div className="flex items-stretch">
+          <div className="flex w-[104px] shrink-0 flex-col items-center justify-center gap-0.5 bg-primary py-5 text-[rgb(var(--color-cta-fg))]">
+            <span className="text-xs font-semibold capitalize">{part({ weekday: 'long' })}</span>
+            <span
+              className="text-[2.75rem] font-bold leading-none tabular-nums"
+              style={{ fontFamily: 'var(--tpl-heading-font, var(--font-heading))' }}
+            >
+              {Number(key.slice(8, 10))}
+            </span>
+            <span className="text-xs font-semibold capitalize">{part({ month: 'long' })}</span>
+          </div>
+          <div className="min-w-0 flex-1 p-4 text-left">
+            <p
+              className="text-[1.9rem] font-semibold leading-none tabular-nums text-ink"
+              style={{ fontFamily: 'var(--tpl-heading-font, var(--font-heading))' }}
+            >
+              {formatTime(startsAt, timezone)}
+            </p>
+            <p className="mt-2 text-sm font-semibold leading-snug text-ink">{service.name}</p>
+            <p className="mt-0.5 text-[13px] text-muted">
+              {formatDuration(service.duration_minutes)}
+              {showResource ? ` · ${resourceName}` : ''}
+            </p>
+          </div>
+        </div>
+        {/* Perforation: a dashed seam with two notches cut into the edges. */}
+        <div className="relative h-0 border-t-2 border-dashed border-ink/15" aria-hidden="true">
+          <span className="absolute -left-3 -top-3 h-6 w-6 rounded-full bg-surface" />
+          <span className="absolute -right-3 -top-3 h-6 w-6 rounded-full bg-surface" />
+        </div>
+        <div className="flex items-center justify-between gap-3 px-4 py-3 text-left">
+          <span className="min-w-0 text-[13px] text-muted">
+            {location ? (
+              <span className="flex items-center gap-1.5">
+                <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                <span className="truncate">{location}</span>
+              </span>
+            ) : (
+              'Código de tu cita'
+            )}
+          </span>
+          <span className="shrink-0 font-mono text-sm font-semibold tracking-wider text-ink">{code}</span>
+        </div>
+      </div>
+
+      <div className="mx-auto mt-6 flex max-w-sm flex-col gap-2.5">
         <a
           href={manageUrl}
-          className="inline-flex min-h-[48px] items-center justify-center rounded-full bg-primary px-6 text-sm font-semibold text-[rgb(var(--color-cta-fg))] transition active:scale-[0.99]"
+          className="inline-flex min-h-[52px] items-center justify-center rounded-full bg-primary px-6 text-sm font-semibold text-[rgb(var(--color-cta-fg))] shadow-[0_6px_18px_-6px_rgb(var(--color-primary)/0.6)] transition active:scale-[0.99]"
         >
           Ver, cambiar o cancelar mi cita
         </a>
+        <div className="grid grid-cols-2 gap-2.5">
+          <a
+            href={calendarUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-full border border-border bg-surface px-3 text-sm font-medium text-ink transition-colors hover:border-primary/40"
+          >
+            <CalendarPlus className="h-4 w-4 shrink-0" aria-hidden="true" />
+            Google Calendar
+          </a>
+          <a
+            href={icsHref}
+            download={`cita-${code}.ics`}
+            className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-full border border-border bg-surface px-3 text-sm font-medium text-ink transition-colors hover:border-primary/40"
+          >
+            <CalendarPlus className="h-4 w-4 shrink-0" aria-hidden="true" />
+            iPhone / Outlook
+          </a>
+        </div>
         <a
-          href={calendarUrl}
+          href={`https://wa.me/?text=${encodeURIComponent(shareText)}`}
           target="_blank"
           rel="noreferrer"
           className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-full border border-border bg-surface px-6 text-sm font-medium text-ink transition-colors hover:border-primary/40"
         >
-          <CalendarPlus className="h-4 w-4" aria-hidden="true" />
-          Agregar a mi calendario
+          <MessageCircle className="h-4 w-4" aria-hidden="true" />
+          Compartir por WhatsApp
         </a>
         <button
           type="button"
@@ -294,18 +410,46 @@ export function ConfirmationScreen({
         </button>
       </div>
 
-      <p className="mx-auto mt-6 max-w-sm text-xs leading-relaxed text-muted">
+      <p className="mx-auto mt-4 max-w-sm text-center text-xs leading-relaxed text-muted">
         {emailed
           ? 'Te mandamos la confirmación por correo. Si no llega en unos minutos, revisa tu carpeta de spam.'
           : 'Guarda este enlace o toma una captura: es la forma de volver a tu cita, y no dejaste un correo donde mandártelo.'}
       </p>
-
-      {location && (
-        <p className="mx-auto mt-3 flex max-w-sm items-center justify-center gap-1.5 text-xs text-muted">
-          <MapPin className="h-3.5 w-3.5" aria-hidden="true" />
-          {location}
-        </p>
-      )}
     </div>
   );
+}
+
+const BURST_ANGLES = [0, 45, 90, 135, 180, 225, 270, 315];
+
+// A minimal RFC 5545 event. Apple Calendar and Outlook open it directly;
+// Google already has its own link above.
+export function icsFile({
+  title,
+  startsAt,
+  endsAt,
+  location,
+  uid,
+}: {
+  title: string;
+  startsAt: string;
+  endsAt: string;
+  location?: string | null;
+  uid: string;
+}): string {
+  const stamp = (iso: string) => new Date(iso).toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+  const esc = (t: string) => t.replace(/[\\;,]/g, (c) => `\\${c}`).replace(/\n/g, '\\n');
+  return [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//reservas//cita//ES',
+    'BEGIN:VEVENT',
+    `UID:${uid}`,
+    `DTSTAMP:${stamp(new Date().toISOString())}`,
+    `DTSTART:${stamp(startsAt)}`,
+    `DTEND:${stamp(endsAt)}`,
+    `SUMMARY:${esc(title)}`,
+    ...(location ? [`LOCATION:${esc(location)}`] : []),
+    'END:VEVENT',
+    'END:VCALENDAR',
+  ].join('\r\n');
 }

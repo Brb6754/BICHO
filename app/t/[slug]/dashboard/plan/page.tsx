@@ -1,8 +1,11 @@
 import { requireTenantStaff } from '@/lib/auth/tenantStaff';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { PageHeader } from '@/components/tenant-dash/PageHeader';
-import { PLAN_PRICE_MXN, TRIAL_GRACE_DAYS, tenantAccess } from '@/lib/billing/trial';
+import { TRIAL_GRACE_DAYS, tenantAccess } from '@/lib/billing/trial';
+import { CUPO_FUNDADOR, PLANES, planDe, precioCheckout, precioMensual } from '@/lib/billing/planes';
+import { fundadoresUsados } from '@/lib/billing/planServer';
 import { ActivatePlanButton } from './ActivatePlanButton';
+import { PlanPicker } from './PlanPicker';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,6 +25,13 @@ export default async function PlanPage({
   const { data: tenant } = await createAdminClient().from('tenants').select('*').eq('id', tenantId).maybeSingle();
   const access = tenantAccess(tenant);
   const isPaying = tenant?.status === 'active' && tenant?.mp_subscription_status === 'authorized' && access.kind === 'active';
+  const plan = planDe(tenant?.plan);
+  const fundador = tenant?.precio_fundador_mxn ?? null;
+  // Quien ya paga ve su monto; quien no, lo que costaría hoy (con cupo fundador si queda).
+  const usados = await fundadoresUsados();
+  const precio = isPaying ? precioMensual(plan, fundador) : precioCheckout(plan, fundador, usados).monto;
+  // Negocio a precio fundador: ya lo tiene congelado, o aún hay cupo para quien no paga.
+  const founderNegocio = fundador != null || (!isPaying && usados < CUPO_FUNDADOR);
 
   const estado =
     access.kind === 'trial'
@@ -48,15 +58,16 @@ export default async function PlanPage({
       )}
 
       <section className="mt-8 rounded-2xl bg-surface p-6 ring-1 ring-border">
-        <p className="text-sm font-medium text-muted">Plan bicho</p>
+        <p className="text-sm font-medium text-muted">Plan bicho{plan ? ` ${PLANES[plan].nombre}` : ''}</p>
         <p className="mt-1 text-[2rem] font-semibold tracking-tight text-ink">
-          ${PLAN_PRICE_MXN} <span className="text-base font-normal text-muted">MXN al mes</span>
+          ${precio} <span className="text-base font-normal text-muted">MXN al mes</span>
         </p>
         <ul className="mt-4 space-y-1.5 text-[15px] text-muted">
           <li>Página de reservas, agenda y clientes sin límite.</li>
           <li>Pago con tarjeta a través de Mercado Pago; cancelas cuando quieras.</li>
           <li>Si un cobro falla tienes {TRIAL_GRACE_DAYS} días para resolverlo antes de pausar tu página.</li>
         </ul>
+        <PlanPicker slug={slug} current={plan} founderNegocio={founderNegocio} />
         {!isPaying && (
           <div className="mt-6">
             <ActivatePlanButton slug={slug} label="Activar mi plan con Mercado Pago" />

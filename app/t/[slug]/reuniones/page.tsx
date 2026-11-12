@@ -5,8 +5,10 @@ import { productosDe } from '@/lib/products';
 import { PublicShell } from '@/components/tenant-public/PublicShell';
 import { BookingPausedNotice, bookingPause } from '@/components/tenant-public/BookingPausedNotice';
 import { MeetingFlow, type MeetingType } from '@/components/meetings/MeetingFlow';
+import { HeroSection } from '@/components/blocks/Sections';
 import { isFontKey, type FontKey } from '@/lib/branding/fonts';
 import {
+  tenantDarkBase,
   PLATFORM_PRIMARY,
   PLATFORM_SECONDARY,
   PLATFORM_ACCENT,
@@ -167,31 +169,31 @@ export default async function ReunionesPublicPage({
       backgroundColor={paperFor(branding_raw?.background_color, primaryColor, accentColor)}
       textColor={branding_raw?.text_color ?? '#1A1A1A'}
     >
-      <div className="mx-auto w-full max-w-2xl px-5 py-10 sm:px-6 sm:py-14">
-        {/* Encabezado de identidad, no un hero-póster: quien llega aquí
-            viene a agendar, y la banda de identidad solo tiene que
-            confirmarle que está en el lugar correcto. */}
-        <header className="flex flex-col items-start gap-3">
-          {branding_raw?.logo_url && (
-            // eslint-disable-next-line @next/next/no-img-element -- URL arbitraria del panel; next/image exigiría declarar cada dominio posible.
-            <img
-              src={branding_raw.logo_url}
-              alt={tenant.name}
-              className="h-14 w-auto max-w-[220px] object-contain"
-            />
-          )}
-          <h1
-            className="text-2xl font-semibold tracking-tight text-ink sm:text-3xl"
-            style={{ fontFamily: 'var(--font-heading)' }}
-          >
-            Agenda una reunión con {tenant.name}
-          </h1>
-          {branding_raw?.description && (
-            <p className="text-[15px] leading-relaxed text-muted">{branding_raw.description}</p>
-          )}
-        </header>
-
-        <div className="mt-8">
+      {/* La misma banda de identidad que la página de reservas, con la
+          hoja de agendado entrando en ella: quien llega aquí viene a
+          agendar, y la banda solo confirma que está en el lugar correcto. */}
+      <HeroSection
+        variant="header"
+        props={{
+          title: `Agenda una reunión con ${tenant.name}`,
+          subtitle: branding_raw?.description ?? '',
+          eyebrow: '',
+          backgroundImageUrl: '',
+          align: 'left',
+          ctaText: '',
+          ctaLink: '',
+        }}
+        branding={{
+          primaryColor,
+          accentColor,
+          logoUrl: branding_raw?.logo_url ?? null,
+          isDark,
+          darkBase: isDark ? tenantDarkBase(primaryColor, secondaryColor, accentColor) : undefined,
+        }}
+        tucked
+      />
+      <div className="relative mx-auto -mt-7 w-full max-w-2xl px-3 pb-10 sm:-mt-16 sm:px-6 sm:pb-14">
+        <div>
           {sinAgenda ? (
             // Una página de agendado que no puede agendar tiene que
             // decirlo y dar una salida, no enseñar un formulario vacío.

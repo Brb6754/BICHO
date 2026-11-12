@@ -11,6 +11,7 @@ import type {
 } from '@/lib/templates/blocks';
 import { tenantCtaStyle, withAlpha, legibleBrandText, readableFgRgb, darkenHex, contrastRatio } from '@/lib/branding/colors';
 import { safeHref } from '@/lib/branding/safeHref';
+import motion from '@/components/booking/motion.module.css';
 
 // The section library. Everything here is variant-driven: one block
 // type renders several genuinely different compositions, which is the
@@ -129,10 +130,14 @@ export function HeroSection({
   variant,
   props,
   branding,
+  tucked = false,
 }: {
   variant: string;
   props: HeroProps;
   branding: SectionBranding;
+  // The booking sheet comes right after and rises into this band, so the
+  // band leaves room at its foot and lines its text up with the sheet's.
+  tucked?: boolean;
 }) {
   const hasImage = props.backgroundImageUrl.trim().length > 0;
   const accent = branding.accentColor;
@@ -164,7 +169,7 @@ export function HeroSection({
     const acentoLegible = contrastRatio(accent, fondo) >= 3;
     return (
       <header
-        className="relative w-full overflow-hidden px-5 py-10 sm:px-6 sm:py-14"
+        className={`relative w-full overflow-hidden ${tucked ? 'pb-16 pt-9 sm:pb-28 sm:pt-14' : 'px-5 py-10 sm:px-6 sm:py-14'}`}
         style={{ background: `linear-gradient(135deg, ${fondo}, ${darkenHex(fondo, 22)})`, color: fg }}
       >
         {/* LA FOTO DEL LUGAR, cuando el negocio subió una.
@@ -200,7 +205,11 @@ export function HeroSection({
           className="pointer-events-none absolute -right-16 -top-24 h-64 w-64 rounded-full blur-3xl"
           style={{ background: withAlpha(accent, 0.35) }}
         />
-        <div className="relative mx-auto flex max-w-2xl flex-col items-start gap-4 sm:flex-row sm:items-center sm:gap-5">
+        <div
+          className={`${motion.rise} relative mx-auto flex max-w-2xl flex-col items-start gap-4 sm:flex-row sm:items-center sm:gap-5 ${
+            tucked ? 'px-5 sm:px-12 lg:max-w-4xl' : ''
+          }`}
+        >
           {branding.logoUrl && (
             // Placa blanca detrás del logo: sobre un campo de color, un
             // logo de píxeles oscuros desaparece.

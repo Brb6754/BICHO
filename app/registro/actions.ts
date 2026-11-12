@@ -8,6 +8,7 @@ import { normalizeMxWhatsapp } from '@/lib/onboarding/phone';
 import { sendSignupConfirmation, sendSignupNotice } from '@/lib/email/registro';
 import { tenantConfirmEmailUrl, tenantShareUrl } from '@/lib/urls';
 import { canLinkReferral, normalizeReferralCode } from '@/lib/referidos/rules';
+import { banderasDelPlan, planDe } from '@/lib/billing/planes';
 
 // Alta sin Bruno: un dueño crea su cuenta, su negocio y su página solo.
 //
@@ -67,6 +68,8 @@ export type RegistroInput = {
   website: string; // honeypot
   /** ?ref= del link de referido (db/052). Solo el código: lo demás se resuelve aquí. */
   ref?: string;
+  /** esencial | negocio | pro (lib/billing/planes.ts). Inválido o vacío = negocio. */
+  plan?: string;
 };
 
 export type RegistroResult = { ok: true; slug: string; email: string } | { ok: false; error: string };
@@ -173,12 +176,15 @@ export async function registerBusiness(input: RegistroInput): Promise<RegistroRe
     .eq('vertical', giro.vertical)
     .maybeSingle();
 
+  const plan = planDe(input.plan) ?? 'negocio';
+  const banderas = banderasDelPlan(plan);
   const row: Record<string, unknown> = {
+    ...banderas,
     name,
     slug,
     vertical: giro.vertical,
     status: 'trial',
-    plan: 'standard',
+    plan,
     timezone: 'America/Mexico_City',
     resource_label: giro.resourceLabel,
     trial_ends_at: new Date(Date.now() + TRIAL_DAYS * 86_400_000).toISOString(),
@@ -190,7 +196,7 @@ export async function registerBusiness(input: RegistroInput): Promise<RegistroRe
 
   // Columnas de migraciones posteriores son opcionales (mismo patrón que
   // createTenant): si db/042 aún no corre, se crea sin trial_ends_at.
-  const OPTIONAL_GROUPS = [['trial_ends_at'], ['resource_label'], ['page_blocks', 'page_design']];
+  const OPTIONAL_GROUPS = [Object.keys(banderas), ['trial_ends_at'], ['resource_label'], ['page_blocks', 'page_design']];
   let { data: tenant, error: tenantError } = await admin.from('tenants').insert(row).select('id').single();
   for (const group of OPTIONAL_GROUPS) {
     if (!tenantError || tenantError.code === '23505') break;

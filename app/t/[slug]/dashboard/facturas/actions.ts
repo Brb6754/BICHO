@@ -6,6 +6,8 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { productosDe } from '@/lib/products';
 import { buildInvoicePayload, totalEsperadoCents, type ReceptorFiscal } from '@/lib/billing/fromQuote';
 import { createInvoice } from '@/lib/billing/facturapi';
+import { TOPE_TIMBRES_MES, mensajeTope } from '@/lib/billing/planes';
+import { timbresMes } from '@/lib/billing/planServer';
 
 // Timbrar una cotización.
 //
@@ -39,12 +41,16 @@ export async function facturarCotizacion(
   datos: DatosFactura
 ): Promise<Resultado> {
   try {
-    const { tenantId } = await requireTenantStaff(slug);
+    const { tenantId, timezone } = await requireTenantStaff(slug);
 
     const productos = await productosDe(slug);
     if (!productos.facturacion) {
       return { ok: false, error: 'Este negocio no tiene contratada la facturación.' };
     }
+
+    // Pro incluye 100 timbres al mes.
+    const tope = mensajeTope(await timbresMes(tenantId, timezone), TOPE_TIMBRES_MES, 'timbres');
+    if (tope) return { ok: false, error: tope };
 
     if (!datos.receptor?.rfc?.trim() || !datos.receptor?.legalName?.trim()) {
       return { ok: false, error: 'Faltan el RFC y la razón social de quien recibe la factura.' };

@@ -9,6 +9,7 @@ import {
   SelectionSummary,
   SidePanel,
   StepHeader,
+  StepTitle,
   StickyActionBar,
   type SummaryItem,
 } from './chrome';
@@ -16,6 +17,7 @@ import { ResourceCard, ServiceCard, ShowMore, TimeGroup, TimeSlot } from './card
 import { CalendarSheet, DateStrip, type StripDay } from './dates';
 import { BookingSummary, ConfirmationScreen, CustomerForm, type CustomerFields } from './review';
 import { EmptyCatalog, ErrorState, LoadingSlots, NoSlotsState } from './states';
+import motion from './motion.module.css';
 import {
   ANY_RESOURCE,
   formatDuration,
@@ -50,6 +52,11 @@ import {
 // is what makes this a template rather than one business's booking page.
 
 const STRIP_DAYS = 14;
+
+// The flow's one raised surface. On a phone it's a sheet with rounded top
+// corners that rises over the identity band; from sm it floats as a card.
+const SHEET =
+  'overflow-clip rounded-t-[28px] border-t border-border bg-surface shadow-[0_-12px_32px_-18px_rgba(16,24,40,0.35)] sm:rounded-[28px] sm:border sm:shadow-[0_1px_2px_rgba(16,24,40,0.05),0_24px_48px_-20px_rgba(16,24,40,0.28)]';
 const INITIAL_SLOTS_SHOWN = 9;
 
 type Props = {
@@ -165,6 +172,11 @@ export default function BookingFlow({
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const currentStep = steps[stepIndex]?.id ?? 'service';
+  // Which way the last step change went, so the next step slides in from
+  // the side you're heading to. Back slides from the left, like a page.
+  // null until the first move, so the opening step doesn't slide in on
+  // top of the sheet's own entrance.
+  const [direction, setDirection] = useState<'forward' | 'back' | null>(null);
   const today = dayKey(new Date(), timezone);
 
   // ── availability ──────────────────────────────────────────────────
@@ -229,11 +241,16 @@ export default function BookingFlow({
     return [...seen.values()].sort((a, b) => a.slot_start.localeCompare(b.slot_start));
   }, [resourceChoice, slotsByResource]);
 
-  const availableDayKeys = useMemo(() => {
-    const set = new Set<string>();
-    for (const s of activeSlots) set.add(dayKey(s.slot_start, timezone));
-    return set;
+  const slotCountByDay = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const s of activeSlots) {
+      const k = dayKey(s.slot_start, timezone);
+      counts.set(k, (counts.get(k) ?? 0) + 1);
+    }
+    return counts;
   }, [activeSlots, timezone]);
+
+  const availableDayKeys = useMemo(() => new Set(slotCountByDay.keys()), [slotCountByDay]);
 
   const slotsForDay = useMemo(
     () => (selectedDay ? activeSlots.filter((s) => dayKey(s.slot_start, timezone) === selectedDay) : []),
@@ -252,10 +269,15 @@ export default function BookingFlow({
         dayNumber: String(Number(key.slice(8, 10))),
         available: availableDayKeys.has(key),
         isToday: i === 0,
+        count: slotCountByDay.get(key) ?? 0,
+        monthLabel:
+          i === 0 || key.endsWith('-01')
+            ? new Intl.DateTimeFormat('es-MX', { month: 'long', timeZone: 'UTC' }).format(date)
+            : undefined,
       });
     }
     return out;
-  }, [today, availableDayKeys]);
+  }, [today, availableDayKeys, slotCountByDay]);
 
   const nextAvailableDay = useMemo(() => {
     const sorted = [...availableDayKeys].sort();
@@ -299,9 +321,11 @@ export default function BookingFlow({
 
   // ── navigation ────────────────────────────────────────────────────
   const goTo = useCallback((id: StepId) => {
-    setStepIndex(steps.findIndex((s) => s.id === id));
+    const next = steps.findIndex((s) => s.id === id);
+    setDirection(next < stepIndex ? 'back' : 'forward');
+    setStepIndex(next);
     requestAnimationFrame(() => scrollRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' }));
-  }, [steps]);
+  }, [steps, stepIndex]);
 
   function handleService(svc: Service) {
     const changed = svc.id !== service?.id;
@@ -479,11 +503,14 @@ export default function BookingFlow({
   // ── confirmation ──────────────────────────────────────────────────
   if (bookingId && service && selectedSlot) {
     return (
-      <div className="overflow-hidden border-y border-border bg-surface sm:rounded-3xl sm:border sm:shadow-[0_1px_2px_rgba(16,24,40,0.04),0_12px_32px_-12px_rgba(16,24,40,0.14)]">
+      <div className={SHEET}>
         <ConfirmationScreen
           businessName={businessName}
           service={service}
           when={appointmentWhen(selectedSlot.slot_start, timezone)}
+          startsAt={selectedSlot.slot_start}
+          endsAt={selectedSlot.slot_end}
+          timezone={timezone}
           resourceName={resourceName}
           showResource={eligible.length > 1}
           location={location}
@@ -542,7 +569,10 @@ export default function BookingFlow({
   return (
     <div
       ref={scrollRef}
-      className="overflow-hidden border-y border-border bg-surface sm:rounded-3xl sm:border sm:shadow-[0_1px_2px_rgba(16,24,40,0.04),0_12px_32px_-12px_rgba(16,24,40,0.14)]"
+      // overflow-clip, not overflow-hidden: hidden makes this box a scroll
+      // container, which pins the sticky header and action bar to the card
+      // instead of the screen. clip rounds the corners without that.
+      className={`${motion.rise} ${SHEET}`}
     >
       <StepHeader
         businessName={businessName}
@@ -559,14 +589,17 @@ export default function BookingFlow({
           it collapses to one column and the action moves to the bar
           pinned at the bottom. */}
       <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start lg:gap-6 lg:px-6 lg:py-6">
-      <div className="px-5 py-5 sm:px-6 lg:p-0">
+      <div
+        key={currentStep}
+        className={`px-5 py-6 sm:px-6 lg:p-0 ${direction === 'back' ? motion.stepBack : direction ? motion.stepForward : ''}`}
+      >
         {currentStep === 'service' && (
           <>
-            <h2 className="text-base font-semibold text-ink">Elige un servicio</h2>
-            <p className="mt-1 text-[13px] text-muted">
-              Después eliges cuándo. Puedes cambiarlo en cualquier momento.
-            </p>
-            <div className="mt-4 flex flex-col gap-2.5">
+            <StepTitle
+              title="¿Qué vas a reservar?"
+              hint="Después eliges cuándo. Puedes cambiarlo en cualquier momento."
+            />
+            <div className="flex flex-col gap-2.5">
               {bookableServices.map((s) => (
                 <ServiceCard
                   key={s.id}
@@ -581,13 +614,11 @@ export default function BookingFlow({
 
         {currentStep === 'resource' && (
           <>
-            <h2 className="text-base font-semibold text-ink">
-              {resourceHeading}
-            </h2>
-            <p className="mt-1 text-[13px] text-muted">
-              Si te da igual, elige cualquiera: vas a ver más horarios libres.
-            </p>
-            <div className="mt-4 flex flex-col gap-2.5">
+            <StepTitle
+              title={resourceHeading}
+              hint="Si te da igual, elige cualquiera: vas a ver más horarios libres."
+            />
+            <div className="flex flex-col gap-2.5">
               <ResourceCard
                 name={`Cualquier ${label.toLowerCase()} disponible`}
                 meta="La opción con más horarios"
@@ -620,11 +651,8 @@ export default function BookingFlow({
 
         {currentStep === 'date' && (
           <>
-            <h2 className="text-base font-semibold text-ink">¿Qué día te acomoda?</h2>
-            <p className="mt-1 text-[13px] text-muted">
-              Solo aparecen los días con horarios libres.
-            </p>
-            <div className="mt-4">
+            <StepTitle title="¿Qué día te acomoda?" hint="Solo puedes tocar los días con horarios libres." />
+            <div>
               {loading ? (
                 <LoadingSlots label="Revisando la agenda" />
               ) : loadError ? (
@@ -649,11 +677,11 @@ export default function BookingFlow({
 
         {currentStep === 'time' && (
           <>
-            <h2 className="text-base font-semibold text-ink">Elige tu horario</h2>
-            <p className="mt-1 text-[13px] text-muted">
-              {selectedDay ? longDate(`${selectedDay}T12:00:00Z`, timezone) : ''}
-            </p>
-            <div className="mt-4">
+            <StepTitle
+              title="¿A qué hora?"
+              hint={selectedDay ? longDate(`${selectedDay}T12:00:00Z`, timezone) : undefined}
+            />
+            <div>
               {loading ? (
                 <LoadingSlots />
               ) : slotsForDay.length === 0 ? (
@@ -693,6 +721,7 @@ export default function BookingFlow({
 
         {currentStep === 'details' && service && selectedSlot && (
           <div className="flex flex-col gap-4">
+            <StepTitle title="Ya casi. ¿A nombre de quién?" />
             <BookingSummary
               service={service}
               resourceName={resourceName}
@@ -736,9 +765,17 @@ export default function BookingFlow({
 
       <div className="lg:hidden">
       <StickyActionBar
-        hint={
-          currentStep === 'details' && service && selectedSlot
-            ? `${formatTime(selectedSlot.slot_start, timezone)} · ${service.name}`
+        // The live summary on a phone: what you're booking and what it
+        // costs, from the first tap, so the bar never only says "Continuar".
+        hint={service ? service.name : undefined}
+        hintSub={
+          service
+            ? [
+                selectedSlot ? appointmentWhen(selectedSlot.slot_start, timezone) : formatDuration(service.duration_minutes),
+                publicPrice(service),
+              ]
+                .filter(Boolean)
+                .join(' · ')
             : undefined
         }
         helper={missingHelper}

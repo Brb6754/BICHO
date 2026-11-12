@@ -10,6 +10,7 @@ import { BILLABLE_STATUS, STATUS_LABELS, formatMxn, type Reseller } from '@/lib/
 import { RetailPriceCard } from '@/components/reseller/RetailPriceCard';
 import { WhatsappToggle } from '@/components/tenant-setup/WhatsappToggle';
 import { ProductToggles } from '@/components/tenant-setup/ProductToggles';
+import { planDe } from '@/lib/billing/planes';
 import { getWhatsappAddon } from '@/lib/whatsapp/addonStatus';
 import { createDefaultBlock, type Block } from '@/lib/templates/blocks';
 import {
@@ -142,6 +143,7 @@ export default async function ResellerBusinessPage({ params }: { params: Promise
           <p className="text-xs text-muted">Reservas, cotizaciones o las dos.</p>
         </div>
         <ProductToggles
+          plan={planDe(tenant.plan)}
           reservas={productos.reservas}
           cotizaciones={productos.cotizaciones}
           facturacion={productos.facturacion}

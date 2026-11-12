@@ -2,6 +2,8 @@ import { requireTenantStaff, StaffAccessError } from '@/lib/auth/tenantStaff';
 import { productosDe } from '@/lib/products';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { correrAgente, type Turno } from '@/lib/copiloto/agente';
+import { TOPE_COPILOTO_MES, mensajeTope } from '@/lib/billing/planes';
+import { preguntasCopilotoMes, registrarPreguntaCopiloto } from '@/lib/billing/planServer';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -26,6 +28,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ slug: s
     .slice(-12)
     .map((t) => ({ role: t.role, content: t.content.slice(0, 4000) }));
   if (historial.at(-1)?.role !== 'user') return Response.json({ error: 'Falta la pregunta.' }, { status: 400 });
+
+  // Tope mensual por negocio (db/053). Sin la tabla, cuenta 0: sin tope, como antes.
+  const tope = mensajeTope(await preguntasCopilotoMes(staff.tenantId, staff.timezone), TOPE_COPILOTO_MES, 'copiloto');
+  if (tope) return Response.json({ error: tope }, { status: 429 });
+  // shortcut: contar y registrar no es atómico; ráfagas simultáneas pueden pasar el tope por unas pocas.
+  await registrarPreguntaCopiloto(staff.tenantId, staff.userId);
 
   const { data: tenant } = await createAdminClient().from('tenants').select('name').eq('id', staff.tenantId).single();
 

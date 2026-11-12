@@ -25,6 +25,7 @@ import { BrandEditor } from './BrandEditor';
 import { ResellerPicker } from '../../vendedores/ResellerPicker';
 import { WhatsappToggle } from '@/components/tenant-setup/WhatsappToggle';
 import { ProductToggles } from '@/components/tenant-setup/ProductToggles';
+import { PLANES, PLAN_IDS, planDe } from '@/lib/billing/planes';
 import { getWhatsappAddon } from '@/lib/whatsapp/addonStatus';
 import { formatMxn, isMissingResellersTable } from '@/lib/resellers';
 import { OwnerCreator } from './OwnerCreator';
@@ -43,7 +44,6 @@ import { createDefaultBlock, type Block } from '@/lib/templates/blocks';
 // snapshot from before the edit.
 export const dynamic = 'force-dynamic';
 
-const PLANS = ['standard'];
 
 function weekBuckets(startsAtList: string[], weeks: number) {
   const now = new Date();
@@ -357,6 +357,7 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ t
           <p className="text-xs text-muted">Reservas, cotizaciones o las dos.</p>
         </div>
         <ProductToggles
+          plan={planDe(tenant.plan)}
           reservas={productos.reservas}
           cotizaciones={productos.cotizaciones}
           facturacion={productos.facturacion}
@@ -504,10 +505,11 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ t
           )}
 
           <form action={setTenantPlan.bind(null, tenant.id)} className="flex items-center gap-2">
-            <Select name="plan" defaultValue={tenant.plan} className="w-40">
-              {PLANS.map((p) => (
+            <Select name="plan" defaultValue={planDe(tenant.plan) ?? ''} className="w-40">
+              {!planDe(tenant.plan) && <option value="" disabled>Sin plan ({tenant.plan})</option>}
+              {PLAN_IDS.map((p) => (
                 <option key={p} value={p}>
-                  {p}
+                  {PLANES[p].nombre} · ${PLANES[p].precio}
                 </option>
               ))}
             </Select>

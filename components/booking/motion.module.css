@@ -1,0 +1,136 @@
+/* Motion for the public booking flow. Every animation here answers to a
+   user action (a step change, a selection, a confirmation) except one:
+   the sheet rising out of the identity band on first load. Durations are
+   short and eased out so nothing ever waits for an animation to finish. */
+
+.stepForward {
+  animation: stepForward 360ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.stepBack {
+  animation: stepBack 360ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes stepForward {
+  from { opacity: 0; transform: translateX(28px); filter: blur(3px); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+@keyframes stepBack {
+  from { opacity: 0; transform: translateX(-28px); filter: blur(3px); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+
+/* A selected control answers the tap: a quick squash and settle. */
+.pop {
+  animation: pop 320ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes pop {
+  0% { transform: scale(0.96); }
+  100% { transform: scale(1); }
+}
+
+/* Summary chips and side-panel rows arrive instead of appearing. */
+.chipIn {
+  animation: chipIn 300ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes chipIn {
+  from { opacity: 0; transform: translateY(6px) scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+
+/* The action button wakes up the moment the step can be completed:
+   one sweep of light across it, then it stays still. */
+.wake {
+  position: relative;
+  overflow: hidden;
+}
+.wake::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 30%, rgb(255 255 255 / 0.35) 50%, transparent 70%);
+  transform: translateX(-100%);
+  animation: sweep 900ms 120ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  pointer-events: none;
+}
+@keyframes sweep {
+  to { transform: translateX(100%); }
+}
+
+/* First load: the sheet rises into place over the identity band. */
+.rise {
+  animation: rise 640ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes rise {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Confirmation: the check draws itself, the ticket lands. */
+.drawCheck {
+  stroke-dasharray: 32;
+  stroke-dashoffset: 32;
+  animation: draw 520ms 180ms cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+@keyframes draw {
+  to { stroke-dashoffset: 0; }
+}
+.ring {
+  animation: ring 700ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes ring {
+  from { transform: scale(0.4); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+.burst {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  margin: -3.5px 0 0 -3.5px;
+  border-radius: 9999px;
+  opacity: 0;
+  animation: burst 760ms 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes burst {
+  0% { opacity: 1; transform: rotate(var(--a)) translateY(0) scale(1); }
+  100% { opacity: 0; transform: rotate(var(--a)) translateY(-46px) scale(0.4); }
+}
+.ticket {
+  animation: rise 560ms 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.shimmer {
+  background: linear-gradient(
+    100deg,
+    rgb(var(--color-ink) / 0.05) 30%,
+    rgb(var(--color-primary) / 0.12) 50%,
+    rgb(var(--color-ink) / 0.05) 70%
+  );
+  background-size: 300% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+@keyframes shimmer {
+  from { background-position: 100% 0; }
+  to { background-position: 0 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stepForward,
+  .stepBack,
+  .pop,
+  .chipIn,
+  .rise,
+  .ring,
+  .ticket,
+  .shimmer {
+    animation: none;
+  }
+  .wake::after,
+  .burst {
+    display: none;
+  }
+  .drawCheck {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+}

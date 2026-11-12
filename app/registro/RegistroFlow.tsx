@@ -6,6 +6,7 @@ import { GIROS, giroById, type PresetService } from '@/lib/onboarding/presets';
 import { slugError, slugify } from '@/lib/onboarding/slug';
 import { normalizeMxWhatsapp } from '@/lib/onboarding/phone';
 import { tenantShareUrl } from '@/lib/urls';
+import { PLANES, PLAN_IDS, planDe, type PlanId } from '@/lib/billing/planes';
 import { checkSlug, registerBusiness, resendConfirmation } from './actions';
 
 // 16px en teléfono (`text-base sm:text-sm`): iOS hace zoom en inputs más
@@ -32,7 +33,9 @@ const STEPS = ['Tu negocio', 'Servicios', 'Horario', 'Tu cuenta'];
 type SlugState = { status: 'idle' | 'checking' | 'ok' | 'error'; message?: string };
 
 // refCode: el ?ref= del link de referido; vive en el prop todo el flujo.
-export function RegistroFlow({ refCode }: { refCode?: string } = {}) {
+// initialPlan: el ?plan= del botón de precios de la landing.
+export function RegistroFlow({ refCode, initialPlan }: { refCode?: string; initialPlan?: string } = {}) {
+  const [plan, setPlan] = useState<PlanId>(planDe(initialPlan) ?? 'negocio');
   const [step, setStep] = useState(0);
   const [name, setName] = useState('');
   const [giro, setGiro] = useState('');
@@ -134,6 +137,7 @@ export function RegistroFlow({ refCode }: { refCode?: string } = {}) {
       password,
       website,
       ref: refCode,
+      plan,
     });
     setSubmitting(false);
     if (!r.ok) {
@@ -354,6 +358,17 @@ export function RegistroFlow({ refCode }: { refCode?: string } = {}) {
 
       {step === 3 && (
         <div className="space-y-5">
+          <div>
+            <label className={LABEL} htmlFor="reg-plan">Tu plan</label>
+            <select id="reg-plan" className={FIELD} value={plan} onChange={(e) => setPlan(planDe(e.target.value) ?? 'negocio')}>
+              {PLAN_IDS.map((id) => (
+                <option key={id} value={id}>
+                  {PLANES[id].nombre} · ${PLANES[id].precio} MXN/mes
+                </option>
+              ))}
+            </select>
+            <p className="mt-1.5 text-xs text-[#6A6488]">{PLANES[plan].resumen} Lo cambias cuando quieras desde tu panel.</p>
+          </div>
           <div>
             <label className={LABEL} htmlFor="reg-email">Tu correo</label>
             <input id="reg-email" type="email" autoComplete="email" className={FIELD} value={email} onChange={(e) => setEmail(e.target.value)} required maxLength={200} />

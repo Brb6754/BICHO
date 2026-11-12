@@ -3,6 +3,8 @@ import { verifyMercadoPagoSignature } from '@/lib/payments/mercadopagoSignature'
 import { getAuthorizedPayment, getPreapproval } from '@/lib/payments/mercadopago';
 import { billingPatchFor, preapprovalSignal, type MpSignal } from '@/lib/billing/trial';
 import { grantReferralCredit } from '@/lib/referidos/grant';
+import { congelaFundador, planDe } from '@/lib/billing/planes';
+import { fundadoresUsados, guardarPrecioFundador } from '@/lib/billing/planServer';
 
 // Webhook de Mercado Pago para la suscripción mensual de cada negocio.
 // URL: https://reservas-saas-sigma.vercel.app/api/webhooks/mercadopago
@@ -96,7 +98,7 @@ export async function POST(request: Request) {
       preapprovalId = dataId;
       const pre = await getPreapproval(preapprovalId);
       signal = preapprovalSignal(pre.id, pre.status);
-      await applySignal(admin, pre.external_reference ?? null, signal);
+      await applySignal(admin, pre.external_reference ?? null, signal, pre.auto_recurring?.transaction_amount ?? null);
     } else {
       const ap = await getAuthorizedPayment(dataId);
       preapprovalId = ap.preapproval_id;
@@ -110,7 +112,7 @@ export async function POST(request: Request) {
             : { preapprovalId, kind: 'pending', mpStatus: pre.status };
       // Un cobro aprobado sobre una suscripción ya cancelada no reactiva nada.
       if (signal.kind === 'authorized' && pre.status !== 'authorized') signal = preapprovalSignal(pre.id, pre.status);
-      await applySignal(admin, pre.external_reference ?? null, signal);
+      await applySignal(admin, pre.external_reference ?? null, signal, pre.auto_recurring?.transaction_amount ?? null);
     }
   } catch (error) {
     // Liberar el claim para que el reintento de MP sí se procese.
@@ -123,7 +125,7 @@ export async function POST(request: Request) {
   return Response.json({ received: true });
 }
 
-async function applySignal(admin: ReturnType<typeof createAdminClient>, tenantId: string | null, signal: MpSignal) {
+async function applySignal(admin: ReturnType<typeof createAdminClient>, tenantId: string | null, signal: MpSignal, amountMxn: number | null) {
   // external_reference lo puso nuestro servidor al crear el preapproval.
   if (!tenantId || !UUID_RE.test(tenantId)) return;
 
@@ -142,4 +144,13 @@ async function applySignal(admin: ReturnType<typeof createAdminClient>, tenantId
 
   // Referidos (db/052): el primer cobro autorizado le gana un mes a quien lo refirió.
   if (signal.kind === 'authorized') await grantReferralCredit(admin, tenantId);
+
+  // Precio fundador (db/053): el monto lo fijó nuestro checkout y MP lo confirma.
+  // shortcut: dos checkouts simultáneos con el último lugar pueden pasar de 20; se acepta.
+  if (
+    signal.kind === 'authorized' &&
+    congelaFundador(planDe(tenant.plan), tenant.precio_fundador_mxn ?? null, amountMxn, await fundadoresUsados(admin))
+  ) {
+    await guardarPrecioFundador(admin, tenantId, amountMxn!);
+  }
 }

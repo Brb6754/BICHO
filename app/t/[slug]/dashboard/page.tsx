@@ -4,12 +4,16 @@ import Link from 'next/link';
 import { ArrowUpRight, Check } from 'lucide-react';
 import { CopyLinkButton } from '@/components/tenant-dash/CopyLinkButton';
 import { createClient } from '@/lib/supabase/server';
-import { PageHeader, SectionHeading } from '@/components/tenant-dash/PageHeader';
-import { AgendaList, type AgendaBooking } from '@/components/tenant-dash/AgendaList';
-import { dayKey, longDate } from '@/lib/dates/tenantTime';
+import { type AgendaBooking } from '@/components/tenant-dash/AgendaList';
+import { dayKey } from '@/lib/dates/tenantTime';
 import { tenantBookingPageUrl } from '@/lib/urls';
 import { esServicio } from '@/lib/meetings/kinds';
-import { AvisoInventario } from '@/components/tenant-dash/AvisoInventario';
+import { productosPorAcabarse } from '@/components/tenant-dash/AvisoInventario';
+import { ResumenHoy, alertaInventario, alertaRegresan, dineroDe, type Alerta } from '@/components/tenant-dash/ResumenHoy';
+import { requireTenantStaff } from '@/lib/auth/tenantStaff';
+import { cargarCaja } from '@/lib/caja/datos';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { ajustesDe, armarRegresan, type CitaRegresan } from '@/lib/regresan/armar';
 
 // RESUMEN — rebuilt around the one question an owner has when they open
 // this page: "what do I have today?"
@@ -82,8 +86,6 @@ export default async function DashboardOverviewPage({ params }: { params: Promis
 
   const today = bookings.filter((b) => dayKey(b.starts_at, tz) === todayKey);
   const upcoming = bookings.filter((b) => dayKey(b.starts_at, tz) > todayKey && b.status === 'confirmed');
-  const todayActive = today.filter((b) => b.status !== 'cancelled');
-  const nextToday = todayActive.find((b) => new Date(b.ends_at) > now && b.status === 'confirmed');
 
   const serviceCount = (servicios ?? []).filter(esServicio).length;
 
@@ -94,110 +96,103 @@ export default async function DashboardOverviewPage({ params }: { params: Promis
   ];
   const setupComplete = setup.every((s) => s.done);
 
+  // Lo que pide atención y el dinero del día. Cada pieza solo si el
+  // módulo está prendido, y cada una tolerante: sin su migración (o con
+  // cualquier error) simplemente no aparece — el Resumen nunca se cae
+  // por un módulo extra. Caja y Regresan leen con service_role, así que
+  // pasan primero por requireTenantStaff, igual que sus propias páginas.
+  const staff = productos.caja || productos.regresan ? await requireTenantStaff(slug).catch(() => null) : null;
+  const [porAcabarse, dinero, regresan] = await Promise.all([
+    productos.inventario && tenant ? productosPorAcabarse(tenant.id) : Promise.resolve([] as string[]),
+    productos.caja && staff
+      ? cargarCaja(staff.tenantId, staff.timezone, now)
+          .then((d) => ('faltaMigracion' in d ? null : dineroDe(d.movimientos, d.hoy)))
+          .catch(() => null)
+      : Promise.resolve(null),
+    productos.regresan && staff ? clientasPorRegresar(slug, staff.tenantId, staff.timezone, now).catch(() => null) : Promise.resolve(null),
+  ]);
+
+  const alertas = [
+    alertaInventario(porAcabarse, '/dashboard'),
+    regresan && alertaRegresan(regresan.nombres, regresan.semanas, '/dashboard'),
+  ].filter((a): a is Alerta => Boolean(a));
+
   return (
-    <div>
-      <PageHeader
-        eyebrow={longDate(now, tz)}
-        title={tenant?.name ?? 'Tu negocio'}
-        action={<CopyLinkButton url={tenantBookingPageUrl(slug)} />}
-      />
-
-      {/* Inventario (db/049): un renglón, solo si algo se está acabando. */}
-      {productos.inventario && tenant && <AvisoInventario tenantId={tenant.id} />}
-
-      {!setupComplete && (
-        // Only shown when the page can't take bookings yet. It sits above
-        // everything because nothing below it can happen until it's done.
-        <section
-          className="mt-8 rounded-2xl border border-warning/30 bg-warning-soft px-5 py-5 sm:px-6"
-          aria-label="Configuración pendiente"
-        >
-          <p className="font-semibold text-ink">Tu página todavía no puede recibir citas</p>
-          <p className="mt-1 text-sm text-muted">
-            Faltan {setup.filter((s) => !s.done).length} de 3 pasos. Sin ellos no hay horarios que ofrecer.
-          </p>
-          <ol className="mt-4 flex flex-col gap-2">
-            {setup.map((s) => (
-              <li key={s.label}>
-                {s.done ? (
-                  <span className="flex items-center gap-2.5 text-sm text-muted line-through">
-                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-success text-white">
-                      <Check className="h-3 w-3" strokeWidth={3} />
+    <ResumenHoy
+      tenantName={tenant?.name ?? 'Tu negocio'}
+      now={now}
+      timezone={tz}
+      today={today}
+      upcoming={upcoming}
+      dinero={dinero}
+      alertas={alertas}
+      base="/dashboard"
+      action={<CopyLinkButton url={tenantBookingPageUrl(slug)} />}
+      setup={
+        setupComplete ? undefined : (
+          // Only shown when the page can't take bookings yet. It sits above
+          // everything because nothing below it can happen until it's done.
+          <section
+            className="mt-7 rounded-2xl border border-warning/30 bg-warning-soft px-5 py-5 sm:px-6"
+            aria-label="Configuración pendiente"
+          >
+            <p className="font-semibold text-ink">Tu página todavía no puede recibir citas</p>
+            <p className="mt-1 text-sm text-muted">
+              Faltan {setup.filter((s) => !s.done).length} de 3 pasos. Sin ellos no hay horarios que ofrecer.
+            </p>
+            <ol className="mt-3 flex flex-col">
+              {setup.map((s) => (
+                <li key={s.label}>
+                  {s.done ? (
+                    <span className="flex min-h-[2.75rem] items-center gap-2.5 text-sm text-muted line-through">
+                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-success text-white">
+                        <Check className="h-3 w-3" strokeWidth={3} />
+                      </span>
+                      {s.label}
                     </span>
-                    {s.label}
-                  </span>
-                ) : (
-                  <Link
-                    href={s.href}
-                    className="group flex items-center gap-2.5 rounded-sm text-sm font-medium text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-                  >
-                    <span className="h-5 w-5 rounded-full border-2 border-ink/25" />
-                    <span className="underline-offset-4 group-hover:underline">{s.label}</span>
-                    <ArrowUpRight className="h-3.5 w-3.5 text-muted" aria-hidden="true" />
-                  </Link>
-                )}
-              </li>
-            ))}
-          </ol>
-        </section>
-      )}
-
-      {/* Today. The headline number is the one an owner actually wants,
-          and the "next" line answers the follow-up question before they
-          have to scan for it. */}
-      <section className="mt-10">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <p className="text-sm font-medium text-muted">Hoy</p>
-            <p className="mt-1 text-4xl font-semibold tabular-nums tracking-tight text-ink">
-              {todayActive.length}
-              <span className="ml-2 text-lg font-normal text-muted">{todayActive.length === 1 ? 'cita' : 'citas'}</span>
-            </p>
-          </div>
-          {nextToday && (
-            <p className="text-sm text-muted">
-              Sigue:{' '}
-              <span className="font-medium text-ink">
-                {nextToday.service_types?.name} con {nextToday.customers?.name}
-              </span>
-            </p>
-          )}
-        </div>
-
-        <div className="mt-5">
-          <AgendaList
-            bookings={today}
-            timezone={tz}
-            now={now}
-            hideDayHeader
-            emptyTitle="Nada agendado para hoy"
-            emptyHint="Las citas que tus clientes reserven desde tu página van a aparecer aquí, en el orden del día."
-          />
-        </div>
-      </section>
-
-      <section className="mt-12">
-        <SectionHeading
-          title="Próximos días"
-          meta={upcoming.length || undefined}
-          action={
-            <Link
-              href="/dashboard/calendar"
-              className="inline-flex items-center gap-1 rounded-sm text-sm font-medium text-ink underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-            >
-              Ver agenda completa
-              <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
-            </Link>
-          }
-        />
-        <AgendaList
-          bookings={upcoming}
-          timezone={tz}
-          now={now}
-          emptyTitle="Semana libre por ahora"
-          emptyHint="No hay citas en los próximos siete días."
-        />
-      </section>
-    </div>
+                  ) : (
+                    <Link
+                      href={s.href}
+                      className="group flex min-h-[2.75rem] items-center gap-2.5 rounded-sm text-sm font-medium text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                    >
+                      <span className="h-5 w-5 rounded-full border-2 border-ink/25" />
+                      <span className="underline-offset-4 group-hover:underline">{s.label}</span>
+                      <ArrowUpRight className="h-3.5 w-3.5 text-muted" aria-hidden="true" />
+                    </Link>
+                  )}
+                </li>
+              ))}
+            </ol>
+          </section>
+        )
+      }
+    />
   );
+}
+
+// Las clientas que no han vuelto, con la MISMA consulta y la MISMA
+// armarRegresan que la pantalla "Clientes que regresan", para que el
+// número del Resumen y la lista de esa pantalla nunca difieran.
+async function clientasPorRegresar(slug: string, tenantId: string, timezone: string | null, now: Date) {
+  const db = createAdminClient();
+  const [{ data: t }, { data: raw }] = await Promise.all([
+    db.from('tenants').select('*').eq('id', tenantId).maybeSingle(),
+    db
+      .from('bookings')
+      .select('*, customers(name, phone, email), service_types(name)')
+      .eq('tenant_id', tenantId)
+      .order('starts_at', { ascending: false })
+      .limit(4000),
+  ]);
+  const ajustes = ajustesDe(t);
+  const { inactivas } = armarRegresan({
+    citas: (raw ?? []) as unknown as CitaRegresan[],
+    negocio: (t?.name as string) ?? '',
+    linkReservar: tenantBookingPageUrl(slug),
+    ajustes,
+    canal: 'correo',
+    timezone,
+    now,
+  });
+  return { nombres: inactivas.map((c) => c.name), semanas: ajustes.semanas };
 }

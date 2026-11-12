@@ -45,6 +45,22 @@ import SignOutButton from './SignOutButton';
 // The segment navBase swaps out. NAV_ITEMS all start with it.
 const DASHBOARD_ROOT = '/dashboard';
 
+// Con trece módulos posibles, una lista plana de quince renglones ya no
+// se lee: se busca. Agrupados por el trabajo que hacen, el ojo salta al
+// bloque y luego al renglón. El orden dentro de cada bloque es el de
+// siempre (lo que más se abre, arriba).
+type NavGroup = 'dinero' | 'clientes' | 'negocio';
+const GROUP_LABELS: Record<NavGroup, string> = {
+  dinero: 'Dinero',
+  clientes: 'Clientes',
+  negocio: 'Tu negocio',
+};
+const GROUP_ORDER: (NavGroup | undefined)[] = [undefined, 'dinero', 'clientes', 'negocio'];
+
+// La barra de abajo en el teléfono: las tres secciones que más se abren
+// de las que el negocio tenga, más "Menú" para todo lo demás.
+const BOTTOM_PRIORITY = ['/dashboard', '/dashboard/calendar', '/dashboard/caja', '/dashboard/customers', '/dashboard/cotizaciones', '/dashboard/reuniones'];
+
 const NAV_ITEMS: {
   href: string;
   label: string;
@@ -66,6 +82,8 @@ const NAV_ITEMS: {
   requiresAgenda?: boolean;
   /** Solo el dueño de un negocio real (los demos con navBase no tienen esta página). */
   ownerOnly?: boolean;
+  /** Bloque del menú. Sin grupo: lo de todos los días, arriba y sin título. */
+  group?: NavGroup;
 }[] = [
   { href: '/dashboard', label: 'Resumen', icon: LayoutDashboard, exact: true },
   // Arriba de todo lo demás: es una forma de leer las otras secciones,
@@ -73,43 +91,43 @@ const NAV_ITEMS: {
   { href: '/dashboard/copiloto', label: 'Copiloto', icon: Sparkles, requiresCopiloto: true },
   { href: '/dashboard/calendar', label: 'Agenda', icon: CalendarDays, requiresReservas: true },
   // Caja (db/045): justo después de la agenda, porque las citas completadas son sus ventas.
-  { href: '/dashboard/caja', label: 'Caja', icon: Wallet, requiresCaja: true },
+  { href: '/dashboard/caja', label: 'Caja', icon: Wallet, requiresCaja: true, group: 'dinero' },
   // Comisiones (db/050): junto a Caja, salen de las mismas citas completadas.
-  { href: '/dashboard/comisiones', label: 'Comisiones', icon: HandCoins, requiresComisiones: true },
+  { href: '/dashboard/comisiones', label: 'Comisiones', icon: HandCoins, requiresComisiones: true, group: 'dinero' },
   // Inventario (db/049): también área Números; una venta de producto puede caer en Caja.
-  { href: '/dashboard/inventario', label: 'Inventario', icon: Package, requiresInventario: true },
+  { href: '/dashboard/inventario', label: 'Inventario', icon: Package, requiresInventario: true, group: 'dinero' },
   // Above the catalogue on purpose: services and hours are setup, changed
   // a few times a year. Customers is something an owner looks up.
-  { href: '/dashboard/customers', label: 'Clientes', icon: Contact },
+  { href: '/dashboard/customers', label: 'Clientes', icon: Contact, group: 'clientes' },
   // Lealtad (db/047): junto a Clientes, es sobre las mismas personas.
-  { href: '/dashboard/lealtad', label: 'Lealtad', icon: Stamp, requiresLealtad: true },
+  { href: '/dashboard/lealtad', label: 'Lealtad', icon: Stamp, requiresLealtad: true, group: 'clientes' },
   // Clientes que regresan (db/046): también sobre las mismas personas.
-  { href: '/dashboard/regresan', label: 'Clientes que regresan', icon: HeartHandshake, requiresRegresan: true },
+  { href: '/dashboard/regresan', label: 'Clientes que regresan', icon: HeartHandshake, requiresRegresan: true, group: 'clientes' },
   // El segundo producto de bicho. Aparece solo si el negocio lo tiene
   // prendido: para quien solo agenda citas, un menú con una sección que
   // no usa es ruido permanente.
   // Posts con IA (db/048): para traer a esas mismas clientas desde redes.
-  { href: '/dashboard/posts', label: 'Posts con IA', icon: Megaphone, requiresPosts: true },
-  { href: '/dashboard/cotizaciones', label: 'Cotizaciones', icon: FileText, requiresQuotes: true },
+  { href: '/dashboard/posts', label: 'Posts con IA', icon: Megaphone, requiresPosts: true, group: 'clientes' },
+  { href: '/dashboard/cotizaciones', label: 'Cotizaciones', icon: FileText, requiresQuotes: true, group: 'dinero' },
   // Cuarto módulo. Arriba de cotizaciones no: primero se habla con el
   // prospecto y después se le pone precio, así que este es el orden
   // real del trabajo.
   { href: '/dashboard/reuniones', label: 'Reuniones', icon: Handshake, requiresReuniones: true },
   // Tercer producto. Debajo de cotizaciones porque ese es el orden
   // real del trabajo: se cotiza, se cobra, y al final se factura.
-  { href: '/dashboard/facturas', label: 'Facturas', icon: ReceiptText, requiresFacturacion: true },
+  { href: '/dashboard/facturas', label: 'Facturas', icon: ReceiptText, requiresFacturacion: true, group: 'dinero' },
   // Guía RESICO (db/051): junto a Facturas, es el camino para llegar a facturar.
-  { href: '/dashboard/resico', label: 'Guía RESICO', icon: Landmark, requiresResico: true },
-  { href: '/dashboard/services', label: 'Servicios', icon: Tag, requiresReservas: true },
+  { href: '/dashboard/resico', label: 'Guía RESICO', icon: Landmark, requiresResico: true, group: 'dinero' },
+  { href: '/dashboard/services', label: 'Servicios', icon: Tag, requiresReservas: true, group: 'negocio' },
   // "Quién atiende" y "Horario" son infraestructura compartida: una
   // reunión ocupa al mismo asesor y el mismo horario que una cita (ver
   // db/039). Un negocio que solo contrató reuniones los necesita igual,
   // y sin esto se quedaría sin dónde darlos de alta.
-  { href: '/dashboard/resources', label: 'Quién atiende', icon: Users, requiresAgenda: true },
-  { href: '/dashboard/schedule', label: 'Horario', icon: Clock3, requiresAgenda: true },
-  { href: '/dashboard/marca', label: 'Mi marca', icon: Palette, ownerOnly: true },
+  { href: '/dashboard/resources', label: 'Quién atiende', icon: Users, requiresAgenda: true, group: 'negocio' },
+  { href: '/dashboard/schedule', label: 'Horario', icon: Clock3, requiresAgenda: true, group: 'negocio' },
+  { href: '/dashboard/marca', label: 'Mi marca', icon: Palette, ownerOnly: true, group: 'negocio' },
   // Referidos (db/052): todos los negocios, sin flag. El demo no tiene esta página.
-  { href: '/dashboard/referidos', label: 'Referidos', icon: Gift, ownerOnly: true },
+  { href: '/dashboard/referidos', label: 'Referidos', icon: Gift, ownerOnly: true, group: 'negocio' },
 ];
 
 const ROLE_LABELS: Record<string, string> = {
@@ -211,26 +229,105 @@ export function Sidebar({
     };
   }, [open]);
 
+  const visible = NAV_ITEMS.filter(
+    (item) =>
+      (!item.requiresQuotes || quotesEnabled) &&
+      (!item.requiresReservas || reservasEnabled) &&
+      (!item.requiresReuniones || reunionesEnabled) &&
+      (!item.requiresCopiloto || copilotoEnabled) &&
+      (!item.requiresCaja || cajaEnabled) &&
+      (!item.requiresLealtad || lealtadEnabled) &&
+      (!item.requiresRegresan || regresanEnabled) &&
+      (!item.requiresPosts || postsEnabled) &&
+      (!item.requiresResico || resicoEnabled) &&
+      (!item.requiresComisiones || comisionesEnabled) &&
+      (!item.requiresInventario || inventarioEnabled) &&
+      (!item.requiresAgenda || reservasEnabled || reunionesEnabled) &&
+      (!item.requiresFacturacion || facturacionEnabled) &&
+      (!item.ownerOnly || (role === 'owner' && !navBase))
+  ).map((item) => {
+    const href = navBase ? `${navBase}${item.href.slice(DASHBOARD_ROOT.length)}` : item.href;
+    const isActive = item.exact ? pathname === href : (pathname?.startsWith(href) ?? false);
+    return { ...item, href, key: item.href, isActive };
+  });
+
+  const bottom = BOTTOM_PRIORITY.map((h) => visible.find((v) => v.key === h))
+    .filter((v): v is (typeof visible)[number] => Boolean(v))
+    .slice(0, 3);
+  // "Menú" se pinta activo cuando estás en una sección que no está abajo.
+  const menuActive = !bottom.some((b) => b.isActive);
+
   return (
     <>
       {/* Mobile top bar: content scrolls under it instead of colliding
           with a floating button. main's pt-20 reserves the space. */}
-      <div className="fixed inset-x-0 top-0 z-30 flex h-14 items-center gap-2.5 border-b border-border bg-paper/90 px-3 backdrop-blur-md lg:hidden">
+      <div className="fixed inset-x-0 top-0 z-30 flex h-14 items-center gap-2.5 border-b border-border bg-paper/85 px-3 backdrop-blur-xl backdrop-saturate-150 lg:hidden">
         <button
           type="button"
           onClick={() => setOpen(true)}
           aria-label="Abrir menú"
           aria-expanded={open}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-ink transition-colors hover:bg-ink/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-ink transition-colors hover:bg-ink/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
         >
           <Menu className="h-5 w-5" />
         </button>
         <BusinessMark name={tenantName} logoUrl={logoUrl} color={primaryColor} size="sm" />
-        <p className="min-w-0 truncate text-sm font-semibold text-ink">{tenantName}</p>
+        <p className="min-w-0 truncate text-[15px] font-semibold tracking-tight text-ink">{tenantName}</p>
       </div>
 
+      {/* Phone bottom bar. The owner holds the phone in one hand between
+          clients; the three sections she opens all day sit under that
+          thumb. Everything else lives behind "Menú" (the same drawer). */}
+      <nav
+        aria-label="Accesos rápidos"
+        className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl backdrop-saturate-150 lg:hidden"
+      >
+        <ul className="mx-auto flex max-w-md items-stretch justify-around px-2">
+          {bottom.map((item) => {
+            const Icon = item.icon;
+            return (
+              <li key={item.key} className="min-w-0 flex-1">
+                <Link
+                  href={item.href}
+                  aria-current={item.isActive ? 'page' : undefined}
+                  className="group flex min-h-[3.75rem] flex-col items-center justify-center gap-1 rounded-xl text-[11px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                >
+                  <span
+                    className={`flex h-8 w-14 items-center justify-center rounded-full transition-[background-color,transform] duration-200 group-active:scale-90 ${
+                      item.isActive ? 'bg-primary text-[rgb(var(--color-cta-fg))] dark:ring-1 dark:ring-inset dark:ring-[rgb(var(--tenant-dark-glow)/0.55)]' : 'text-muted'
+                    }`}
+                  >
+                    <Icon className="h-[19px] w-[19px]" aria-hidden="true" />
+                  </span>
+                  <span className={`max-w-full truncate px-1 ${item.isActive ? 'font-semibold text-ink' : 'text-muted'}`}>
+                    {item.label}
+                  </span>
+                </Link>
+              </li>
+            );
+          })}
+          <li className="min-w-0 flex-1">
+            <button
+              type="button"
+              onClick={() => setOpen(true)}
+              aria-expanded={open}
+              className="group flex min-h-[3.75rem] w-full flex-col items-center justify-center gap-1 rounded-xl text-[11px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+            >
+              <span
+                className={`flex h-8 w-14 items-center justify-center rounded-full transition-[background-color,transform] duration-200 group-active:scale-90 ${
+                  menuActive ? 'bg-primary text-[rgb(var(--color-cta-fg))] dark:ring-1 dark:ring-inset dark:ring-[rgb(var(--tenant-dark-glow)/0.55)]' : 'text-muted'
+                }`}
+              >
+                <Menu className="h-[19px] w-[19px]" aria-hidden="true" />
+              </span>
+              <span className={menuActive ? 'font-semibold text-ink' : 'text-muted'}>Menú</span>
+            </button>
+          </li>
+        </ul>
+      </nav>
+
       <div
-        className={`fixed inset-0 z-40 bg-black/30 transition-opacity duration-200 lg:hidden ${
+        className={`fixed inset-0 z-40 bg-black/40 backdrop-blur-[2px] transition-opacity duration-200 lg:hidden ${
           open ? 'opacity-100' : 'pointer-events-none opacity-0'
         }`}
         onClick={() => setOpen(false)}
@@ -238,67 +335,64 @@ export function Sidebar({
       />
 
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-72 shrink-0 flex-col border-r border-border bg-surface transition-transform duration-300 [transition-timing-function:cubic-bezier(0.32,0.72,0,1)] lg:sticky lg:top-0 lg:z-auto lg:h-screen lg:w-64 lg:translate-x-0 lg:bg-transparent ${
+        className={`fixed inset-y-0 left-0 z-40 flex w-[18.5rem] max-w-[85vw] shrink-0 flex-col border-r border-border bg-surface transition-transform duration-300 [transition-timing-function:cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none lg:sticky lg:top-0 lg:z-auto lg:h-screen lg:w-64 lg:max-w-none lg:translate-x-0 lg:bg-surface/55 lg:backdrop-blur-xl ${
           open ? 'translate-x-0 shadow-2xl' : '-translate-x-full'
         }`}
       >
-        <div className="flex items-center gap-3 px-5 pb-4 pt-5">
+        <div className="flex items-center gap-3 px-5 pb-3 pt-5">
           <BusinessMark name={tenantName} logoUrl={logoUrl} color={primaryColor} />
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold leading-tight text-ink">{tenantName}</p>
+            <p className="truncate text-[15px] font-semibold leading-tight tracking-tight text-ink">{tenantName}</p>
             <p className="mt-0.5 truncate text-xs text-muted">Panel del negocio</p>
           </div>
           <button
             type="button"
             onClick={() => setOpen(false)}
             aria-label="Cerrar menú"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted transition-colors hover:bg-ink/[0.06] hover:text-ink lg:hidden"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-muted transition-colors hover:bg-ink/[0.06] hover:text-ink lg:hidden"
           >
-            <X className="h-4 w-4" />
+            <X className="h-5 w-5" />
           </button>
         </div>
 
-        <nav aria-label="Secciones" className="mt-2 flex flex-1 flex-col gap-0.5 px-3">
-          {NAV_ITEMS.filter(
-            (item) =>
-              (!item.requiresQuotes || quotesEnabled) &&
-              (!item.requiresReservas || reservasEnabled) &&
-              (!item.requiresReuniones || reunionesEnabled) &&
-              (!item.requiresCopiloto || copilotoEnabled) &&
-              (!item.requiresCaja || cajaEnabled) &&
-              (!item.requiresLealtad || lealtadEnabled) &&
-              (!item.requiresRegresan || regresanEnabled) &&
-              (!item.requiresPosts || postsEnabled) &&
-              (!item.requiresResico || resicoEnabled) &&
-              (!item.requiresComisiones || comisionesEnabled) &&
-              (!item.requiresInventario || inventarioEnabled) &&
-              (!item.requiresAgenda || reservasEnabled || reunionesEnabled) &&
-              (!item.requiresFacturacion || facturacionEnabled) &&
-              (!item.ownerOnly || (role === 'owner' && !navBase))
-          ).map((item) => {
-            const href = navBase ? `${navBase}${item.href.slice(DASHBOARD_ROOT.length)}` : item.href;
-            const isActive = item.exact ? pathname === href : (pathname?.startsWith(href) ?? false);
-            const Icon = item.icon;
+        <nav aria-label="Secciones" className="dash-scroll flex flex-1 flex-col overflow-y-auto px-3 pb-3">
+          {GROUP_ORDER.map((group) => {
+            const items = visible.filter((v) => v.group === group);
+            if (!items.length) return null;
             return (
-              <Link
-                key={href}
-                href={href}
-                aria-current={isActive ? 'page' : undefined}
-                className={`relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
-                  isActive
-                    ? 'bg-ink/[0.06] font-semibold text-ink'
-                    : 'font-medium text-muted hover:bg-ink/[0.035] hover:text-ink'
-                }`}
-              >
-                {/* The one place the brand color appears in the chrome:
-                    where you are. A bar, not text, so a pale or dark
-                    brand color can never make a label hard to read. */}
-                {isActive && (
-                  <span className="absolute inset-y-2 left-0 w-[3px] rounded-full bg-primary dark:bg-[rgb(var(--tenant-dark-glow))]" aria-hidden="true" />
-                )}
-                <Icon className={`h-[18px] w-[18px] shrink-0 ${isActive ? 'text-ink' : 'text-muted'}`} aria-hidden="true" />
-                {item.label}
-              </Link>
+              <div key={group ?? 'top'} className={group ? 'mt-5' : 'mt-1'}>
+                {group && <p className="px-3 pb-1.5 text-xs font-medium text-muted">{GROUP_LABELS[group]}</p>}
+                <ul className="flex flex-col gap-0.5">
+                  {items.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <li key={item.key}>
+                        <Link
+                          href={item.href}
+                          aria-current={item.isActive ? 'page' : undefined}
+                          className={`group flex min-h-[2.75rem] items-center gap-3 rounded-xl px-3 text-sm transition-[background-color,color,transform] duration-150 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 lg:min-h-[2.5rem] ${
+                            item.isActive
+                              ? // The brand as a solid pill, exactly where you are.
+                                // Its text is computed against that same fill
+                                // (--color-cta-fg), so a cream or a near-black
+                                // brand both stay readable.
+                                'bg-primary font-semibold text-[rgb(var(--color-cta-fg))] shadow-[0_1px_2px_rgb(0_0_0/0.08),0_6px_14px_-6px_rgb(var(--color-primary)/0.7)] dark:ring-1 dark:ring-inset dark:ring-[rgb(var(--tenant-dark-glow)/0.55)]'
+                              : 'font-medium text-muted hover:bg-ink/[0.05] hover:text-ink'
+                          }`}
+                        >
+                          <Icon
+                            className={`h-[18px] w-[18px] shrink-0 transition-transform duration-200 ${
+                              item.isActive ? '' : 'group-hover:scale-110'
+                            }`}
+                            aria-hidden="true"
+                          />
+                          <span className="truncate">{item.label}</span>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
             );
           })}
 
@@ -306,22 +400,21 @@ export function Sidebar({
               enlace llevaría a un 404 del propio negocio. Con las dos,
               gana la de reservas — es la que un negocio reparte. */}
           {(reservasEnabled || reunionesEnabled) && (
-            <>
-              <div className="my-3 h-px bg-border" aria-hidden="true" />
-
-              <a
-                href={
-                  bookingHref ??
-                  (reservasEnabled ? tenantBookingPageUrl(slug) : tenantMeetingsPageUrl(slug))
-                }
-                target="_blank"
-                rel="noreferrer"
-                className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted transition-colors hover:bg-ink/[0.035] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-              >
-                <ArrowUpRight className="h-[18px] w-[18px] shrink-0" aria-hidden="true" />
-                {reservasEnabled ? 'Ver mi página de reservas' : 'Ver mi página de reuniones'}
-              </a>
-            </>
+            <a
+              href={
+                bookingHref ??
+                (reservasEnabled ? tenantBookingPageUrl(slug) : tenantMeetingsPageUrl(slug))
+              }
+              target="_blank"
+              rel="noreferrer"
+              className="group mt-5 flex min-h-[2.75rem] items-center gap-3 rounded-xl border border-dashed border-border-strong px-3 text-sm font-medium text-ink transition-colors hover:border-solid hover:bg-ink/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+            >
+              <ArrowUpRight
+                className="h-[18px] w-[18px] shrink-0 text-muted transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+                aria-hidden="true"
+              />
+              {reservasEnabled ? 'Ver mi página de reservas' : 'Ver mi página de reuniones'}
+            </a>
           )}
         </nav>
 

@@ -3,7 +3,6 @@
 // probarlo con fechas fijas.
 
 export const TRIAL_GRACE_DAYS = 3;
-export const PLAN_PRICE_MXN = 299;
 const DAY_MS = 86_400_000;
 
 export type TenantBillingRow = {

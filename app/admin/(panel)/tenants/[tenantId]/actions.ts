@@ -232,14 +232,20 @@ export async function setTenantWhatsapp(tenantId: string, enabled: boolean) {
  */
 export async function setTenantProduct(
   tenantId: string,
-  producto: 'reservas' | 'cotizaciones' | 'facturacion' | 'lealtad' | 'caja' | 'regresan' | 'posts',
+  producto: 'reservas' | 'cotizaciones' | 'facturacion' | 'lealtad' | 'caja' | 'regresan' | 'posts' | 'resico' | 'comisiones' | 'inventario',
   enabled: boolean
 ) {
   await requireTenantManager(tenantId);
 
   const columna =
-    producto === 'posts'
+    producto === 'inventario'
+      ? 'inventario_enabled'
+      : producto === 'comisiones'
+      ? 'comisiones_enabled'
+      : producto === 'posts'
       ? 'posts_enabled'
+      : producto === 'resico'
+      ? 'resico_enabled'
       : producto === 'caja'
       ? 'caja_enabled'
       : producto === 'reservas'
@@ -263,8 +269,14 @@ export async function setTenantProduct(
     // 42703 = la columna no existe todavía en este ambiente.
     if (error.code === '42703') {
       throw new Error(
-        producto === 'posts'
+        producto === 'inventario'
+          ? 'Falta correr db/049_inventario.sql en Supabase.'
+          : producto === 'comisiones'
+          ? 'Falta correr db/050_comisiones.sql en Supabase.'
+          : producto === 'posts'
           ? 'Falta correr db/048_posts_ia.sql en Supabase.'
+          : producto === 'resico'
+          ? 'Falta correr db/051_guia_resico.sql en Supabase.'
           : producto === 'caja'
           ? 'Falta correr db/045_caja.sql en Supabase.'
           : producto === 'facturacion'

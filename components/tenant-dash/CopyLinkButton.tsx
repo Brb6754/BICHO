@@ -6,7 +6,7 @@ import { Check, Link2 } from 'lucide-react';
 // What an owner actually does with their booking page: paste it into a
 // WhatsApp chat or an Instagram bio. One click, and the button itself says
 // it worked, so there's no toast to hunt for.
-export function CopyLinkButton({ url }: { url: string }) {
+export function CopyLinkButton({ url, label = 'Copiar enlace de reservas' }: { url: string; label?: string }) {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -41,7 +41,7 @@ export function CopyLinkButton({ url }: { url: string }) {
           strokeWidth={2.5}
         />
       </span>
-      <span aria-live="polite">{copied ? 'Enlace copiado' : 'Copiar enlace de reservas'}</span>
+      <span aria-live="polite">{copied ? 'Enlace copiado' : label}</span>
     </button>
   );
 }

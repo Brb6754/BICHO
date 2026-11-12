@@ -92,6 +92,9 @@ export default async function ResellerBusinessPage({ params }: { params: Promise
     lealtad: flags?.lealtad_enabled === true,
     regresan: flags?.regresan_enabled === true,
     posts: flags?.posts_enabled === true,
+    resico: flags?.resico_enabled === true,
+    comisiones: flags?.comisiones_enabled === true,
+    inventario: flags?.inventario_enabled === true,
   };
 
   const whatsapp = await getWhatsappAddon(tenant.id);
@@ -146,6 +149,9 @@ export default async function ResellerBusinessPage({ params }: { params: Promise
           lealtad={productos.lealtad}
           regresan={productos.regresan}
           posts={productos.posts}
+          resico={productos.resico}
+          comisiones={productos.comisiones}
+          inventario={productos.inventario}
           onToggle={async (producto, activo) => {
             'use server';
             await setTenantProduct(tenant.id, producto, activo);

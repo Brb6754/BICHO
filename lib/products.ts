@@ -27,6 +27,9 @@ export type ProductosDelNegocio = {
   lealtad: boolean;
   regresan: boolean;
   posts: boolean;
+  resico: boolean;
+  comisiones: boolean;
+  inventario: boolean;
 };
 
 export async function productosDe(slug: string): Promise<ProductosDelNegocio> {
@@ -57,5 +60,11 @@ export async function productosDe(slug: string): Promise<ProductosDelNegocio> {
     regresan: data?.regresan_enabled === true,
     // Posts con IA (db/048): mismo criterio, apagado hasta que se prende.
     posts: data?.posts_enabled === true,
+    // Guía RESICO (db/051): mismo criterio, apagado hasta que se prende.
+    resico: data?.resico_enabled === true,
+    // Comisiones por empleado (db/050): mismo criterio, apagado hasta que se prende.
+    comisiones: data?.comisiones_enabled === true,
+    // Inventario (db/049): mismo criterio, apagado hasta que se prende.
+    inventario: data?.inventario_enabled === true,
   };
 }

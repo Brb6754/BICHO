@@ -2,6 +2,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { verifyMercadoPagoSignature } from '@/lib/payments/mercadopagoSignature';
 import { getAuthorizedPayment, getPreapproval } from '@/lib/payments/mercadopago';
 import { billingPatchFor, preapprovalSignal, type MpSignal } from '@/lib/billing/trial';
+import { grantReferralCredit } from '@/lib/referidos/grant';
 
 // Webhook de Mercado Pago para la suscripción mensual de cada negocio.
 // URL: https://reservas-saas-sigma.vercel.app/api/webhooks/mercadopago
@@ -138,4 +139,7 @@ async function applySignal(admin: ReturnType<typeof createAdminClient>, tenantId
 
   const { error: updateError } = await admin.from('tenants').update(patch).eq('id', tenantId);
   if (updateError) throw new Error(`tenant update failed code=${updateError.code}`);
+
+  // Referidos (db/052): el primer cobro autorizado le gana un mes a quien lo refirió.
+  if (signal.kind === 'authorized') await grantReferralCredit(admin, tenantId);
 }

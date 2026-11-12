@@ -88,3 +88,19 @@ export async function sendSignupConfirmation(to: string, business: string, link:
       </div>`,
   });
 }
+
+// Referidos (db/052): un referido pagó y el referidor ya paga por MP, así
+// que el mes gratis se aplica a mano. Mismo buzón que el aviso de altas.
+export async function sendReferralCreditNotice(n: { referrer: string; referrerSlug: string; referred: string }): Promise<boolean> {
+  const to = process.env.ADMIN_NOTIFY_EMAIL || process.env.DEMO_NOTIFY_EMAIL || 'nonameynk@gmail.com';
+  return send('sendReferralCreditNotice', {
+    to,
+    subject: `Mes gratis por aplicar: ${n.referrer}`,
+    html: `
+      <div style="font-family:sans-serif;max-width:520px;margin:0 auto;">
+        <h2 style="margin-bottom:4px;">Crédito de referido pendiente</h2>
+        <p style="color:#555;line-height:1.5;"><strong>${escapeHtml(n.referred)}</strong> hizo su primer pago y lo refirió <strong>${escapeHtml(n.referrer)}</strong> (${escapeHtml(n.referrerSlug)}).</p>
+        <p style="color:#555;line-height:1.5;">Ese negocio ya paga con Mercado Pago (o no tiene prueba con fecha), así que el mes gratis no se aplicó solo. Aplícalo a mano y marca el crédito como <code>done</code> en la tabla <code>referrals</code>.</p>
+      </div>`,
+  });
+}

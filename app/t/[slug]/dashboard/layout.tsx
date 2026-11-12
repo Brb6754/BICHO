@@ -82,6 +82,12 @@ export default async function DashboardLayout({
   const regresanEnabled = ajustes?.regresan_enabled === true;
   // Posts con IA (db/048). Sin la columna, apagado.
   const postsEnabled = ajustes?.posts_enabled === true;
+  // Guía RESICO (db/051). Sin la columna, apagado.
+  const resicoEnabled = ajustes?.resico_enabled === true;
+  // Comisiones por empleado (db/050). Sin la columna, apagado.
+  const comisionesEnabled = ajustes?.comisiones_enabled === true;
+  // Inventario (db/049). Sin la columna, apagado.
+  const inventarioEnabled = ajustes?.inventario_enabled === true;
 
   const { data: membership } = await supabase
     .from('business_users')
@@ -126,6 +132,9 @@ export default async function DashboardLayout({
         lealtadEnabled={lealtadEnabled}
         regresanEnabled={regresanEnabled}
         postsEnabled={postsEnabled}
+        resicoEnabled={resicoEnabled}
+        comisionesEnabled={comisionesEnabled}
+        inventarioEnabled={inventarioEnabled}
       />
       <main className="relative z-10 min-w-0 flex-1 px-5 pb-16 pt-20 sm:px-8 lg:px-12 lg:pt-12">
         <div className="mx-auto max-w-4xl">

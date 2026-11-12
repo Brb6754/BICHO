@@ -7,6 +7,7 @@ import { giroById } from '@/lib/onboarding/presets';
 import { normalizeMxWhatsapp } from '@/lib/onboarding/phone';
 import { sendSignupConfirmation, sendSignupNotice } from '@/lib/email/registro';
 import { tenantConfirmEmailUrl, tenantShareUrl } from '@/lib/urls';
+import { canLinkReferral, normalizeReferralCode } from '@/lib/referidos/rules';
 
 // Alta sin Bruno: un dueño crea su cuenta, su negocio y su página solo.
 //
@@ -64,6 +65,8 @@ export type RegistroInput = {
   whatsapp: string;
   password: string;
   website: string; // honeypot
+  /** ?ref= del link de referido (db/052). Solo el código: lo demás se resuelve aquí. */
+  ref?: string;
 };
 
 export type RegistroResult = { ok: true; slug: string; email: string } | { ok: false; error: string };
@@ -121,6 +124,23 @@ export async function registerBusiness(input: RegistroInput): Promise<RegistroRe
   // slug ocupado. La carrera real la cierra el unique de tenants.slug.
   const { data: taken } = await admin.from('tenants').select('id').eq('slug', slug).maybeSingle();
   if (taken) return { ok: false, error: 'Esa dirección ya la tiene otro negocio. Elige otra.' };
+
+  // Referidos (db/052): del cliente solo se cree el código. Un código que
+  // no existe, o del mismo dueño (mismo WhatsApp), se ignora sin tumbar el alta.
+  let referrerId: string | null = null;
+  const refCode = normalizeReferralCode(input.ref);
+  if (refCode) {
+    const { data: referrer } = await admin.from('tenants').select('id').eq('slug', refCode).maybeSingle();
+    if (referrer) {
+      const { data: sameOwner } = await admin
+        .from('tenant_owner_contacts')
+        .select('tenant_id')
+        .eq('tenant_id', referrer.id)
+        .eq('whatsapp', whatsapp)
+        .maybeSingle();
+      referrerId = sameOwner ? null : (referrer.id as string);
+    }
+  }
 
   // El dueño confirma su correo antes de entrar al panel. generateLink
   // (tipo signup) crea el usuario SIN confirmar y devuelve el token sin
@@ -239,6 +259,14 @@ export async function registerBusiness(input: RegistroInput): Promise<RegistroRe
     .from('tenant_owner_contacts')
     .insert({ tenant_id: tenantId, whatsapp });
   if (contactError) console.error('registro: no se guardó el WhatsApp', slug, contactError);
+
+  // La PK de referrals (referred_tenant_id) garantiza un solo referidor.
+  if (canLinkReferral({ referrerId, referredId: tenantId })) {
+    const { error: refError } = await admin
+      .from('referrals')
+      .insert({ referred_tenant_id: tenantId, referrer_tenant_id: referrerId, referred_name: name });
+    if (refError) console.error('registro: referido no guardado', slug, refError.code);
+  }
 
   // Correos al final y sin poder tumbar el alta: el negocio ya existe.
   // Si la confirmación no sale, el dueño la reenvía desde la pantalla

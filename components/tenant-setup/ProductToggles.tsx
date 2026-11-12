@@ -2,7 +2,9 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { CalendarDays, FileText, HeartHandshake, Megaphone, ReceiptText, Stamp, Wallet } from 'lucide-react';
+import { Landmark, CalendarDays, FileText, HeartHandshake, Megaphone, ReceiptText, Stamp, Wallet } from 'lucide-react';
+import { HandCoins } from 'lucide-react';
+import { Package } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 
 // Qué productos tiene contratado el negocio.
@@ -11,7 +13,7 @@ import { Card } from '@/components/ui/Card';
 // pregunta comercial es una sola: ¿qué le vendiste? El mismo componente
 // sirve al panel interno y al del vendedor; quién puede tocarlo lo
 // decide la acción, no este archivo.
-type Producto = 'reservas' | 'cotizaciones' | 'facturacion' | 'lealtad' | 'caja' | 'regresan' | 'posts';
+type Producto = 'reservas' | 'cotizaciones' | 'facturacion' | 'lealtad' | 'caja' | 'regresan' | 'posts' | 'resico' | 'comisiones' | 'inventario';
 
 export function ProductToggles({
   reservas,
@@ -21,6 +23,9 @@ export function ProductToggles({
   caja = false,
   regresan = false,
   posts = false,
+  resico = false,
+  comisiones = false,
+  inventario = false,
   onToggle,
 }: {
   reservas: boolean;
@@ -30,6 +35,9 @@ export function ProductToggles({
   caja?: boolean;
   regresan?: boolean;
   posts?: boolean;
+  resico?: boolean;
+  comisiones?: boolean;
+  inventario?: boolean;
   onToggle: (producto: Producto, activo: boolean) => Promise<void>;
 }) {
   const router = useRouter();
@@ -108,6 +116,30 @@ export function ProductToggles({
       activo: posts,
       detalle: 'Textos para redes con IA e imagen con su marca. 30 al mes.',
       alApagar: 'La sección desaparece del panel. El historial de posts se conserva.',
+    },
+    {
+      id: 'resico' as const,
+      label: 'Guía RESICO',
+      Icon: Landmark,
+      activo: resico,
+      detalle: 'Cómo darse de alta en el SAT paso a paso, checklist de trámites e ISR mensual estimado.',
+      alApagar: 'La sección desaparece del panel. El avance del checklist se conserva.',
+    },
+    {
+      id: 'comisiones' as const,
+      label: 'Comisiones',
+      Icon: HandCoins,
+      activo: comisiones,
+      detalle: '% por persona, cuánto le toca a cada quien por periodo e historial de pagos.',
+      alApagar: 'La sección desaparece del panel. Los porcentajes y pagos registrados se conservan.',
+    },
+    {
+      id: 'inventario' as const,
+      label: 'Inventario',
+      Icon: Package,
+      activo: inventario,
+      detalle: 'Productos que usa o vende, entradas y salidas, y aviso cuando algo se está acabando.',
+      alApagar: 'La sección desaparece del panel. Los productos y movimientos se conservan.',
     },
   ];
 

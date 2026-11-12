@@ -9,6 +9,7 @@ import { AgendaList, type AgendaBooking } from '@/components/tenant-dash/AgendaL
 import { dayKey, longDate } from '@/lib/dates/tenantTime';
 import { tenantBookingPageUrl } from '@/lib/urls';
 import { esServicio } from '@/lib/meetings/kinds';
+import { AvisoInventario } from '@/components/tenant-dash/AvisoInventario';
 
 // RESUMEN — rebuilt around the one question an owner has when they open
 // this page: "what do I have today?"
@@ -100,6 +101,9 @@ export default async function DashboardOverviewPage({ params }: { params: Promis
         title={tenant?.name ?? 'Tu negocio'}
         action={<CopyLinkButton url={tenantBookingPageUrl(slug)} />}
       />
+
+      {/* Inventario (db/049): un renglón, solo si algo se está acabando. */}
+      {productos.inventario && tenant && <AvisoInventario tenantId={tenant.id} />}
 
       {!setupComplete && (
         // Only shown when the page can't take bookings yet. It sits above

@@ -79,6 +79,15 @@ describe('registerBusiness', () => {
     expect((inserts.find((i) => i.table === 'tenants')?.row as { status: string }).status).toBe('trial');
   });
 
+  it('un ?ref= inválido o inexistente no liga referido ni tumba el alta', async () => {
+    for (const ref of ['no existe', 'negocio-fantasma']) {
+      inserts.length = 0;
+      const r = await registerBusiness({ ...input, ref });
+      expect(r.ok).toBe(true);
+      expect(inserts.some((i) => i.table === 'referrals')).toBe(false);
+    }
+  });
+
   it('rechaza un WhatsApp inválido antes de crear nada', async () => {
     const r = await registerBusiness({ ...input, whatsapp: '12345' });
     expect(r.ok).toBe(false);

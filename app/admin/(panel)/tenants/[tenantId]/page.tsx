@@ -28,6 +28,7 @@ import { ProductToggles } from '@/components/tenant-setup/ProductToggles';
 import { getWhatsappAddon } from '@/lib/whatsapp/addonStatus';
 import { formatMxn, isMissingResellersTable } from '@/lib/resellers';
 import { OwnerCreator } from './OwnerCreator';
+import { isMissingReferrals } from '@/lib/referidos/grant';
 import { TemplateBuilder } from '../../templates/[templateId]/TemplateBuilder';
 import { createDefaultBlock, type Block } from '@/lib/templates/blocks';
 
@@ -188,9 +189,23 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ t
     lealtad: flags?.lealtad_enabled === true,
     regresan: flags?.regresan_enabled === true,
     posts: flags?.posts_enabled === true,
+    resico: flags?.resico_enabled === true,
+    comisiones: flags?.comisiones_enabled === true,
+    inventario: flags?.inventario_enabled === true,
   };
 
   const whatsapp = await getWhatsappAddon(tenant.id);
+
+  // Referidos (db/052). Sin la migración, la sección dice que falta correrla.
+  const [{ data: referredBy, error: referralsError }, { data: invited }] = await Promise.all([
+    admin.from('referrals').select('referrer_tenant_id, first_paid_at, credit_status').eq('referred_tenant_id', tenant.id).maybeSingle(),
+    admin.from('referrals').select('referred_tenant_id, referred_name, first_paid_at, credit_status').eq('referrer_tenant_id', tenant.id).order('created_at', { ascending: false }),
+  ]);
+  if (referralsError && !isMissingReferrals(referralsError)) throw new Error(`referrals: ${referralsError.message}`);
+  const { data: referrer } = referredBy
+    ? await admin.from('tenants').select('id, name').eq('id', referredBy.referrer_tenant_id).maybeSingle()
+    : { data: null };
+  const CREDIT_LABEL: Record<string, string> = { none: 'Sin pago aún', applied: 'Mes aplicado (prueba +30 días)', pending: 'Pendiente: aplicar a mano', done: 'Aplicado a mano' };
 
   return (
     <div>
@@ -304,6 +319,36 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ t
         <OwnerCreator currentOwnerEmail={ownerEmail} onCreate={createTenantOwner.bind(null, tenant.id)} />
       </section>
 
+      <section className="mt-10">
+        <p className="mb-3 text-sm font-semibold text-ink">Referidos</p>
+        <Card className="flex flex-col gap-3 text-sm">
+          {referralsError ? (
+            <p className="text-muted">Falta correr db/052_referidos.sql.</p>
+          ) : (
+            <>
+              <p className="text-ink">
+                <span className="text-muted">Lo refirió: </span>
+                {referrer ? <Link href={`/tenants/${referrer.id}`} className="underline">{referrer.name}</Link> : 'nadie'}
+              </p>
+              <p className="text-ink">
+                <span className="text-muted">Créditos ganados: </span>
+                {(invited ?? []).filter((r) => r.first_paid_at).length} de {(invited ?? []).length} referidos
+              </p>
+              {(invited ?? []).length > 0 && (
+                <ul className="flex flex-col gap-1.5">
+                  {(invited ?? []).map((r) => (
+                    <li key={r.referred_tenant_id} className="flex flex-wrap justify-between gap-2">
+                      <Link href={`/tenants/${r.referred_tenant_id}`} className="text-ink underline">{r.referred_name}</Link>
+                      <span className="text-muted">{CREDIT_LABEL[r.credit_status] ?? r.credit_status}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
+          )}
+        </Card>
+      </section>
+
       {/* Qué productos le vendiste. Va ANTES de los extras: un extra
           modifica un producto, así que primero se decide cuál tiene. */}
       <section className="mt-10">
@@ -319,6 +364,9 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ t
           lealtad={productos.lealtad}
           regresan={productos.regresan}
           posts={productos.posts}
+          resico={productos.resico}
+          comisiones={productos.comisiones}
+          inventario={productos.inventario}
           onToggle={async (producto, activo) => {
             'use server';
             await setTenantProduct(tenant.id, producto, activo);

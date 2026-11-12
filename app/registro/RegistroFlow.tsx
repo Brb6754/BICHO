@@ -31,7 +31,8 @@ const STEPS = ['Tu negocio', 'Servicios', 'Horario', 'Tu cuenta'];
 
 type SlugState = { status: 'idle' | 'checking' | 'ok' | 'error'; message?: string };
 
-export function RegistroFlow() {
+// refCode: el ?ref= del link de referido; vive en el prop todo el flujo.
+export function RegistroFlow({ refCode }: { refCode?: string } = {}) {
   const [step, setStep] = useState(0);
   const [name, setName] = useState('');
   const [giro, setGiro] = useState('');
@@ -132,6 +133,7 @@ export function RegistroFlow() {
       whatsapp,
       password,
       website,
+      ref: refCode,
     });
     setSubmitting(false);
     if (!r.ok) {

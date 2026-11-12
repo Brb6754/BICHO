@@ -18,10 +18,14 @@ import {
   Handshake,
   Sparkles,
   Palette,
+  Gift,
   Wallet,
   Stamp,
   HeartHandshake,
   Megaphone,
+  Landmark,
+  HandCoins,
+  Package,
 } from 'lucide-react';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { BusinessMark } from '@/components/tenant-dash/BusinessMark';
@@ -55,6 +59,9 @@ const NAV_ITEMS: {
   requiresLealtad?: boolean;
   requiresRegresan?: boolean;
   requiresPosts?: boolean;
+  requiresResico?: boolean;
+  requiresComisiones?: boolean;
+  requiresInventario?: boolean;
   /** Citas O reuniones: las dos agendan sobre las mismas personas y el mismo horario. */
   requiresAgenda?: boolean;
   /** Solo el dueño de un negocio real (los demos con navBase no tienen esta página). */
@@ -67,6 +74,10 @@ const NAV_ITEMS: {
   { href: '/dashboard/calendar', label: 'Agenda', icon: CalendarDays, requiresReservas: true },
   // Caja (db/045): justo después de la agenda, porque las citas completadas son sus ventas.
   { href: '/dashboard/caja', label: 'Caja', icon: Wallet, requiresCaja: true },
+  // Comisiones (db/050): junto a Caja, salen de las mismas citas completadas.
+  { href: '/dashboard/comisiones', label: 'Comisiones', icon: HandCoins, requiresComisiones: true },
+  // Inventario (db/049): también área Números; una venta de producto puede caer en Caja.
+  { href: '/dashboard/inventario', label: 'Inventario', icon: Package, requiresInventario: true },
   // Above the catalogue on purpose: services and hours are setup, changed
   // a few times a year. Customers is something an owner looks up.
   { href: '/dashboard/customers', label: 'Clientes', icon: Contact },
@@ -87,6 +98,8 @@ const NAV_ITEMS: {
   // Tercer producto. Debajo de cotizaciones porque ese es el orden
   // real del trabajo: se cotiza, se cobra, y al final se factura.
   { href: '/dashboard/facturas', label: 'Facturas', icon: ReceiptText, requiresFacturacion: true },
+  // Guía RESICO (db/051): junto a Facturas, es el camino para llegar a facturar.
+  { href: '/dashboard/resico', label: 'Guía RESICO', icon: Landmark, requiresResico: true },
   { href: '/dashboard/services', label: 'Servicios', icon: Tag, requiresReservas: true },
   // "Quién atiende" y "Horario" son infraestructura compartida: una
   // reunión ocupa al mismo asesor y el mismo horario que una cita (ver
@@ -95,6 +108,8 @@ const NAV_ITEMS: {
   { href: '/dashboard/resources', label: 'Quién atiende', icon: Users, requiresAgenda: true },
   { href: '/dashboard/schedule', label: 'Horario', icon: Clock3, requiresAgenda: true },
   { href: '/dashboard/marca', label: 'Mi marca', icon: Palette, ownerOnly: true },
+  // Referidos (db/052): todos los negocios, sin flag. El demo no tiene esta página.
+  { href: '/dashboard/referidos', label: 'Referidos', icon: Gift, ownerOnly: true },
 ];
 
 const ROLE_LABELS: Record<string, string> = {
@@ -128,6 +143,9 @@ export function Sidebar({
   lealtadEnabled = false,
   regresanEnabled = false,
   postsEnabled = false,
+  resicoEnabled = false,
+  comisionesEnabled = false,
+  inventarioEnabled = false,
   bookingHref,
   footer,
 }: {
@@ -162,6 +180,11 @@ export function Sidebar({
   lealtadEnabled?: boolean;
   regresanEnabled?: boolean;
   postsEnabled?: boolean;
+  resicoEnabled?: boolean;
+  /** Comisiones por empleado (db/050). */
+  comisionesEnabled?: boolean;
+  /** Inventario (db/049). */
+  inventarioEnabled?: boolean;
   // Same reason: the demo's booking page isn't on a tenant subdomain.
   bookingHref?: string;
   // Defaults to the real sign-out. The demo has no session to end.
@@ -246,6 +269,9 @@ export function Sidebar({
               (!item.requiresLealtad || lealtadEnabled) &&
               (!item.requiresRegresan || regresanEnabled) &&
               (!item.requiresPosts || postsEnabled) &&
+              (!item.requiresResico || resicoEnabled) &&
+              (!item.requiresComisiones || comisionesEnabled) &&
+              (!item.requiresInventario || inventarioEnabled) &&
               (!item.requiresAgenda || reservasEnabled || reunionesEnabled) &&
               (!item.requiresFacturacion || facturacionEnabled) &&
               (!item.ownerOnly || (role === 'owner' && !navBase))

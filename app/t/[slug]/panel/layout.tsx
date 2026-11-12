@@ -52,6 +52,12 @@ export default async function PanelDemoLayout({
         lealtadEnabled
         // Y Posts con IA, con opciones pre-escritas (panel/posts).
         postsEnabled
+        // Y la Guía RESICO, con la Caja demo para la calculadora (panel/resico).
+        resicoEnabled
+        // Y Comisiones, con citas inventadas por persona (panel/comisiones).
+        comisionesEnabled
+        // Y el Inventario, con productos inventados (panel/inventario).
+        inventarioEnabled
         bookingHref="/"
         footer={
           // El Sidebar ya trae arriba "Ver mi página de reservas", así

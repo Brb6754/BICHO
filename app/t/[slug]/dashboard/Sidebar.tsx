@@ -335,7 +335,7 @@ export function Sidebar({
       />
 
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-[18.5rem] max-w-[85vw] shrink-0 flex-col border-r border-border bg-surface transition-transform duration-300 [transition-timing-function:cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none lg:sticky lg:top-0 lg:z-auto lg:h-screen lg:w-64 lg:max-w-none lg:translate-x-0 lg:bg-surface/55 lg:backdrop-blur-xl ${
+        className={`dash-side fixed inset-y-0 left-0 z-40 flex w-[18.5rem] max-w-[85vw] shrink-0 flex-col border-r border-border bg-surface transition-transform duration-300 [transition-timing-function:cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none lg:sticky lg:top-0 lg:z-auto lg:h-screen lg:w-64 lg:max-w-none lg:translate-x-0 lg:bg-surface/55 lg:backdrop-blur-xl ${
           open ? 'translate-x-0 shadow-2xl' : '-translate-x-full'
         }`}
       >
@@ -370,7 +370,7 @@ export function Sidebar({
                         <Link
                           href={item.href}
                           aria-current={item.isActive ? 'page' : undefined}
-                          className={`group flex min-h-[2.75rem] items-center gap-3 rounded-xl px-3 text-sm transition-[background-color,color,transform] duration-150 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 lg:min-h-[2.5rem] ${
+                          className={`dash-nav group flex min-h-[2.75rem] items-center gap-3 rounded-xl px-3 text-sm transition-[background-color,color,transform] duration-150 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 lg:min-h-[2.5rem] ${
                             item.isActive
                               ? // The brand as a solid pill, exactly where you are.
                                 // Its text is computed against that same fill
@@ -417,6 +417,18 @@ export function Sidebar({
             </a>
           )}
         </nav>
+
+        {/* Solo se ve en el estilo Suave (globals.css: .dash-upgrade). */}
+        {role === 'owner' && !navBase && (
+          <Link href="/dashboard/plan" className="dash-upgrade mx-3 mb-3 rounded-[22px] p-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
+            <span className="block text-[15px] font-semibold leading-snug">Mejora tu plan</span>
+            <span className="mt-1 block text-[13px] leading-snug opacity-80">Suma módulos como Caja, Lealtad o Inventario.</span>
+            <span className="mt-3 inline-flex min-h-[2.5rem] items-center gap-1.5 rounded-full px-4 text-[13px] font-semibold dash-upgrade-btn">
+              Ver planes
+              <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
+            </span>
+          </Link>
+        )}
 
         <div className="border-t border-border p-3">
           <div className="flex items-center gap-2.5 rounded-lg px-2 py-1.5">

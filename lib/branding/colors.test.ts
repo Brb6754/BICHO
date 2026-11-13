@@ -137,11 +137,13 @@ describe('tenantColorCssVars', () => {
     expect(Object.keys(vars).sort()).toEqual(
       [
         '--color-accent',
+        '--color-accent-fg',
         '--color-accent-soft',
         '--color-cta-fg',
         '--color-primary',
         '--color-primary-dark',
         '--color-secondary',
+        '--color-secondary-fg',
         '--color-secondary-soft',
       ].sort()
     );

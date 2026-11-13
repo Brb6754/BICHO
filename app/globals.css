@@ -1080,3 +1080,482 @@ html:not(.dark) .tenant-dash {
     transform: none;
   }
 }
+
+/* ── Estilos del panel (db/054) ─────────────────────────────────────
+   El dueño escoge uno: clasico y suave (tradicionales), vibrante y
+   poster (innovadores). El layout pone data-estilo en la raíz
+   .tenant-dash; aquí vive la piel de cada uno. El Resumen además cambia
+   de acomodo (components/tenant-dash/resumen/*); las demás páginas solo
+   heredan esto: fondo, tarjetas, radios, menú y botones.
+
+   Colores: SIEMPRE de los tokens del negocio. La única excepción son el
+   negro de la banda de Vibrante y sus tres colores de estado.
+
+   Especificidad: los tokens se redefinen con .tenant-shell.tenant-dash
+   [data-estilo] (0,3,0) para ganarle a `html:not(.dark) .tenant-dash`
+   (0,2,1) y a `.dark .tenant-shell` (0,2,0) sin !important. */
+
+.tenant-dash {
+  --rs-radius: 1rem;
+}
+.tenant-dash .dash-card,
+.tenant-dash .glass-2 {
+  border-radius: var(--rs-radius);
+}
+
+/* Piezas compartidas por los cuatro Resúmenes. */
+.rs-card {
+  border-radius: var(--rs-radius);
+  background: rgb(var(--color-surface));
+  border: 1px solid rgb(var(--color-border-base) / 0.07);
+}
+.rs-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  padding: 0 1.15rem;
+  border-radius: 999px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition:
+    transform 0.15s ease,
+    background-color 0.2s ease,
+    filter 0.2s ease;
+}
+.rs-pill:active {
+  transform: scale(0.97);
+}
+.rs-pill:focus-visible,
+.rs-flecha:focus-visible {
+  outline: 2px solid rgb(var(--color-ink) / 0.55);
+  outline-offset: 2px;
+}
+.rs-pill-relleno {
+  background: rgb(var(--color-primary));
+  color: rgb(var(--color-cta-fg));
+  box-shadow: inset 0 0 0 1px rgb(var(--color-border-base) / 0.1);
+}
+.rs-pill-relleno:hover {
+  filter: brightness(1.08);
+}
+.rs-pill-contorno {
+  border: 1.5px solid rgb(var(--color-ink) / 0.2);
+  color: rgb(var(--color-ink));
+}
+.rs-pill-contorno:hover {
+  background: rgb(var(--color-ink) / 0.05);
+}
+.rs-flecha {
+  display: flex;
+  height: 2.75rem;
+  width: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1.5px solid rgb(var(--color-ink) / 0.14);
+  color: rgb(var(--color-ink));
+  background: rgb(var(--color-surface));
+  transition:
+    transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 0.2s ease;
+}
+.rs-flecha:hover {
+  transform: rotate(45deg);
+}
+.rs-kpi {
+  color: rgb(var(--color-ink));
+}
+.rs-kpi-detalle {
+  color: rgb(var(--color-muted));
+}
+.rs-bar-marca {
+  background: rgb(var(--color-primary));
+  box-shadow: inset 0 0 0 1px rgb(var(--color-border-base) / 0.1);
+}
+.rs-bar-marca-suave {
+  background: rgb(var(--color-primary) / 0.32);
+  box-shadow: inset 0 0 0 1px rgb(var(--color-border-base) / 0.1);
+}
+.rs-bar-vacia {
+  background: repeating-linear-gradient(-45deg, rgb(var(--color-ink) / 0.12) 0 2px, transparent 2px 8px);
+  box-shadow: inset 0 0 0 1px rgb(var(--color-ink) / 0.1);
+}
+.rs-bar-acento {
+  background: rgb(var(--color-accent));
+  box-shadow: inset 0 0 0 1px rgb(var(--color-border-base) / 0.12);
+}
+.rs-bar-sec {
+  background: rgb(var(--color-secondary));
+  box-shadow: inset 0 0 0 1px rgb(var(--color-border-base) / 0.12);
+}
+.rs-medidor-marca {
+  color: rgb(var(--color-primary));
+}
+.dark .tenant-dash .rs-bar-marca,
+.dark .tenant-dash .rs-punto {
+  background: rgb(var(--tenant-dark-glow));
+}
+.dark .tenant-dash .rs-bar-marca-suave {
+  background: rgb(var(--tenant-dark-glow) / 0.38);
+}
+.dark .tenant-dash .rs-bar-sec {
+  background: rgb(var(--color-secondary-soft));
+}
+.dark .tenant-dash .rs-medidor-marca {
+  color: rgb(var(--tenant-dark-glow));
+}
+@keyframes rs-medidor {
+  from {
+    stroke-dashoffset: var(--rs-largo);
+  }
+}
+.rs-medidor {
+  animation: rs-medidor 1.3s cubic-bezier(0.16, 1, 0.3, 1) 0.25s both;
+}
+
+/* El menú: gancho para que cada estilo marque "dónde estás" a su modo. */
+.dash-nav {
+  position: relative;
+}
+.dash-upgrade {
+  display: none;
+}
+
+/* ─── 1 · CLÁSICO ─────────────────────────────────────────────────
+   Lienzo gris, marco claro redondeado, tarjetas blancas de 24px sin
+   sombra dura, la primera KPI en gradiente de la marca. */
+.tenant-shell.tenant-dash[data-estilo='clasico'] {
+  --rs-radius: 24px;
+}
+html:not(.dark) .tenant-shell.tenant-dash[data-estilo='clasico'] {
+  --color-paper: 228 229 231;
+  --rs-marco: 244 244 245;
+  background-image: none;
+}
+.dark .tenant-shell.tenant-dash[data-estilo='clasico'] {
+  --rs-marco: var(--tenant-dark-paper);
+}
+@media (min-width: 1024px) {
+  .tenant-dash[data-estilo='clasico'] .dash-main {
+    margin: 12px 12px 12px 0;
+    border-radius: 32px;
+    background: rgb(var(--rs-marco));
+    overflow: clip;
+    box-shadow: inset 0 0 0 1px rgb(var(--color-border-base) / 0.06);
+  }
+  .tenant-dash[data-estilo='clasico'] .dash-side {
+    background: transparent;
+    border-color: transparent;
+    backdrop-filter: none;
+  }
+}
+.tenant-dash[data-estilo='clasico'] .dash-nav[aria-current='page'] {
+  background: rgb(var(--color-ink) / 0.07);
+  color: rgb(var(--color-ink));
+  box-shadow: none;
+}
+.tenant-dash[data-estilo='clasico'] .dash-nav[aria-current='page']::before {
+  content: '';
+  position: absolute;
+  left: -0.75rem;
+  top: 22%;
+  bottom: 22%;
+  width: 4px;
+  border-radius: 0 4px 4px 0;
+  background: rgb(var(--color-primary));
+}
+.dark .tenant-dash[data-estilo='clasico'] .dash-nav[aria-current='page']::before {
+  background: rgb(var(--tenant-dark-glow));
+}
+.tenant-dash[data-estilo='clasico'] .rs-card,
+.tenant-dash[data-estilo='clasico'] .dash-card,
+.tenant-dash[data-estilo='clasico'] .glass-2,
+.tenant-dash[data-estilo='clasico'] .dash-row {
+  border-color: rgb(var(--color-border-base) / 0.06);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.03);
+}
+.tenant-dash .rs-card.rs-kpi-marca {
+  color: rgb(var(--color-cta-fg));
+  border-color: transparent;
+  background:
+    radial-gradient(120% 110% at 100% 0%, rgb(255 255 255 / 0.2), transparent 55%),
+    linear-gradient(140deg, rgb(var(--color-primary)), color-mix(in srgb, rgb(var(--color-primary)) 78%, rgb(var(--color-primary-dark))));
+  box-shadow: 0 18px 36px -22px rgb(var(--color-primary) / 0.8);
+}
+.rs-kpi-marca .rs-kpi-detalle {
+  color: rgb(var(--color-cta-fg) / 0.85);
+}
+.rs-kpi-marca .rs-flecha {
+  background: rgb(var(--color-cta-fg));
+  color: rgb(var(--color-primary));
+  border-color: transparent;
+}
+
+/* ─── 2 · SUAVE ───────────────────────────────────────────────────
+   Gris perla, relieve apenas visible, esquinas de 30px, un solo dato en
+   el color de acento y botones negros. */
+.tenant-shell.tenant-dash[data-estilo='suave'] {
+  --rs-radius: 30px;
+}
+html:not(.dark) .tenant-shell.tenant-dash[data-estilo='suave'] {
+  --color-paper: 231 231 234;
+  background-image: none;
+}
+.tenant-dash[data-estilo='suave'] .rs-card,
+.tenant-dash[data-estilo='suave'] .dash-card,
+.tenant-dash[data-estilo='suave'] .glass-2,
+.tenant-dash[data-estilo='suave'] .dash-row {
+  border-color: transparent;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.9),
+    0 1px 2px rgb(0 0 0 / 0.04),
+    0 20px 40px -26px rgb(0 0 0 / 0.22);
+}
+html:not(.dark) .tenant-dash[data-estilo='suave'] .rs-card:not(.rs-destacado) {
+  background: linear-gradient(180deg, rgb(255 255 255), rgb(249 249 250));
+}
+.dark .tenant-dash[data-estilo='suave'] .rs-card,
+.dark .tenant-dash[data-estilo='suave'] .dash-card,
+.dark .tenant-dash[data-estilo='suave'] .dash-row {
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.05),
+    0 20px 40px -24px rgb(0 0 0 / 0.7);
+}
+@media (min-width: 1024px) {
+  .tenant-dash[data-estilo='suave'] .dash-side {
+    background: transparent;
+    border-color: transparent;
+    backdrop-filter: none;
+  }
+}
+.tenant-dash[data-estilo='suave'] .dash-nav[aria-current='page'],
+.tenant-dash[data-estilo='suave'] .rs-pill-relleno,
+.tenant-dash[data-estilo='suave'] .rs-flecha,
+.tenant-dash[data-estilo='suave'] .ui-btn.bg-primary {
+  background: rgb(var(--color-ink));
+  color: rgb(var(--color-paper));
+  border-color: transparent;
+  box-shadow: none;
+}
+.tenant-dash[data-estilo='suave'] .rs-card.rs-destacado {
+  background: rgb(var(--color-accent));
+  color: rgb(var(--color-accent-fg));
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.3),
+    inset 0 0 0 1px rgb(var(--color-border-base) / 0.08),
+    0 24px 44px -26px rgb(var(--color-accent) / 0.9);
+}
+.rs-burbuja {
+  box-shadow: 0 0 0 4px rgb(var(--color-surface));
+}
+.rs-burbuja-marca {
+  background: rgb(var(--color-primary));
+  color: rgb(var(--color-cta-fg));
+}
+.rs-burbuja-acento {
+  background: rgb(var(--color-accent));
+  color: rgb(var(--color-accent-fg));
+}
+.rs-burbuja-neutra {
+  background: rgb(var(--color-ink) / 0.12);
+  color: rgb(var(--color-ink));
+}
+.rs-meta {
+  background: rgb(var(--color-accent));
+  box-shadow: inset 0 0 0 1px rgb(var(--color-border-base) / 0.15);
+}
+.tenant-dash[data-estilo='suave'] .dash-upgrade {
+  display: block;
+  background: rgb(var(--color-ink));
+  color: rgb(var(--color-paper));
+}
+.dash-upgrade-btn {
+  background: rgb(var(--color-accent));
+  color: rgb(var(--color-accent-fg));
+}
+
+/* ─── 3 · VIBRANTE ────────────────────────────────────────────────
+   La marca de fondo sólido arriba, tiles blancos, y una banda negra
+   abajo con colores de estado saturados (fijos a propósito). */
+.tenant-shell.tenant-dash[data-estilo='vibrante'] {
+  --rs-radius: 24px;
+}
+html:not(.dark) .tenant-shell.tenant-dash[data-estilo='vibrante'] {
+  --color-paper: 243 243 240;
+  background-image: none;
+}
+.tenant-dash[data-estilo='vibrante'] .dash-page h1 {
+  font-family: var(--font-ia), var(--font-inter), sans-serif;
+  font-weight: 700;
+}
+.rs-vib-hero {
+  isolation: isolate;
+  box-shadow: inset 0 0 0 1px rgb(var(--color-border-base) / 0.08);
+}
+.rs-vib-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(50rem 26rem at 0% 0%, rgb(255 255 255 / 0.14), transparent 60%);
+}
+.rs-vib-hero [style*='--i'] {
+  animation: dash-rise 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--i) * 90ms + 40ms);
+}
+.rs-vib-tab {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  min-height: 2.75rem;
+  padding: 0 1.15rem;
+  border-radius: 999px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: 1.5px solid rgb(var(--color-cta-fg) / 0.3);
+  transition: background-color 0.2s ease;
+}
+.rs-vib-tab:hover {
+  background: rgb(var(--color-cta-fg) / 0.1);
+}
+.rs-vib-tab:focus-visible {
+  outline: 2px solid rgb(var(--color-cta-fg));
+  outline-offset: 2px;
+}
+.rs-vib-tab-activa,
+.rs-vib-tab-activa:hover {
+  background: rgb(var(--color-cta-fg));
+  color: rgb(var(--color-primary));
+  border-color: transparent;
+}
+.rs-tile {
+  box-shadow: 0 18px 30px -22px rgb(0 0 0 / 0.45);
+}
+.rs-tile-icono {
+  background: rgb(var(--color-primary));
+  color: rgb(var(--color-cta-fg));
+}
+.dark .tenant-dash .rs-tile-icono {
+  background: rgb(var(--tenant-dark-glow) / 0.22);
+  color: rgb(var(--color-ink));
+}
+.rs-vib-banda {
+  --color-paper: 11 11 11;
+  --color-surface: 26 26 26;
+  --color-ink: 245 245 245;
+  --color-muted: 170 170 170;
+  --color-border-base: 255 255 255;
+  color-scheme: dark;
+}
+.rs-vib-linea {
+  stroke: color-mix(in srgb, rgb(var(--tenant-dark-glow, 160 160 255)) 80%, white);
+}
+.rs-vib-area {
+  fill: rgb(var(--tenant-dark-glow, 160 160 255) / 0.16);
+}
+.rs-vib-tarjeta {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@media (hover: hover) {
+  .rs-vib-tarjeta:hover {
+    transform: translateY(-3px);
+  }
+}
+
+/* ─── 4 · PÓSTER ──────────────────────────────────────────────────
+   Siempre oscuro, sin importar el interruptor: el suelo es la paleta
+   oscura del propio negocio y la marca entra como luz. */
+.tenant-shell.tenant-dash[data-estilo='poster'] {
+  --rs-radius: 28px;
+  --color-paper: var(--tenant-dark-paper);
+  --color-surface: var(--tenant-dark-surface);
+  --color-elevated: var(--tenant-dark-elevated);
+  --color-glass-base: var(--tenant-dark-glass);
+  --color-ink: 242 242 238;
+  --color-muted: 166 166 160;
+  --color-border-base: 255 255 255;
+  color-scheme: dark;
+  color: rgb(var(--color-ink));
+  background-image:
+    radial-gradient(64rem 34rem at 88% -12%, rgb(var(--tenant-dark-glow) / 0.2), transparent 62%),
+    radial-gradient(40rem 30rem at -8% 108%, rgb(var(--color-primary) / 0.22), transparent 60%);
+  background-attachment: fixed;
+}
+.tenant-dash[data-estilo='poster'] .dash-card,
+.tenant-dash[data-estilo='poster'] .glass-2,
+.tenant-dash[data-estilo='poster'] .dash-row {
+  border-color: rgb(255 255 255 / 0.07);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04);
+}
+.tenant-dash[data-estilo='poster'] .dash-nav[aria-current='page'] {
+  background: rgb(var(--tenant-dark-glow) / 0.18);
+  color: rgb(var(--color-ink));
+  box-shadow: inset 0 0 0 1px rgb(var(--tenant-dark-glow) / 0.5);
+}
+.tenant-dash[data-estilo='poster'] .dash-page h1 {
+  font-family: var(--font-central), var(--font-inter), sans-serif;
+  letter-spacing: -0.04em;
+}
+.rs-pieza {
+  background: rgb(var(--tenant-dark-surface, 30 30 34));
+  border: 1px solid rgb(255 255 255 / 0.07);
+  /* Las listas de adentro (agenda) quedan un tono arriba de la pieza. */
+  --color-surface: var(--tenant-dark-elevated, 40 40 44);
+  transition:
+    transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.25s ease,
+    box-shadow 0.35s ease;
+}
+@media (hover: hover) {
+  .rs-pieza:hover {
+    transform: translateY(-3px);
+    border-color: rgb(var(--tenant-dark-glow) / 0.45);
+    box-shadow: 0 24px 48px -24px rgb(var(--tenant-dark-glow) / 0.45);
+  }
+  a.rs-pieza:hover .rs-pieza-flecha {
+    transform: rotate(45deg);
+    color: rgb(var(--color-ink));
+  }
+}
+.rs-pieza-flecha {
+  color: rgb(var(--color-muted));
+  transition:
+    transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+    color 0.2s ease;
+}
+.rs-pieza-luz {
+  background:
+    radial-gradient(90% 90% at 92% 0%, rgb(var(--tenant-dark-glow) / 0.42), transparent 62%),
+    radial-gradient(70% 70% at 0% 100%, rgb(var(--color-primary) / 0.45), transparent 70%),
+    rgb(var(--tenant-dark-surface, 30 30 34));
+}
+.rs-dato {
+  color: color-mix(in srgb, rgb(var(--tenant-dark-glow)) 62%, white);
+}
+.rs-bar-luz {
+  background: rgb(var(--tenant-dark-glow));
+  box-shadow: 0 0 22px rgb(var(--tenant-dark-glow) / 0.45);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rs-medidor,
+  .rs-vib-hero [style*='--i'] {
+    animation: none;
+  }
+  .rs-flecha,
+  .rs-pill,
+  .rs-pieza,
+  .rs-pieza-flecha,
+  .rs-vib-tarjeta {
+    transition: none;
+  }
+  .rs-flecha:hover,
+  .rs-pieza:hover,
+  .rs-vib-tarjeta:hover,
+  a.rs-pieza:hover .rs-pieza-flecha {
+    transform: none;
+  }
+}

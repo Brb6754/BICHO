@@ -14,6 +14,7 @@ import { ConfirmForm } from '@/components/ui/ConfirmForm';
 import {
   setTenantStatus,
   setTenantPlan,
+  setTenantDashboardEstilo,
   updateTenantBranding,
   updateTenantPage,
   createTenantOwner,
@@ -26,6 +27,7 @@ import { ResellerPicker } from '../../vendedores/ResellerPicker';
 import { WhatsappToggle } from '@/components/tenant-setup/WhatsappToggle';
 import { ProductToggles } from '@/components/tenant-setup/ProductToggles';
 import { PLANES, PLAN_IDS, planDe } from '@/lib/billing/planes';
+import { ESTILOS, estiloDe } from '@/lib/branding/dashEstilo';
 import { getWhatsappAddon } from '@/lib/whatsapp/addonStatus';
 import { formatMxn, isMissingResellersTable } from '@/lib/resellers';
 import { OwnerCreator } from './OwnerCreator';
@@ -515,6 +517,19 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ t
             </Select>
             <Button type="submit" variant="ghost">
               Cambiar plan
+            </Button>
+          </form>
+
+          <form action={setTenantDashboardEstilo.bind(null, tenant.id)} className="flex items-center gap-2">
+            <Select name="estilo" defaultValue={estiloDe(tenant.dashboard_estilo)} className="w-40" aria-label="Estilo del panel">
+              {ESTILOS.map((e) => (
+                <option key={e.id} value={e.id}>
+                  Panel {e.nombre}
+                </option>
+              ))}
+            </Select>
+            <Button type="submit" variant="ghost">
+              Cambiar estilo
             </Button>
           </form>
 

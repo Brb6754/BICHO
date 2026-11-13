@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireTenantStaff, StaffAccessError } from '@/lib/auth/tenantStaff';
+import { ESTILOS, type Estilo } from '@/lib/branding/dashEstilo';
 import { LOGO_EXT, isHexColor, logoFileError, sniffImageType } from '@/lib/branding/logoUpload';
 
 const BUCKET = 'tenant-logos';
@@ -72,4 +73,33 @@ export async function updateOwnBrand(slug: string, formData: FormData): Promise<
   revalidatePath(`/t/${slug}/reservar`);
   revalidatePath(`/t/${slug}`);
   return { ok: true, logoUrl: (data.logo_url as string | null) ?? null };
+}
+
+// Estilo del panel (db/054). Mismo patrón que la marca: pertenencia y rol
+// aquí (es un POST alcanzable), update con el cliente de cookies para que
+// RLS vuelva a exigir owner, y el valor validado contra la lista.
+export async function updateDashboardEstilo(slug: string, estilo: Estilo): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    const staff = await requireTenantStaff(slug);
+    if (staff.role !== 'owner') return { ok: false, error: 'Solo el dueño puede cambiar el estilo del panel.' };
+    if (!ESTILOS.some((e) => e.id === estilo)) return { ok: false, error: 'Ese estilo no existe.' };
+
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from('tenants')
+      .update({ dashboard_estilo: estilo })
+      .eq('id', staff.tenantId)
+      .select('id')
+      .maybeSingle();
+    if (error || !data) {
+      console.error('updateDashboardEstilo', slug, error);
+      // 42703 = columna inexistente: falta correr db/054.
+      return { ok: false, error: error?.code === '42703' ? 'Todavía no se puede guardar: falta activar esta opción en tu cuenta.' : 'No se pudo guardar el estilo.' };
+    }
+  } catch (err) {
+    if (err instanceof StaffAccessError) return { ok: false, error: err.message };
+    throw err;
+  }
+  revalidatePath(`/t/${slug}/dashboard`, 'layout');
+  return { ok: true };
 }

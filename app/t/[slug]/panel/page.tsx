@@ -10,6 +10,8 @@ import { demoCaja } from '@/lib/caja/demo';
 import { demoInventario } from '@/lib/inventario/demo';
 import { seAcaba } from '@/lib/inventario/logica';
 import { tenantBookingPageUrl } from '@/lib/urls';
+import { cookies } from 'next/headers';
+import { COOKIE_ESTILO_DEMO, estiloDe } from '@/lib/branding/dashEstilo';
 
 export const metadata: Metadata = {
   title: 'Panel del negocio · demo',
@@ -37,8 +39,16 @@ export const dynamic = 'force-dynamic';
 // Y es de solo lectura: ningún botón escribe. Un panel público con
 // acciones sería una puerta abierta para cancelarle la agenda a alguien
 // desde la calle.
-export default async function PanelDemoPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function PanelDemoPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ estilo?: string }>;
+}) {
   const { slug } = await params;
+  // ?estilo= manda (el conmutador de la demo); si no, la cookie que dejó.
+  const estilo = estiloDe((await searchParams).estilo ?? (await cookies()).get(COOKIE_ESTILO_DEMO)?.value);
   const datos = await cargarPanelDemo(slug);
   if (!datos) notFound();
 
@@ -73,6 +83,7 @@ export default async function PanelDemoPage({ params }: { params: Promise<{ slug
   return (
     <div>
       <ResumenHoy
+        estilo={estilo}
         tenantName={tenant.name}
         now={now}
         timezone={tz}

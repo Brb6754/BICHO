@@ -100,7 +100,11 @@ export async function proxy(request: NextRequest) {
   // here than to catch it in review every time.
   const alreadyPrefixed = pathname === prefix || pathname.startsWith(`${prefix}/`);
   const rewritePath = alreadyPrefixed ? pathname : `${prefix}${pathname}`;
-  const rewritten = NextResponse.rewrite(new URL(rewritePath, request.url), { request });
+  // new URL(path, base) drops base's query string; without copying it back
+  // a page's searchParams arrive empty (?periodo=, ?estilo=, ?cotizacion=).
+  const destino = new URL(rewritePath, request.url);
+  destino.search = request.nextUrl.search;
+  const rewritten = NextResponse.rewrite(destino, { request });
 
   // Carry over whatever session cookies got refreshed above onto the
   // rewritten response — otherwise the browser never sees them.

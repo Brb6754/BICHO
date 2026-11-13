@@ -6,6 +6,7 @@ import { requireAdmin, requireTenantManager } from '@/lib/auth/access';
 import { syncSubscriptionForTenant } from '@/lib/payments/resellerSubscription';
 import { COLUMNA_MODULO, PLANES, moduloIncluido, planDe, planMinimoPara } from '@/lib/billing/planes';
 import { cambiarPlan } from '@/lib/billing/planServer';
+import { ESTILOS } from '@/lib/branding/dashEstilo';
 
 // Real writes, no redirect() involved — safe from the Server-Action
 // redirect-bypasses-middleware issue documented in CLAUDE.md.
@@ -45,6 +46,19 @@ export async function setTenantPlan(tenantId: string, formData: FormData) {
   await cambiarPlan(tenantId, plan);
   revalidatePath(`/admin/tenants/${tenantId}`);
   revalidatePath('/admin/tenants');
+}
+
+// Estilo del panel del negocio (db/054). El dueño lo cambia en su marca;
+// el equipo también, para dejarlo listo en una venta.
+export async function setTenantDashboardEstilo(tenantId: string, formData: FormData) {
+  await requireAdmin();
+  const estilo = formData.get('estilo');
+  if (!ESTILOS.some((e) => e.id === estilo)) throw new Error('Ese estilo no existe.');
+  const admin = createAdminClient();
+  const { data, error } = await admin.from('tenants').update({ dashboard_estilo: estilo }).eq('id', tenantId).select('slug').maybeSingle();
+  if (error) throw new Error(error.code === '42703' ? 'Falta correr db/054_dashboard_estilo.sql.' : 'No se pudo guardar el estilo.');
+  revalidatePath(`/admin/tenants/${tenantId}`);
+  if (data?.slug) revalidatePath(`/t/${data.slug}/dashboard`, 'layout');
 }
 
 export type TenantBranding = {

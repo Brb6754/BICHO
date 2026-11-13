@@ -1,7 +1,10 @@
 import { notFound } from 'next/navigation';
 import { Sidebar } from '@/app/t/[slug]/dashboard/Sidebar';
 import { cargarPanelDemo } from '@/lib/demo/panelData';
+import { cookies } from 'next/headers';
 import { tenantColorCssVars, tenantDarkModeCssVars } from '@/lib/branding/colors';
+import { COOKIE_ESTILO_DEMO, estiloDe } from '@/lib/branding/dashEstilo';
+import { DemoRoot, EstiloSwitcher } from '@/components/tenant-dash/EstiloDemo';
 
 // El armazón del panel abierto: el MISMO Sidebar que usa el panel real,
 // con su menú desplegable en teléfono.
@@ -26,9 +29,11 @@ export default async function PanelDemoLayout({
   if (!datos) notFound();
 
   const { tenant } = datos;
+  const estilo = estiloDe((await cookies()).get(COOKIE_ESTILO_DEMO)?.value);
 
   return (
-    <div
+    <DemoRoot
+      inicial={estilo}
       className="tenant-shell tenant-dash relative flex min-h-screen bg-paper"
       style={
         {
@@ -69,7 +74,7 @@ export default async function PanelDemoLayout({
         }
       />
 
-      <div className="relative z-10 min-w-0 flex-1 pb-24 pt-14 lg:pb-0 lg:pt-0">
+      <div className="dash-main relative z-10 min-w-0 flex-1 pb-24 pt-14 lg:pb-0 lg:pt-0">
         {/* La franja que dice qué es esto. Sin ella alguien podría creer
             que está viendo la agenda real de un negocio, y son citas
             inventadas. */}
@@ -82,6 +87,7 @@ export default async function PanelDemoLayout({
 
         <div className="dash-page mx-auto max-w-5xl px-4 py-7 sm:px-8 sm:py-10 lg:px-12">{children}</div>
       </div>
-    </div>
+      <EstiloSwitcher inicial={estilo} />
+    </DemoRoot>
   );
 }

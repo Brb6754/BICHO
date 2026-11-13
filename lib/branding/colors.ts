@@ -218,6 +218,9 @@ export function tenantColorCssVars(
     '--color-accent': toRgbTriplet(accentColor),
     '--color-accent-soft': toRgbTriplet(lightenHex(accentColor, 40)),
     '--color-cta-fg': readableFgRgb(primaryColor),
+    // Same idea for fills in the other two brand colors (dashboard styles, db/054).
+    '--color-secondary-fg': readableFgRgb(secondaryColor),
+    '--color-accent-fg': readableFgRgb(accentColor),
   };
 }
 

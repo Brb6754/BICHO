@@ -10,6 +10,7 @@ import {
 import { Sidebar } from './Sidebar';
 import { TrialBanner } from '@/components/tenant-dash/TrialBanner';
 import { tenantAccess } from '@/lib/billing/trial';
+import { estiloDe } from '@/lib/branding/dashEstilo';
 
 export default async function DashboardLayout({
   children,
@@ -103,6 +104,9 @@ export default async function DashboardLayout({
   return (
     <div
       className="tenant-shell tenant-dash relative flex min-h-screen bg-paper"
+      // Estilo del panel (db/054). Viene de la misma consulta tolerante
+      // de arriba: sin la columna, clásico.
+      data-estilo={estiloDe(ajustes?.dashboard_estilo)}
       style={
         {
           ...tenantColorCssVars(primaryColor, secondaryColor, accentColor),
@@ -136,7 +140,7 @@ export default async function DashboardLayout({
         comisionesEnabled={comisionesEnabled}
         inventarioEnabled={inventarioEnabled}
       />
-      <main className="relative z-10 min-w-0 flex-1 px-4 pb-28 pt-20 sm:px-8 lg:px-12 lg:pb-16 lg:pt-12">
+      <main className="dash-main relative z-10 min-w-0 flex-1 px-4 pb-28 pt-20 sm:px-8 lg:px-12 lg:pb-16 lg:pt-12">
         <div className="dash-page mx-auto max-w-5xl">
           <TrialBanner access={tenantAccess(ajustes)} />
           {children}

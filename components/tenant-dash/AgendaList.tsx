@@ -128,7 +128,7 @@ export function AgendaList({
                       </div>
 
                       <div className={'min-w-0 ' + (dim ? 'opacity-50' : '')}>
-                        <p className={'truncate font-medium text-ink ' + (cancelled ? 'line-through decoration-ink/40' : '')}>
+                        <p className={'relative truncate font-medium text-ink ' + (cancelled ? 'line-through decoration-ink/40' : '')}>
                           {b.service_types?.name ?? 'Servicio'}
                           {b.id === nextId && <span className="sr-only"> (siguiente)</span>}
                         </p>

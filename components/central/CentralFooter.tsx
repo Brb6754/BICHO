@@ -17,11 +17,11 @@ export function CentralFooter() {
           {/* eslint-disable-next-line @next/next/no-html-link-for-pages --
               this footer only renders on the home page, so these are
               anchors within the current document, not navigations. */}
-          <a href="/#servicios" className={`rounded-sm transition-colors hover:text-white ${focusRingOnDark}`}>
+          <a href="/estudio#servicios" className={`rounded-sm transition-colors hover:text-white ${focusRingOnDark}`}>
             Servicios
           </a>
           {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- same-page anchor */}
-          <a href="/#nosotros" className={`rounded-sm transition-colors hover:text-white ${focusRingOnDark}`}>
+          <a href="/estudio#nosotros" className={`rounded-sm transition-colors hover:text-white ${focusRingOnDark}`}>
             Cómo trabajamos
           </a>
           {/* The only cross-page link in this row: a <Link> so it

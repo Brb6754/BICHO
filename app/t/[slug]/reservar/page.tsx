@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import { tenantShareUrl } from '@/lib/urls';
 import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { productosDe } from '@/lib/products';
@@ -33,6 +34,10 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return {
     title: `${tenant.name} · Reserva tu cita`,
     description: `Elige servicio, día y hora para tu cita en ${tenant.name}.`,
+    // La misma página responde en {slug}.dominio/, /reservar y /t/{slug}/...:
+    // una sola canonical (la raíz del subdominio) para que no compitan.
+    alternates: { canonical: tenantShareUrl(slug) },
+    openGraph: { title: tenant.name, description: `Reserva tu cita en ${tenant.name}.`, url: tenantShareUrl(slug), locale: 'es_MX', type: 'website' },
   };
 }
 

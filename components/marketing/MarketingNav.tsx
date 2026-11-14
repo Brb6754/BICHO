@@ -28,16 +28,18 @@ function scrollToSection(id: string, onDone?: () => void) {
 // otra página, y ninguno llevaba a lo que estaba viendo.
 const MENUS = {
   producto: {
-    base: '/reservas',
+    base: '/',
+    cta: { href: '/registro', label: 'Prueba 15 días gratis' },
     links: [
-      { id: 'funciones', label: 'Funciones' },
-      { id: 'demos', label: 'Demos' },
       { id: 'como-funciona', label: 'Cómo funciona' },
-      { id: 'vendedores', label: 'Vendedores' },
+      { id: 'modulos', label: 'Funciones' },
+      { id: 'demos', label: 'Demos' },
+      { id: 'precios', label: 'Precios' },
     ],
   },
   estudio: {
-    base: '/',
+    base: '/estudio',
+    cta: { href: '/demo', label: 'Agenda una demo' },
     links: [
       { id: 'plataforma', label: 'Plataforma' },
       { id: 'servicios', label: 'A la medida' },
@@ -66,7 +68,7 @@ export function MarketingNav({
   variant?: keyof typeof MENUS;
 }) {
   const [open, setOpen] = useState(false);
-  const { base, links: LINKS } = MENUS[variant];
+  const { base, cta, links: LINKS } = MENUS[variant];
   // `/` + `#id` daría `//#id`, que el navegador lee como otro dominio.
   const hrefDe = (id: string) => (base === '/' ? `/#${id}` : `${base}#${id}`);
   const close = () => setOpen(false);
@@ -138,13 +140,13 @@ export function MarketingNav({
           ))}
         </nav>
 
-        <div className="flex items-center justify-self-end gap-3">
+        <div className="col-start-3 flex items-center justify-self-end gap-3">
           <PillLink
-            href="/demo"
+            href={cta.href}
             tone={onViolet ? 'white' : 'violet'}
             className="hidden sm:inline-flex"
           >
-            Agenda una demo
+            {cta.label}
           </PillLink>
           <button
             type="button"
@@ -187,10 +189,10 @@ export function MarketingNav({
             </a>
           ))}
           <a
-            href="/demo"
+            href={cta.href}
             className={`mt-1 block rounded-xl bg-[#5B34E8] px-4 py-3 text-center text-sm font-semibold text-white ${focusRingOnLight}`}
           >
-            Agenda una demo
+            {cta.label}
           </a>
         </div>
       )}

@@ -12,12 +12,13 @@ const INCLUDED: Record<PlanId, string[]> = {
   esencial: [
     'Tu página de reservas con tu logo, colores y servicios',
     'Agenda, clientes y servicios sin límite',
-    'Confirmación y recordatorios por correo',
+    'Confirmación de cada cita por correo',
     'Tus clientes reagendan o cancelan solos',
   ],
   negocio: [
     'Todo lo de Esencial',
     'Caja: ventas, gastos y corte del día',
+    'Recordatorio automático antes de cada cita',
     'Tarjeta de lealtad y clientes que regresan',
     'Inventario y comisiones por persona',
   ],
@@ -59,7 +60,7 @@ export function PricingSection() {
                     {/* El lima nunca es texto sobre blanco (1.4:1): relleno con tinta encima. */}
                     {destacado && (
                       <span className="rounded-full bg-[#D4F23A] px-3 py-1 text-xs font-semibold text-[#140F2E]">
-                        El más elegido
+                        Recomendado
                       </span>
                     )}
                   </div>

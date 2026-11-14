@@ -4,11 +4,14 @@ import { ArrowLeft } from 'lucide-react';
 import { MarketingNav } from '@/components/marketing/MarketingNav';
 import { GridField } from '@/components/marketing/Flourishes';
 import { RegistroFlow } from './RegistroFlow';
+import { Medicion } from '@/components/marketing/seo/Medicion';
+import { metaPagina } from '@/lib/seo/sitio';
 
-export const metadata: Metadata = {
-  title: 'Crea tu página de reservas — bicho',
-  description: 'Crea la página de citas de tu negocio en 10 minutos, desde tu celular. 15 días gratis, sin tarjeta.',
-};
+export const metadata: Metadata = metaPagina({
+  titulo: 'Crea tu página de reservas gratis · bicho',
+  descripcion: 'Crea la página de citas de tu negocio en 10 minutos, desde tu celular. 15 días gratis, sin tarjeta.',
+  path: '/registro',
+});
 
 // Alta sin Bruno: el dueño crea cuenta, negocio y página solo. Mismo
 // marco visual que /demo; el formulario va primero porque en teléfono es
@@ -21,7 +24,7 @@ export default async function RegistroPage({ searchParams }: { searchParams: Pro
         <GridField />
         <MarketingNav tone="onViolet" />
         <div className="relative mx-auto max-w-xl px-4 pb-16 pt-4 sm:px-6">
-          <Link href="/reservas" className="inline-flex items-center gap-2 text-sm font-medium text-white/70 hover:text-white">
+          <Link href="/" className="inline-flex items-center gap-2 text-sm font-medium text-white/70 hover:text-white">
             <ArrowLeft className="h-4 w-4" aria-hidden="true" />
             Volver
           </Link>
@@ -34,6 +37,7 @@ export default async function RegistroPage({ searchParams }: { searchParams: Pro
           </div>
         </div>
       </section>
+      <Medicion />
     </div>
   );
 }

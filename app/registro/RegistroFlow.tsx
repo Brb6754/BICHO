@@ -7,6 +7,7 @@ import { slugError, slugify } from '@/lib/onboarding/slug';
 import { normalizeMxWhatsapp } from '@/lib/onboarding/phone';
 import { tenantShareUrl } from '@/lib/urls';
 import { PLANES, PLAN_IDS, planDe, type PlanId } from '@/lib/billing/planes';
+import { track } from '@vercel/analytics';
 import { checkSlug, registerBusiness, resendConfirmation } from './actions';
 
 // 16px en teléfono (`text-base sm:text-sm`): iOS hace zoom en inputs más
@@ -147,6 +148,7 @@ export function RegistroFlow({ refCode, initialPlan }: { refCode?: string; initi
       return;
     }
     setPassword('');
+    track('alta_completada', { plan });
     setDoneSlug(r.slug);
   }
 

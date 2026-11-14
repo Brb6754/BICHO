@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Inter, Baloo_2, Space_Grotesk, Archivo, Playfair_Display } from 'next/font/google';
 import './globals.css';
+import { SITE_URL } from '@/lib/seo/sitio';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
@@ -22,7 +23,9 @@ const displayFont = Baloo_2({ subsets: ['latin'], weight: ['600', '700', '800'],
 // components/central/tokens.ts), and sharing a display face would blur
 // that. Space Grotesk is a geometric-but-technical sans, sentence case
 // rather than Baloo's rounded/uppercase treatment.
-const centralFont = Space_Grotesk({ subsets: ['latin'], weight: ['500', '600', '700'], variable: '--font-central' });
+// preload: false en las tres caras que solo usa una sección (/estudio, /ia,
+// NOTI): sin eso Next las precarga en TODAS las páginas, landing incluida.
+const centralFont = Space_Grotesk({ subsets: ['latin'], weight: ['500', '600', '700'], variable: '--font-central', preload: false });
 
 // Display face for the campaign landing (/ia) only. A third variable
 // rather than reusing --font-display or --font-central on purpose: that
@@ -30,7 +33,7 @@ const centralFont = Space_Grotesk({ subsets: ['latin'], weight: ['500', '600', '
 // Grotesk's technical one both fight a page of running prose. Archivo is
 // a plain, sturdy grotesque with the weights a headline needs and proper
 // Spanish diacritics.
-const iaFont = Archivo({ subsets: ['latin'], weight: ['500', '600', '700'], variable: '--font-ia' });
+const iaFont = Archivo({ subsets: ['latin'], weight: ['500', '600', '700'], variable: '--font-ia', preload: false });
 
 // El titular de NOTI. Las dos caras que usan los posts son exactamente
 // estas: una didona de contraste altísimo para el titular y una
@@ -46,10 +49,16 @@ const notiFont = Playfair_Display({
   weight: ['700', '800', '900'],
   style: ['normal', 'italic'],
   variable: '--font-noti',
+  preload: false,
 });
 
 export const metadata: Metadata = {
-  title: 'Reservas SaaS',
+  // Base de toda URL relativa en metadata (canonical, OG). Siempre el
+  // dominio raíz, aunque la página la sirva un subdominio.
+  metadataBase: new URL(SITE_URL),
+  title: 'bicho',
+  // Search Console: GOOGLE_SITE_VERIFICATION en Vercel (opcional).
+  verification: process.env.GOOGLE_SITE_VERIFICATION ? { google: process.env.GOOGLE_SITE_VERIFICATION } : undefined,
 };
 
 // Applied before paint so switching themes never flashes the wrong one
@@ -67,7 +76,7 @@ const THEME_INIT_SCRIPT = `
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
-      lang="es"
+      lang="es-MX"
       className={`${inter.variable} ${displayFont.variable} ${centralFont.variable} ${iaFont.variable} ${notiFont.variable}`}
       suppressHydrationWarning
     >

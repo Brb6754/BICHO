@@ -1,3 +1,4 @@
+import { tenantShareUrl } from '@/lib/urls';
 import type { Metadata, Viewport } from 'next';
 import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
@@ -55,6 +56,7 @@ export async function generateMetadata({
   return {
     title: `${tenant.name} · Agenda una reunión`,
     description: `Elige el día y la hora para hablar con ${tenant.name}.`,
+    alternates: { canonical: `${tenantShareUrl(slug)}/reuniones` },
   };
 }
 

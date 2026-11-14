@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { guiaPorSlug } from '@/lib/seo/guias';
 import { ldArticulo, ldFaq, ldMigas, metaPagina, type Faq } from '@/lib/seo/sitio';
 import { Cabecera, Cierre, FaqLista, JsonLd, Marco, Prosa, Relacionados } from '@/components/marketing/seo/Piezas';
+import { EscenaRecordatorio, LineaCita } from '@/components/marketing/seo/Graficos';
 
 const PATH = '/guias/como-reducir-citas-que-no-llegan';
 const TITULO = 'Cómo reducir las citas que no llegan en tu salón';
@@ -50,7 +51,9 @@ export default function GuiaNoShowPage() {
         eyebrow="Guía práctica"
         titulo="Que ya no te dejen plantada"
         bajada="La mayoría de las citas que no llegan no son mala fe: se les olvidó, o les dio pena avisar. Ocho cosas que sí funcionan, ordenadas de la más fácil a la más firme."
-      />
+      >
+        <EscenaRecordatorio />
+      </Cabecera>
       <section className="bg-white px-4 py-14 sm:px-6 sm:py-20">
         <Prosa>
           <h2>Primero, entiende por qué no llegan</h2>
@@ -79,6 +82,8 @@ export default function GuiaNoShowPage() {
             decir nada. Si en su recordatorio viene un link para cambiar la hora ella misma, el plantón se convierte en un aviso, y tú
             recuperas el espacio con tiempo para ofrecerlo.
           </p>
+
+          <LineaCita />
 
           <h2>4. Escribe tu política de cancelación (y dila antes)</h2>
           <p>

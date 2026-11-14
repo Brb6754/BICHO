@@ -19,10 +19,11 @@ import {
   Wallet,
 } from 'lucide-react';
 import { PillLink } from '@/components/marketing/Primitives';
-import { GridField, Sparkle } from '@/components/marketing/Flourishes';
+import { AsteriskMark, BichoBug, CircleStamp, GridField, LimeArrow, Sparkle } from '@/components/marketing/Flourishes';
 import { MarketingNav } from '@/components/marketing/MarketingNav';
 import { PricingSection } from '@/components/marketing/PricingSection';
-import { Captura, DemoTarjeta, FaqLista, JsonLd, Marco } from '@/components/marketing/seo/Piezas';
+import { DemoTarjeta, FaqLista, JsonLd, Marco } from '@/components/marketing/seo/Piezas';
+import { EscenaDosLados, EscenaProducto, FichaGiro, IlustracionDolor, VistaTarjeta } from '@/components/marketing/seo/Graficos';
 import { GIROS } from '@/lib/seo/giros';
 import { CORREO_CONTACTO, ldFaq, ldOrganizacion, ldSoftware, metaPagina, urlDemo, type Faq } from '@/lib/seo/sitio';
 
@@ -51,16 +52,19 @@ const DEMOS = [
 
 const DOLORES = [
   {
+    grafica: 'chat' as const,
     icono: MessageCircleOff,
     titulo: '“¿Tienes hoy a las 5?”, a las 11 de la noche',
     texto: 'Contestas horarios entre clienta y clienta, con las manos ocupadas, y en la noche sigues contestando. Si tardas, agenda con otra.',
   },
   {
+    grafica: 'plantada' as const,
     icono: CalendarCheck,
     titulo: 'La de las 4 no llegó, y no avisó',
     texto: 'Le dijiste que no a otra clienta por guardarle el lugar. La hora se perdió y nadie la va a pagar.',
   },
   {
+    grafica: 'libreta' as const,
     icono: NotebookPen,
     titulo: 'Todo vive en la libreta',
     texto: 'Las citas, los teléfonos, quién te debe. Si se moja, se pierde o la letra no se entiende, se va el mes.',
@@ -112,6 +116,8 @@ export default function LandingPage() {
       {/* HERO: el dolor más fuerte del giro belleza y UNA acción. */}
       <section id="top" className="relative isolate overflow-hidden bg-[#5B34E8]">
         <GridField />
+        <AsteriskMark className="pointer-events-none absolute right-[6%] top-24 hidden h-10 w-10 text-[#D4F23A] lg:block" />
+        <BichoBug className="pointer-events-none absolute -left-4 bottom-16 hidden h-16 w-16 -rotate-[24deg] xl:block" />
         <MarketingNav tone="onViolet" />
         <div className="relative mx-auto grid max-w-6xl gap-12 px-4 pb-20 pt-6 sm:px-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] lg:items-center lg:pb-24">
           <div>
@@ -132,13 +138,14 @@ export default function LandingPage() {
               <PillLink href="#demos" tone="outlineOnDark" className="justify-center">
                 Ve un demo real
               </PillLink>
+              <CircleStamp className="ml-4 hidden h-28 w-28 shrink-0 sm:inline-flex lg:hidden xl:inline-flex" />
             </div>
             <p className="mt-4 text-[14px] text-[#E3DEFA]">Sin tarjeta · lista hoy · cancelas con un mensaje</p>
           </div>
           <div className="relative">
-            <Sparkle className="absolute -left-2 top-6 hidden h-8 w-8 text-[#D4F23A] lg:block" />
-            <Captura src="/capturas/reserva-movil.png" alt="Página de reservas real del demo Lima & Laca, vista en un celular" movil prioridad />
-            <p className="mt-4 text-center text-[13px] text-[#E3DEFA]">
+            <Sparkle className="absolute -right-1 top-0 h-7 w-7 text-[#D4F23A]" />
+            <EscenaProducto />
+            <p className="mt-2 text-center text-[13px] text-[#E3DEFA]">
               Así la ve tu clienta.{' '}
               <a href={urlDemo('lima-laca')} className="font-semibold text-white underline underline-offset-2">
                 Pruébala tú
@@ -155,11 +162,12 @@ export default function LandingPage() {
             ¿Te suena alguno?
           </h2>
           <ul className="mt-10 grid gap-5 md:grid-cols-3">
-            {DOLORES.map(({ icono: Icono, titulo, texto }) => (
-              <li key={titulo} className="rounded-[24px] bg-[#F5F3FC] p-6">
-                <Icono className="h-6 w-6 text-[#5B34E8]" aria-hidden="true" />
-                <h3 className="mt-4 text-lg font-semibold leading-snug text-[#140F2E]">{titulo}</h3>
-                <p className="mt-2 text-[15px] leading-relaxed text-[#4A4370]">{texto}</p>
+            {DOLORES.map(({ grafica, icono: Icono, titulo, texto }) => (
+              <li key={titulo} className="rounded-[24px] bg-[#F5F3FC] p-4 pb-6">
+                <IlustracionDolor tipo={grafica} />
+                <Icono className="ml-2 mt-5 h-6 w-6 text-[#5B34E8]" aria-hidden="true" />
+                <h3 className="mx-2 mt-3 text-lg font-semibold leading-snug text-[#140F2E]">{titulo}</h3>
+                <p className="mx-2 mt-2 text-[15px] leading-relaxed text-[#4A4370]">{texto}</p>
               </li>
             ))}
           </ul>
@@ -186,8 +194,8 @@ export default function LandingPage() {
             </ol>
           </div>
           <figure>
-            <Captura src="/capturas/agenda.png" alt="Agenda del panel del dueño en el demo Lima & Laca" />
-            <figcaption className="mt-3 text-center text-[13px] text-[#6A6488]">Tu agenda, del lado del dueño (demo con datos de ejemplo).</figcaption>
+            <EscenaDosLados />
+            <figcaption className="mt-14 text-center sm:mt-16 text-[13px] text-[#6A6488]">Lo que aparta tu clienta en su celular cae en tu agenda (demo con datos de ejemplo).</figcaption>
           </figure>
         </div>
       </section>
@@ -226,10 +234,13 @@ export default function LandingPage() {
               <li key={slug}>
                 <Link
                   href={`/funciones/${slug}`}
-                  className="flex h-full flex-col rounded-[24px] bg-[#F5F3FC] p-6 transition-shadow hover:shadow-[0_16px_40px_-20px_rgba(20,15,46,0.45)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5B34E8]"
+                  className="group flex h-full flex-col rounded-[24px] bg-[#F5F3FC] p-6 transition-shadow hover:shadow-[0_16px_40px_-20px_rgba(20,15,46,0.45)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5B34E8]"
                 >
-                  <Icono className="h-6 w-6 text-[#5B34E8]" aria-hidden="true" />
-                  <span className="mt-4 text-lg font-semibold text-[#140F2E]">{nombre}</span>
+                  <VistaTarjeta slug={slug} />
+                  <span className="flex items-center gap-2 text-lg font-semibold text-[#140F2E]">
+                    <Icono className="h-5 w-5 text-[#5B34E8]" aria-hidden="true" />
+                    {nombre}
+                  </span>
                   <span className="mt-2 flex-1 text-[15px] leading-relaxed text-[#4A4370]">{beneficio}</span>
                   <span className="mt-4 text-xs font-semibold text-[#5B34E8]">Plan {plan}</span>
                 </Link>
@@ -251,15 +262,15 @@ export default function LandingPage() {
       {/* GIROS: enlaces internos al motor de búsqueda. */}
       <section className="bg-[#F5F3FC] px-4 py-14 sm:px-6" aria-labelledby="giros-titulo">
         <div className="mx-auto max-w-6xl">
-          <h2 id="giros-titulo" className="text-lg font-semibold text-[#140F2E]">Hecho para tu giro</h2>
-          <ul className="mt-5 flex flex-wrap gap-3">
+          <h2 id="giros-titulo" className={`${h2} text-[#140F2E]`}>Hecho para tu giro</h2>
+          <ul className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
             {GIROS.map((g) => (
               <li key={g.slug}>
                 <Link
                   href={`/para/${g.slug}`}
-                  className="inline-flex min-h-[44px] items-center rounded-full bg-white px-5 text-sm font-semibold text-[#140F2E] ring-1 ring-[#140F2E]/10 hover:ring-[#5B34E8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5B34E8]"
+                  className="group block rounded-[22px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5B34E8] focus-visible:ring-offset-2"
                 >
-                  {g.nombre.charAt(0).toUpperCase() + g.nombre.slice(1)}
+                  <FichaGiro slug={g.slug} nombre={g.nombre.charAt(0).toUpperCase() + g.nombre.slice(1)} foto={g.demo.foto} />
                 </Link>
               </li>
             ))}
@@ -295,13 +306,17 @@ export default function LandingPage() {
       {/* CIERRE */}
       <section className="bg-white px-4 pb-20 sm:px-6 sm:pb-24">
         <div className="relative mx-auto max-w-6xl overflow-hidden rounded-[32px] bg-[#5B34E8] px-6 py-14 sm:px-14 sm:py-16">
-          <h2 className={`${h2} max-w-3xl text-white`}>
+          <GridField />
+          <span className="absolute right-12 top-1/2 hidden -translate-y-1/2 lg:block"><CircleStamp /></span>
+          <LimeArrow className="absolute right-52 top-12 hidden h-20 w-20 text-[#D4F23A] lg:block" />
+          <BichoBug className="absolute right-6 top-6 h-14 w-14 rotate-[18deg] lg:hidden" />
+          <h2 className={`${h2} relative max-w-3xl text-white`}>
             Esta noche, que conteste <span className="text-[#D4F23A]">tu agenda</span>
           </h2>
-          <p className="mt-5 max-w-xl text-[16px] leading-relaxed text-[#E3DEFA]">
+          <p className="relative mt-5 max-w-xl text-[16px] leading-relaxed text-[#E3DEFA]">
             Tu página de citas queda lista hoy. 15 días gratis, sin tarjeta, y si no te convence cancelas con un mensaje.
           </p>
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="relative mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
             <PillLink href="/registro" tone="lime" className="justify-between sm:justify-start">
               Prueba 15 días gratis
             </PillLink>

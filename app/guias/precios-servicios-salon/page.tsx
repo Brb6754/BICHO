@@ -3,6 +3,14 @@ import Link from 'next/link';
 import { guiaPorSlug } from '@/lib/seo/guias';
 import { ldArticulo, ldFaq, ldMigas, metaPagina, type Faq } from '@/lib/seo/sitio';
 import { Cabecera, Cierre, FaqLista, JsonLd, Marco, Prosa, Relacionados } from '@/components/marketing/seo/Piezas';
+import { DesglosePrecio } from '@/components/marketing/seo/Graficos';
+
+// Las mismas cifras del ejemplo resuelto de la tabla de abajo.
+const PARTES = [
+  { nombre: 'Tu tiempo (1.5 h × $200)', monto: 300 },
+  { nombre: 'Materiales', monto: 60 },
+  { nombre: 'Comisión y ganancia (30%)', monto: 108 },
+];
 
 const PATH = '/guias/precios-servicios-salon';
 const TITULO = 'Cómo ponerle precio a los servicios de tu salón';
@@ -50,7 +58,11 @@ export default function GuiaPreciosPage() {
         eyebrow="Guía práctica"
         titulo="Cómo ponerle precio a tus servicios"
         bajada="Si tu precio sale de lo que cobra la de enfrente, puede que estés trabajando gratis sin saberlo. La cuenta completa, en cinco pasos y con un ejemplo."
-      />
+      >
+        <div className="mx-auto max-w-[400px] rotate-[1.5deg]">
+          <DesglosePrecio partes={PARTES} total="$470" oscuro />
+        </div>
+      </Cabecera>
       <section className="bg-white px-4 py-14 sm:px-6 sm:py-20">
         <Prosa>
           <h2>La idea en una línea</h2>
@@ -94,6 +106,9 @@ export default function GuiaPreciosPage() {
           </p>
 
           <h2>Ejemplo resuelto</h2>
+          <div className="mt-6">
+            <DesglosePrecio partes={PARTES} total="$470" />
+          </div>
           <p className="text-[14px] text-[#6A6488]">Números inventados solo para enseñar la cuenta. Usa los tuyos.</p>
           <table>
             <tbody>

@@ -8,6 +8,9 @@ import { guiaPorSlug } from '@/lib/seo/guias';
 import { ldArticulo, ldFaq, ldMigas, metaPagina, type Faq } from '@/lib/seo/sitio';
 import { Cabecera, Cierre, FaqLista, JsonLd, Marco, Prosa, Relacionados } from '@/components/marketing/seo/Piezas';
 import { CalculadoraResico } from '@/components/marketing/seo/CalculadoraResico';
+import { EscaleraTasas } from '@/components/marketing/seo/Graficos';
+
+const TRAMOS = TABLA_MENSUAL.map((t) => ({ hasta: formatoPesos(t.hastaCents), tasa: formatoTasa(t.tasaBps), bps: t.tasaBps }));
 
 const PATH = '/guias/resico-para-salones';
 const TITULO = 'RESICO para salones: cómo darte de alta y cuánto pagas';
@@ -59,7 +62,11 @@ export default function GuiaResicoPage() {
         eyebrow="Guía fiscal · informativa"
         titulo="RESICO para salones, sin palabras de contador"
         bajada="Qué es, si te toca, los seis trámites para darte de alta y cuánto ISR pagarías cada mes. Pensado para estéticas, barberías, salones de uñas y spas."
-      />
+      >
+        <div className="mx-auto max-w-[420px] rotate-[-1.5deg]">
+          <EscaleraTasas tramos={TRAMOS} oscuro />
+        </div>
+      </Cabecera>
       <section className="bg-white px-4 py-14 sm:px-6 sm:py-20">
         <Prosa>
           <div className="flex gap-3 rounded-2xl bg-[#FFF4D6] p-4 text-[15px] leading-relaxed text-[#140F2E]">
@@ -110,6 +117,9 @@ export default function GuiaResicoPage() {
 
           <h2>Cuánto pagarías: la tabla y la calculadora</h2>
           <p>La tasa NO es progresiva por tramos: la que toque se aplica a todo lo cobrado en el mes.</p>
+          <div className="mt-6">
+            <EscaleraTasas tramos={TRAMOS} />
+          </div>
           <table>
             <thead>
               <tr>

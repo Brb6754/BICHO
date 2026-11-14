@@ -5,6 +5,7 @@ import { GIROS } from '@/lib/seo/giros';
 import { PLANES, planMinimoPara } from '@/lib/billing/planes';
 import { ldMigas, ldSoftware, metaPagina } from '@/lib/seo/sitio';
 import { Cabecera, Cierre, JsonLd, Marco, Relacionados } from '@/components/marketing/seo/Piezas';
+import { IlustracionFuncion, VistaTarjeta } from '@/components/marketing/seo/Graficos';
 
 const DESCRIPCION =
   'Todas las herramientas de bicho para negocios de servicios en México: agenda en línea, recordatorios, lealtad, caja, inventario, comisiones, cotizaciones, facturación y un asistente con IA.';
@@ -29,7 +30,12 @@ export default function FuncionesPage() {
         titulo="Todo lo que hace bicho por tu negocio"
         bajada="Empieza con la agenda en línea y prende lo demás cuando lo necesites. Cada herramienta resuelve un problema concreto, no una lista de casillas."
         secundario={{ href: '/#demos', label: 'Ve un demo real' }}
-      />
+      >
+        <div className="relative mx-auto h-[340px] w-full max-w-[420px]" aria-hidden="true">
+          <IlustracionFuncion slug="inventario" className="absolute left-0 top-0 w-[62%] -rotate-[4deg]" />
+          <IlustracionFuncion slug="lealtad" className="mk-rise absolute bottom-0 right-0 w-[58%] rotate-[5deg]" />
+        </div>
+      </Cabecera>
       <section className="bg-white px-4 py-14 sm:px-6 sm:py-20">
         <div className="mx-auto max-w-6xl space-y-14">
           {GRUPOS.map((g) => (
@@ -43,8 +49,9 @@ export default function FuncionesPage() {
                     <li key={s}>
                       <Link
                         href={`/funciones/${s}`}
-                        className="flex h-full flex-col rounded-[24px] bg-[#F5F3FC] p-6 transition-shadow hover:shadow-[0_16px_40px_-20px_rgba(20,15,46,0.45)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5B34E8]"
+                        className="group flex h-full flex-col rounded-[24px] bg-[#F5F3FC] p-6 transition-shadow hover:shadow-[0_16px_40px_-20px_rgba(20,15,46,0.45)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5B34E8]"
                       >
+                        <VistaTarjeta slug={s} />
                         <span className="text-lg font-semibold text-[#140F2E]">{f.nombre}</span>
                         <span className="mt-2 flex-1 text-[14px] leading-relaxed text-[#4A4370]">{f.descripcion.split('. ')[0]}.</span>
                         <span className="mt-4 text-xs font-semibold text-[#5B34E8]">Plan: {plan === 'Esencial' ? 'todos' : plan === 'Todos' ? 'todos' : `${plan}${plan === 'Negocio' ? ' y Pro' : ''}`}</span>

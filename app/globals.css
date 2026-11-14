@@ -1559,3 +1559,28 @@ html:not(.dark) .tenant-shell.tenant-dash[data-estilo='vibrante'] {
     transform: none;
   }
 }
+
+/* Landing y páginas SEO (components/marketing/seo/Graficos.tsx): las
+   miniaturas de producto entran una vez, subiendo con un poco de
+   escala; la barra de stock baja hasta su nivel. Sin `reduce`, nada se
+   mueve: las piezas se pintan ya en su lugar. */
+@keyframes mk-rise {
+  from {
+    opacity: 0;
+    translate: 0 18px;
+    scale: 0.96;
+  }
+}
+@keyframes mk-stock {
+  from {
+    width: 100%;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .mk-rise {
+    animation: mk-rise 700ms cubic-bezier(0.16, 1, 0.3, 1) 200ms both;
+  }
+  .mk-stock {
+    animation: mk-stock 1400ms cubic-bezier(0.16, 1, 0.3, 1) 300ms both;
+  }
+}

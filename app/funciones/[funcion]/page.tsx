@@ -6,7 +6,8 @@ import { giroPorSlug } from '@/lib/seo/giros';
 import { guiaPorSlug } from '@/lib/seo/guias';
 import { PLANES, planMinimoPara } from '@/lib/billing/planes';
 import { ldFaq, ldMigas, ldSoftware, metaPagina, urlDemo } from '@/lib/seo/sitio';
-import { Cabecera, Captura, Cierre, Ejemplo, FaqLista, JsonLd, Marco, Relacionados } from '@/components/marketing/seo/Piezas';
+import { Cabecera, Cierre, Ejemplo, FaqLista, JsonLd, Marco, Relacionados } from '@/components/marketing/seo/Piezas';
+import { EscenaFuncion } from '@/components/marketing/seo/Graficos';
 
 type Params = Promise<{ funcion: string }>;
 
@@ -63,11 +64,7 @@ export default async function FuncionPage({ params }: { params: Params }) {
         bajada={f.bajada}
         secundario={demoHref && f.demo ? { href: demoHref, label: f.demo.label } : undefined}
       >
-        {f.captura ? (
-          <Captura src={f.captura.src} alt={f.captura.alt} movil={f.captura.movil} prioridad />
-        ) : f.ejemplo ? (
-          <Ejemplo titulo={f.ejemplo.titulo} filas={f.ejemplo.filas} />
-        ) : null}
+        <EscenaFuncion slug={f.slug} captura={f.captura} />
       </Cabecera>
 
       <section className="bg-white px-4 py-14 sm:px-6 sm:py-20" aria-labelledby="beneficios">
@@ -103,6 +100,8 @@ export default async function FuncionPage({ params }: { params: Params }) {
               ))}
             </ol>
           </div>
+          <div className="space-y-6">
+          {!f.captura && f.ejemplo && <Ejemplo titulo={f.ejemplo.titulo} filas={f.ejemplo.filas} />}
           <div className="rounded-[24px] bg-[#2A1B5E] p-6 sm:p-8">
             <p className="text-sm font-semibold uppercase tracking-wide text-[#D4F23A]">En qué plan viene</p>
             <p className="mt-3 text-[17px] leading-relaxed text-white">{enPlan}</p>
@@ -113,6 +112,7 @@ export default async function FuncionPage({ params }: { params: Params }) {
                 <a href={demoHref} className="text-[#D4F23A] underline-offset-2 hover:underline">{f.demo.label}</a>
               )}
             </div>
+          </div>
           </div>
         </div>
       </section>

@@ -1,8 +1,8 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { ChevronDown, MessageCircle, ShieldCheck } from 'lucide-react';
+import { ChevronDown, MessageCircle, PawPrint, ShieldCheck } from 'lucide-react';
 import { PillLink } from '../Primitives';
-import { GridField } from '../Flourishes';
+import { BichoBug, CircleStamp, GridField, LimeArrow, Sparkle } from '../Flourishes';
 import { MarketingNav } from '../MarketingNav';
 import { MarketingFooter } from '../MarketingFooter';
 import { Medicion } from './Medicion';
@@ -119,6 +119,7 @@ export function Cabecera({
   return (
     <section className="relative isolate overflow-hidden bg-[#5B34E8]">
       <GridField />
+      <BichoBug className="pointer-events-none absolute -left-6 bottom-10 hidden h-16 w-16 -rotate-[22deg] opacity-90 xl:block" />
       <MarketingNav tone="onViolet" />
       <div className="relative mx-auto grid max-w-6xl gap-10 px-4 pb-16 pt-4 sm:px-6 sm:pb-20 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:items-center">
         <div>
@@ -139,8 +140,9 @@ export function Cabecera({
           <p className="mt-5 inline-flex rounded-full border border-white/25 bg-white/[0.08] px-3 py-1 text-xs font-medium text-[#D4F23A]">
             {eyebrow}
           </p>
-          <h1 className="mt-4 text-balance font-[family-name:var(--font-display)] text-[clamp(2.2rem,7vw,4.2rem)] font-extrabold uppercase leading-[0.92] tracking-[-0.02em] text-white">
+          <h1 className="relative mt-4 text-balance font-[family-name:var(--font-display)] text-[clamp(2.2rem,7vw,4.2rem)] font-extrabold uppercase leading-[0.92] tracking-[-0.02em] text-white">
             {titulo}
+            <Sparkle className="ml-2 inline-block h-[0.5em] w-[0.5em] -translate-y-[0.6em] text-[#D4F23A]" />
           </h1>
           <p className="mt-5 max-w-xl text-[17px] leading-relaxed text-[#E3DEFA]">{bajada}</p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -168,12 +170,16 @@ export function Cabecera({
 export function Cierre({ titulo, texto }: { titulo: React.ReactNode; texto: string }) {
   return (
     <section className="bg-white px-4 pb-20 sm:px-6 sm:pb-24">
-      <div className="mx-auto max-w-6xl rounded-[32px] bg-[#1B1040] px-6 py-12 sm:px-14 sm:py-16">
-        <h2 className="max-w-2xl font-[family-name:var(--font-display)] text-[clamp(1.9rem,5vw,3rem)] font-extrabold uppercase leading-[0.95] text-white">
+      <div className="relative mx-auto max-w-6xl overflow-hidden rounded-[32px] bg-[#1B1040] px-6 py-12 sm:px-14 sm:py-16">
+        <GridField />
+        <span className="absolute right-10 top-1/2 hidden -translate-y-1/2 lg:block"><CircleStamp /></span>
+        <LimeArrow className="absolute right-48 top-10 hidden h-20 w-20 text-[#D4F23A] lg:block" />
+        <BichoBug className="absolute -right-3 -top-3 h-14 w-14 rotate-[18deg] lg:hidden" />
+        <h2 className="relative max-w-2xl font-[family-name:var(--font-display)] text-[clamp(1.9rem,5vw,3rem)] font-extrabold uppercase leading-[0.95] text-white">
           {titulo}
         </h2>
-        <p className="mt-4 max-w-xl text-[15px] leading-relaxed text-[#B9B1E6]">{texto}</p>
-        <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
+        <p className="relative mt-4 max-w-xl text-[15px] leading-relaxed text-[#B9B1E6]">{texto}</p>
+        <div className="relative mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
           <PillLink href="/registro" tone="lime" className="justify-between sm:justify-start">
             Prueba 15 días gratis
           </PillLink>
@@ -247,8 +253,14 @@ export function DemoTarjeta({
   return (
     <div className={`overflow-hidden rounded-[24px] bg-white shadow-[0_30px_60px_-25px_rgba(20,15,46,0.55)] ${className}`}>
       <a href={href} className="group relative block aspect-[16/10] bg-[#2A1B5E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4F23A]">
-        {demo.foto && (
+        {demo.foto ? (
           <Image src={demo.foto} alt="" fill sizes="(min-width: 1024px) 480px, 100vw" className="object-cover transition-transform duration-500 group-hover:scale-105" />
+        ) : (
+          <span aria-hidden="true" className="absolute inset-0 grid grid-cols-5 place-items-center gap-3 bg-[#5A3A00] p-6">
+            {Array.from({ length: 10 }).map((_, i) => (
+              <PawPrint key={i} className={`h-8 w-8 text-[#FFC24D]/40 ${i % 2 ? 'rotate-12' : '-rotate-12'}`} />
+            ))}
+          </span>
         )}
         <span aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-[#0A061C]/90 via-[#0A061C]/30 to-transparent" />
         <span className="absolute inset-x-0 bottom-0 p-5">

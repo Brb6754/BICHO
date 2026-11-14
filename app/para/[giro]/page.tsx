@@ -8,6 +8,7 @@ import { guiaPorSlug } from '@/lib/seo/guias';
 import { ldFaq, ldMigas, ldSoftware, metaPagina, urlDemo } from '@/lib/seo/sitio';
 import { Cabecera, Cierre, DemoTarjeta, FaqLista, JsonLd, Marco, Prosa, Relacionados } from '@/components/marketing/seo/Piezas';
 import { PricingSection } from '@/components/marketing/PricingSection';
+import { EscenaGiro, estiloGiro } from '@/components/marketing/seo/Graficos';
 
 type Params = Promise<{ giro: string }>;
 
@@ -26,6 +27,8 @@ export default async function GiroPage({ params }: { params: Params }) {
   const g = giroPorSlug((await params).giro);
   if (!g) notFound();
 
+  const estilo = estiloGiro(g.slug);
+  const IconoGiro = estilo.icono;
   const otrosGiros = GIROS.filter((o) => o.slug !== g.slug);
   const enlaces = [
     ...g.funciones.map((s) => funcionPorSlug(s)).filter((f) => f !== undefined).map((f) => ({ href: `/funciones/${f.slug}`, nombre: f.nombre, texto: f.bajada.split('. ')[0] + '.' })),
@@ -51,7 +54,7 @@ export default async function GiroPage({ params }: { params: Params }) {
         bajada={g.bajada}
         secundario={{ href: urlDemo(g.demo.slug), label: 'Ve un demo real' }}
       >
-        <DemoTarjeta demo={g.demo} href={urlDemo(g.demo.slug)} panelHref={urlDemo(g.demo.slug, '/panel')} />
+        <EscenaGiro slug={g.slug} demo={g.demo} />
       </Cabecera>
 
       <section className="bg-white px-4 py-14 sm:px-6 sm:py-20" aria-labelledby="dolor">
@@ -62,6 +65,9 @@ export default async function GiroPage({ params }: { params: Params }) {
           <ul className="mt-10 grid gap-5 md:grid-cols-3">
             {g.dolores.map((d) => (
               <li key={d.titulo} className="rounded-[24px] bg-[#F5F3FC] p-6">
+                <span className="mb-4 flex h-11 w-11 items-center justify-center rounded-full" style={{ background: estilo.color }} aria-hidden="true">
+                  <IconoGiro className="h-5 w-5 text-[#140F2E]" />
+                </span>
                 <h3 className="text-lg font-semibold leading-snug text-[#140F2E]">{d.titulo}</h3>
                 <p className="mt-2 text-[15px] leading-relaxed text-[#4A4370]">{d.texto}</p>
               </li>
@@ -71,7 +77,8 @@ export default async function GiroPage({ params }: { params: Params }) {
       </section>
 
       <section className="bg-[#1B1040] px-4 py-14 sm:px-6 sm:py-20" aria-labelledby="solucion">
-        <div className="mx-auto max-w-6xl">
+        <div className="mx-auto grid max-w-6xl gap-12 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] lg:items-start">
+          <div>
           <h2 id="solucion" className="max-w-3xl font-[family-name:var(--font-display)] text-[clamp(1.8rem,4.4vw,2.8rem)] font-extrabold uppercase leading-[0.95] text-white">
             Cómo lo resuelve bicho
           </h2>
@@ -93,6 +100,8 @@ export default async function GiroPage({ params }: { params: Params }) {
               </li>
             ))}
           </ul>
+          </div>
+          <DemoTarjeta demo={g.demo} href={urlDemo(g.demo.slug)} panelHref={urlDemo(g.demo.slug, '/panel')} className="lg:sticky lg:top-8" />
         </div>
       </section>
 

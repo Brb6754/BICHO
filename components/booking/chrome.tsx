@@ -63,12 +63,16 @@ export function ProgressIndicator({
 
 export function StepHeader({
   businessName,
+  logoUrl,
   steps,
   currentIndex,
   onBack,
   canGoBack,
 }: {
   businessName: string;
+  // Solo cuando la página tiene portada: al plegarse, el logo y el nombre
+  // se quedan aquí, en la barra, para que nunca se pierda de quién es.
+  logoUrl?: string | null;
   steps: StepDef[];
   currentIndex: number;
   onBack: () => void;
@@ -90,8 +94,22 @@ export function StepHeader({
           <ArrowLeft className="h-4 w-4" />
         </button>
 
+        {logoUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={logoUrl}
+            alt=""
+            aria-hidden="true"
+            className={`${motion.barIn} h-9 w-9 shrink-0 rounded-[11px] bg-white object-contain p-1 ring-1 ring-border`}
+          />
+        )}
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[13px] font-semibold text-ink">{businessName}</p>
+          <p
+            className="truncate text-[15px] font-semibold leading-tight text-ink"
+            style={{ fontFamily: 'var(--tpl-heading-font, var(--font-heading))', letterSpacing: 'var(--tpl-heading-tracking)' }}
+          >
+            {businessName}
+          </p>
           <p className="truncate text-xs text-muted" aria-live="polite">
             Paso {currentIndex + 1} de {steps.length} · {step.label}
           </p>

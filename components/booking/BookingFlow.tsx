@@ -18,6 +18,7 @@ import { CalendarSheet, DateStrip, type StripDay } from './dates';
 import { BookingSummary, ConfirmationScreen, CustomerForm, type CustomerFields } from './review';
 import { EmptyCatalog, ErrorState, LoadingSlots, NoSlotsState } from './states';
 import motion from './motion.module.css';
+import { useBookingStage } from './stage';
 import {
   ANY_RESOURCE,
   formatDuration,
@@ -57,6 +58,11 @@ const STRIP_DAYS = 14;
 // corners that rises over the identity band; from sm it floats as a card.
 const SHEET =
   'overflow-clip rounded-t-[28px] border-t border-border bg-surface shadow-[0_-12px_32px_-18px_rgba(16,24,40,0.35)] sm:rounded-[28px] sm:border sm:shadow-[0_1px_2px_rgba(16,24,40,0.05),0_24px_48px_-20px_rgba(16,24,40,0.28)]';
+// Ya en el flujo (fecha, hora, datos) con la portada plegada: en el
+// teléfono la hoja ocupa la pantalla de borde a borde, sin esquinas que
+// sugieran que hay algo detrás. Desde sm sigue flotando como tarjeta.
+const SHEET_FOCUS =
+  'flex flex-col overflow-clip min-h-[100svh] bg-surface sm:min-h-0 sm:rounded-[28px] sm:border sm:border-border sm:shadow-[0_1px_2px_rgba(16,24,40,0.05),0_24px_48px_-20px_rgba(16,24,40,0.28)]';
 const INITIAL_SLOTS_SHOWN = 9;
 
 type Props = {
@@ -74,6 +80,10 @@ type Props = {
   resourceQuestion?: string;
   // Shown in the summary and the confirmation when the business has one.
   location?: string | null;
+  /** Bajada del paso de servicio: la nota que el negocio escribió en su carta. */
+  serviceHint?: string;
+  /** Logo para la barra compacta que reemplaza a la portada al avanzar. */
+  logoUrl?: string | null;
 
   // ── Injection points, both optional ──────────────────────────────
   // A real tenant page passes neither and gets the real behaviour:
@@ -116,6 +126,8 @@ export default function BookingFlow({
   resourceLabel,
   resourceQuestion,
   location,
+  serviceHint,
+  logoUrl,
   loadSlots,
   onSubmitBooking,
   manageUrl,
@@ -178,6 +190,15 @@ export default function BookingFlow({
   // top of the sheet's own entrance.
   const [direction, setDirection] = useState<'forward' | 'back' | null>(null);
   const today = dayKey(new Date(), timezone);
+
+  // La página que nos rodea (si la hay) necesita saber en qué paso vamos
+  // para plegar la portada y la información del negocio. Confirmada la
+  // cita, se queda plegada: es una pantalla propia.
+  const stage = useBookingStage();
+  const reportStep = stage?.setStep;
+  useEffect(() => {
+    reportStep?.(bookingId ? steps.length : stepIndex);
+  }, [reportStep, bookingId, stepIndex, steps.length]);
 
   // ── availability ──────────────────────────────────────────────────
   const loadAvailability = useCallback(
@@ -324,8 +345,15 @@ export default function BookingFlow({
     const next = steps.findIndex((s) => s.id === id);
     setDirection(next < stepIndex ? 'back' : 'forward');
     setStepIndex(next);
-    requestAnimationFrame(() => scrollRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' }));
-  }, [steps, stepIndex]);
+    const smooth = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    requestAnimationFrame(() => {
+      // Con portada, la hoja termina arriba del todo en cuanto la portada
+      // se pliega; apuntarle a la hoja mientras la portada cambia de alto
+      // deja el scroll a medias. Sin portada, como siempre.
+      if (stage && next > 0) window.scrollTo({ top: 0, behavior: smooth ? 'smooth' : 'auto' });
+      else scrollRef.current?.scrollIntoView({ block: 'start', behavior: smooth ? 'smooth' : 'auto' });
+    });
+  }, [steps, stepIndex, stage]);
 
   function handleService(svc: Service) {
     const changed = svc.id !== service?.id;
@@ -503,7 +531,7 @@ export default function BookingFlow({
   // ── confirmation ──────────────────────────────────────────────────
   if (bookingId && service && selectedSlot) {
     return (
-      <div className={SHEET}>
+      <div className={stage ? SHEET_FOCUS : SHEET}>
         <ConfirmationScreen
           businessName={businessName}
           service={service}
@@ -566,21 +594,29 @@ export default function BookingFlow({
     if (stepIndex < steps.length - 1) goTo(steps[stepIndex + 1].id);
   }
 
+  // La portada está a la vista: el paso 1 vive debajo de ella, sin
+  // encabezado propio (la portada ya dice dónde estás) y sin panel
+  // lateral en escritorio (esa columna es de la información del negocio).
+  const portada = Boolean(stage) && stepIndex === 0;
+
   return (
     <div
       ref={scrollRef}
       // overflow-clip, not overflow-hidden: hidden makes this box a scroll
       // container, which pins the sticky header and action bar to the card
       // instead of the screen. clip rounds the corners without that.
-      className={`${motion.rise} ${SHEET}`}
+      className={`${motion.rise} ${stage && !portada ? SHEET_FOCUS : SHEET}`}
     >
-      <StepHeader
-        businessName={businessName}
-        steps={steps}
-        currentIndex={stepIndex}
-        canGoBack={stepIndex > 0}
-        onBack={() => goTo(steps[stepIndex - 1].id)}
-      />
+      {!portada && (
+        <StepHeader
+          businessName={businessName}
+          logoUrl={stage ? logoUrl : undefined}
+          steps={steps}
+          currentIndex={stepIndex}
+          canGoBack={stepIndex > 0}
+          onBack={() => goTo(steps[stepIndex - 1].id)}
+        />
+      )}
 
       <SelectionSummary items={summaryItems} onEdit={goTo} />
 
@@ -588,18 +624,18 @@ export default function BookingFlow({
           right that keeps the booking and the action in view. Below lg
           it collapses to one column and the action moves to the bar
           pinned at the bottom. */}
-      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start lg:gap-6 lg:px-6 lg:py-6">
+      <div className={portada ? '' : 'lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start lg:gap-6 lg:px-6 lg:py-6'}>
       <div
         key={currentStep}
-        className={`px-5 py-6 sm:px-6 lg:p-0 ${direction === 'back' ? motion.stepBack : direction ? motion.stepForward : ''}`}
+        className={`px-5 py-6 sm:px-6 ${portada ? 'sm:pt-8' : 'lg:p-0'} ${direction === 'back' ? motion.stepBack : direction ? motion.stepForward : ''}`}
       >
         {currentStep === 'service' && (
           <>
             <StepTitle
               title="¿Qué vas a reservar?"
-              hint="Después eliges cuándo. Puedes cambiarlo en cualquier momento."
+              hint={serviceHint?.trim() || 'Después eliges cuándo. Puedes cambiarlo en cualquier momento.'}
             />
-            <div className="flex flex-col gap-2.5">
+            <div className="flex flex-col gap-3">
               {bookableServices.map((s) => (
                 <ServiceCard
                   key={s.id}
@@ -747,7 +783,7 @@ export default function BookingFlow({
         )}
       </div>
 
-        <SidePanel
+        {!portada && <SidePanel
           rows={sidePanelRows}
           total={service ? publicPrice(service) || undefined : undefined}
           helper={missingHelper}
@@ -760,10 +796,16 @@ export default function BookingFlow({
               ? 'Puedes cambiar o cancelar tu cita después, desde el enlace que te llega.'
               : undefined
           }
-        />
+        />}
       </div>
 
-      <div className="lg:hidden">
+      {/* En pantalla completa la barra baja hasta el borde del teléfono
+          aunque el paso sea corto (fecha), en vez de flotar a media hoja. */}
+      {stage && !portada && <div className="flex-1" aria-hidden="true" />}
+      {/* `contents`: sin caja propia, para que la barra sea sticky respecto
+          a la hoja entera y no a un div de su mismo alto (que la dejaba
+          quieta al final de la lista). */}
+      <div className={portada ? 'contents' : 'contents lg:hidden'}>
       <StickyActionBar
         // The live summary on a phone: what you're booking and what it
         // costs, from the first tap, so the bar never only says "Continuar".

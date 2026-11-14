@@ -22,6 +22,10 @@ import {
 } from '@/lib/branding/colors';
 import { safeHref } from '@/lib/branding/safeHref';
 import BookingFlow from '@/components/booking/BookingFlow';
+import { BookingStageProvider, StageLayout } from '@/components/booking/stage';
+import type { Promo } from '@/lib/lealtad/datos';
+import { lineForDay, nowIn, openStatus } from '@/lib/schedule/openNow';
+import { Cover, FaqList, InfoRail, mapHrefFor } from './Storefront';
 import type { Service, Resource } from '@/components/booking/types';
 import {
   HeroSection,
@@ -143,11 +147,21 @@ export function BlockRenderer({
   blocks,
   bookingData,
   branding = DEFAULT_BRANDING,
+  promos = [],
 }: {
   blocks: Block[];
   bookingData?: BookingData;
   branding?: Branding;
+  /** Promociones vigentes (módulo Lealtad); van dentro de la portada. */
+  promos?: Promo[];
 }) {
+  // La página publicada no apila bloques: es portada + flujo (ver
+  // LivePage). El editor de plantillas, sin datos reales, sigue
+  // dibujando cada bloque en su lugar para poder editarlo.
+  if (bookingData) {
+    return <LivePage blocks={blocks} bookingData={bookingData} branding={branding} promos={promos} />;
+  }
+
   // The booking block's editor preview needs example services. Taking
   // them from THIS page's own "Servicios y precios" section is what
   // keeps a padel template from advertising "Corte de cabello $300" —
@@ -512,6 +526,119 @@ function BlockItem({
         </div>
       );
   }
+}
+
+const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+
+// La página pública real. Dos caras, una sola pantalla:
+//  - INICIO: portada (foto, logo, nombre, abierto/cerrado, dónde, quién
+//    atiende, promo) + el paso 1 + la información resumida del negocio.
+//  - FLUJO: en cuanto se elige servicio y se avanza, la portada y la
+//    información se pliegan y queda solo la reserva (stage.tsx).
+//
+// Los bloques se reparten, no se apilan: `hero` y `team` alimentan la
+// portada; la carta (`services`) se FUNDE con el paso 1 — sus
+// descripciones viajan a la tarjeta de cada servicio y su nota queda
+// como bajada — en vez de repetir la misma lista dos veces; `split`,
+// `hours` y `location` forman el carrusel de información; `faq` es un
+// acordeón. Cualquier otro bloque se dibuja tal cual, también solo en el
+// inicio.
+function LivePage({
+  blocks,
+  bookingData,
+  branding,
+  promos,
+}: {
+  blocks: Block[];
+  bookingData: BookingData;
+  branding: Branding;
+  promos: Promo[];
+}) {
+  const visible = blocks.filter((b) => !b.hidden).map(normalizeBlock);
+  const take = <T extends Block['type']>(type: T) =>
+    visible.find((b) => b.type === type) as Extract<Block, { type: T }> | undefined;
+  const hero = take('hero');
+  const team = take('team');
+  const services = take('services');
+  const faq = take('faq');
+  const split = take('split');
+  const hours = take('hours');
+  const location = take('location');
+  const used = new Set([hero, team, services, faq, split, hours, location].filter(Boolean).map((b) => b!.id));
+  const rest = visible.filter((b) => !used.has(b.id) && b.type !== 'booking' && b.type !== 'hero');
+
+  const described = new Map(
+    (services?.props.items ?? []).filter((i) => i.description).map((i) => [norm(i.name), i.description])
+  );
+  const flowServices = bookingData.services.map((s) => ({
+    ...s,
+    description: s.description || described.get(norm(s.name)) || null,
+  }));
+
+  const now = nowIn(bookingData.timezone);
+  const status = hours ? openStatus(hours.props.lines, now.weekday, now.minutes) : null;
+  const todayIndex = hours ? lineForDay(hours.props.lines, now.weekday) : -1;
+  const address = location?.props.address || bookingData.location || null;
+  const mapHref = mapHrefFor(location?.props, bookingData.location);
+
+  const rail = (
+    <InfoRail
+      split={split?.props ?? null}
+      hours={hours?.props ?? null}
+      location={location?.props.address ? location.props : address ? { heading: 'Dónde estamos', address, mapUrl: '' } : null}
+      branding={branding}
+      status={status}
+      todayIndex={todayIndex}
+      mapHref={mapHref}
+    />
+  );
+  const hasAside = Boolean(split || hours || address || faq || rest.length);
+
+  return (
+    <BookingStageProvider>
+      <StageLayout
+        cover={
+          <Cover
+            businessName={bookingData.businessName ?? ''}
+            hero={hero?.props ?? null}
+            branding={branding}
+            promos={promos}
+            team={team?.props ?? null}
+            status={status}
+            address={address}
+            mapHref={mapHref}
+          />
+        }
+        flow={
+          <BookingFlow
+            slug={bookingData.slug}
+            businessName={bookingData.businessName}
+            services={flowServices}
+            resources={bookingData.resources}
+            accentColor={branding.accentColor}
+            primaryColor={branding.primaryColor}
+            timezone={bookingData.timezone}
+            resourceLabel={bookingData.resourceLabel}
+            resourceQuestion={bookingData.resourceQuestion}
+            location={bookingData.location}
+            serviceHint={services?.props.intro}
+            logoUrl={branding.logoUrl}
+          />
+        }
+        aside={
+          hasAside ? (
+            <div className="flex flex-col gap-10 px-5 pb-16 pt-10 sm:px-0 lg:pb-0 lg:pt-0">
+              {rail}
+              {faq && <FaqList props={faq.props} />}
+              {rest.map((b) => (
+                <BlockItem key={b.id} block={b} branding={branding} />
+              ))}
+            </div>
+          ) : null
+        }
+      />
+    </BookingStageProvider>
+  );
 }
 
 // Used only when the page has no "Servicios y precios" section to borrow

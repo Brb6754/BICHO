@@ -3801,3 +3801,26 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
+**Página pública de reservas: portada + flujo enfocado (2026-11-13)**.
+Pedido de Bruno: "que la información solo aparezca al inicio y de una
+manera más bonita, y que conforme avance el proceso ya no aparezca".
+- `BlockRenderer` con `bookingData` ya no apila bloques: renderiza
+  `LivePage` (portada + flujo). El editor de plantillas (sin
+  `bookingData`) sigue igual. `hero`+`team` alimentan la portada
+  (`components/blocks/Storefront.tsx`: foto a sangre con el nombre
+  enorme encima, logo, abierto/cerrado, "Cómo llegar", promo como
+  boleto, avatares del equipo, CTA con el título del hero); la carta
+  (`services`) se FUNDE con el paso 1 (descripciones por nombre + su
+  nota como bajada); `split`/`hours`/`location` son un carrusel y `faq`
+  un acordeón. Todo eso vive en `StartOnly`.
+- `components/booking/stage.tsx`: contexto opcional del paso.
+  BookingFlow lo reporta; con paso > 0 la portada y la info se pliegan
+  (grid-rows 1fr→0fr, respeta reduced-motion) y la barra del paso lleva
+  logo + nombre + atrás. Sin proveedor (demo /plataforma) nada cambia.
+- `lib/schedule/openNow.ts` (+test): parser del texto libre del bloque
+  de horario; si una línea no se entiende, no se pinta la ficha.
+- `PromosVigentes` pasó a función `promosVigentes()`; la franja de
+  arriba desapareció.
+- Bug viejo corregido: la barra de acción móvil no era sticky (su padre
+  era un div de su mismo alto); ahora el wrapper es `contents`.

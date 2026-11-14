@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Check, Clock, Moon, Sparkles, Sun, Sunrise, Users, Zap, type LucideIcon } from 'lucide-react';
+import { Check, Clock, Moon, Plus, Sparkles, Sun, Sunrise, Users, Zap, type LucideIcon } from 'lucide-react';
 import motion from './motion.module.css';
 import { formatDuration, publicPrice, priceHidden, type Service } from './types';
 
@@ -11,30 +11,13 @@ import { formatDuration, publicPrice, priceHidden, type Service } from './types'
 // still reads as chosen in greyscale, at a glance, and for anyone who
 // doesn't separate the tenant's palette from its own background.
 //
-// Y las tarjetas llevan color SIN estar seleccionadas. Antes eran
-// blancas con una línea de 1px: correcto y exactamente lo que Bruno
-// describió como "parece un documento". Una lista de opciones en la que
-// ninguna tiene color obliga al ojo a leerlas todas; con un relleno
-// tenue del acento del negocio se ven como fichas que se pueden tocar,
-// que es lo que son.
-const SELECTED_RING = `${motion.pop} border-primary ring-1 ring-primary bg-primary/[0.12] shadow-[0_8px_24px_-12px_rgb(var(--color-primary)/0.55)]`;
-const UNSELECTED_RING =
-  'border-transparent bg-accent/[0.09] hover:-translate-y-px hover:bg-accent/[0.16] active:translate-y-0 motion-reduce:transform-none';
-
-function SelectionDot({ selected }: { selected: boolean }) {
-  return (
-    <span
-      aria-hidden="true"
-      className={`mt-0.5 flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
-        selected ? 'border-primary bg-primary' : 'border-ink/20 bg-surface'
-      }`}
-    >
-      {selected && (
-        <Check className={`${motion.pop} h-3 w-3 text-[rgb(var(--color-cta-fg))]`} strokeWidth={3} />
-      )}
-    </span>
-  );
-}
+// Las tarjetas sin elegir ya no van rellenas del acento: superficie con
+// filo fino y sombra en capas, como una ficha de carta, y el color del
+// negocio se gasta en lo que se toca (el botón redondo de agregar, la
+// palomita, el anillo de seleccionado). Así el color significa algo.
+const CARD_SELECTED = `${motion.pop} bg-accent/[0.07] ring-2 ring-primary shadow-[0_12px_28px_-16px_rgb(var(--color-primary)/0.55)]`;
+const CARD_IDLE =
+  'bg-surface ring-1 ring-border shadow-[0_1px_1px_rgb(16_24_40/0.03),0_6px_18px_-12px_rgb(16_24_40/0.16)] hover:-translate-y-px hover:ring-ink/20 hover:shadow-[0_1px_1px_rgb(16_24_40/0.04),0_14px_28px_-14px_rgb(16_24_40/0.22)]';
 
 export function ServiceCard({
   service,
@@ -45,52 +28,80 @@ export function ServiceCard({
   selected: boolean;
   onSelect: () => void;
 }) {
+  const price = priceHidden(service) ? '' : publicPrice(service) || 'Sin costo';
   return (
     <button
       type="button"
       onClick={onSelect}
       aria-pressed={selected}
-      // The whole card is the control. The old flow put a chevron at the
-      // end of a row, which reads as "there is more inside" rather than
-      // "pick this", and gave a 24px target on a 375px screen.
-      className={`flex w-full items-start gap-3.5 rounded-2xl border p-4 text-left transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
-        selected ? SELECTED_RING : UNSELECTED_RING
+      // La tarjeta entera es el control. Se lee como una ficha de carta:
+      // nombre en la tipografía del negocio, la descripción que escribió
+      // en su carta, y abajo los dos datos que se comparan — cuánto dura
+      // y cuánto cuesta. El botón redondo dice "agrégalo" sin palabras y
+      // se vuelve una palomita al elegir; la selección nunca depende
+      // solo del color (palomita + borde + peso).
+      className={`group relative flex w-full flex-col rounded-[22px] p-[18px] text-left transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 active:scale-[0.985] motion-reduce:transform-none ${
+        selected ? CARD_SELECTED : CARD_IDLE
       }`}
     >
-      <SelectionDot selected={selected} />
-
-      <span className="min-w-0 flex-1">
-        <span
-          className={`block text-[17px] leading-snug text-ink ${selected ? 'font-semibold' : 'font-medium'}`}
-          style={{ fontFamily: 'var(--tpl-heading-font, var(--font-heading))', letterSpacing: 'var(--tpl-heading-tracking)' }}
-        >
-          {service.name}
+      <span className="flex items-start gap-4">
+        <span className="min-w-0 flex-1">
+          <span
+            className={`block text-[19px] leading-[1.2] text-ink ${selected ? 'font-semibold' : 'font-medium'}`}
+            style={{ fontFamily: 'var(--tpl-heading-font, var(--font-heading))', letterSpacing: 'var(--tpl-heading-tracking)' }}
+          >
+            {service.name}
+          </span>
+          {service.description && (
+            <span className="mt-1.5 line-clamp-2 block text-[13.5px] leading-relaxed text-muted">{service.description}</span>
+          )}
         </span>
-        {service.description && (
-          <span className="mt-1 block text-[13px] leading-relaxed text-muted">{service.description}</span>
-        )}
-        <span className="mt-1.5 flex items-center gap-1.5 text-[13px] text-muted">
-          <Clock className="h-3.5 w-3.5" aria-hidden="true" />
-          {formatDuration(service.duration_minutes)}
+        <span
+          aria-hidden="true"
+          className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition duration-200 ${
+            selected
+              ? 'bg-primary text-[rgb(var(--color-cta-fg))]'
+              : 'bg-accent/[0.14] text-ink group-hover:bg-accent/25'
+          }`}
+        >
+          {selected ? (
+            <Check className={`${motion.pop} h-4 w-4`} strokeWidth={3} />
+          ) : (
+            <Plus className="h-4 w-4" strokeWidth={2.25} />
+          )}
         </span>
       </span>
 
-      {/* El precio es una ficha, no una columna de texto: es el dato que
-          la gente compara, y en una fila de texto plano pesa lo mismo
-          que la duración. */}
-      {!priceHidden(service) && (
-        <span className="shrink-0">
-          <span
-            className={`block rounded-full px-3 py-1 text-[15px] font-bold tabular-nums transition-colors ${
-              selected ? 'bg-primary text-[rgb(var(--color-cta-fg))]' : 'bg-primary/[0.14] text-ink'
-            }`}
-          >
-            {publicPrice(service) || 'Sin costo'}
-          </span>
+      <span className="mt-4 flex items-center justify-between gap-3 border-t border-border pt-3.5">
+        <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-muted">
+          <Clock className="h-3.5 w-3.5" aria-hidden="true" />
+          {formatDuration(service.duration_minutes)}
         </span>
-      )}
+        {price && (
+          <span
+            className="text-[18px] font-semibold tabular-nums text-ink"
+            style={{ fontFamily: 'var(--tpl-heading-font, var(--font-heading))' }}
+          >
+            {price}
+          </span>
+        )}
+      </span>
     </button>
   );
+}
+
+// Mismo lenguaje que la tarjeta de servicio: superficie con filo fino y
+// sombra en capas, y la palomita a la derecha. A la izquierda, la cara de
+// quien atiende (sus iniciales; el esquema no guarda fotos) o, para
+// "cualquiera", el ícono de grupo.
+function initialsOf(name: string): string {
+  return name
+    .replace(/^(dra?\.|lic\.)\s*/i, '')
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((w) => w[0] ?? '')
+    .join('')
+    .toUpperCase();
 }
 
 export function ResourceCard({
@@ -114,18 +125,25 @@ export function ResourceCard({
       type="button"
       onClick={onSelect}
       aria-pressed={selected}
-      className={`flex w-full items-center gap-3.5 rounded-2xl border p-4 text-left transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
-        selected ? SELECTED_RING : UNSELECTED_RING
+      className={`group flex w-full items-center gap-4 rounded-[22px] p-4 text-left transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 active:scale-[0.985] motion-reduce:transform-none ${
+        selected ? CARD_SELECTED : CARD_IDLE
       }`}
     >
-      <SelectionDot selected={selected} />
+      <span
+        aria-hidden="true"
+        className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-[14px] font-semibold text-ink ${
+          recommended ? 'bg-accent/[0.18]' : 'bg-primary/[0.1]'
+        }`}
+      >
+        {recommended ? <Users className="h-5 w-5" /> : initialsOf(name)}
+      </span>
       <span className="min-w-0 flex-1">
         <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span className={`text-[15px] leading-snug text-ink ${selected ? 'font-semibold' : 'font-medium'}`}>
+          <span className={`text-[16px] leading-snug text-ink ${selected ? 'font-semibold' : 'font-medium'}`}>
             {name}
           </span>
           {recommended && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-ink">
+            <span className="inline-flex items-center gap-1 rounded-full bg-accent/[0.16] px-2 py-0.5 text-[11px] font-semibold text-ink">
               <Sparkles className="h-3 w-3" aria-hidden="true" />
               Más horarios
             </span>
@@ -133,8 +151,21 @@ export function ResourceCard({
         </span>
         {meta && <span className="mt-1 block text-[13px] text-muted">{meta}</span>}
       </span>
-      {recommended && <Users className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />}
+      <CheckBubble selected={selected} />
     </button>
+  );
+}
+
+function CheckBubble({ selected }: { selected: boolean }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition duration-200 ${
+        selected ? 'bg-primary text-[rgb(var(--color-cta-fg))]' : 'ring-[1.5px] ring-inset ring-ink/20'
+      }`}
+    >
+      {selected && <Check className={`${motion.pop} h-3.5 w-3.5`} strokeWidth={3} />}
+    </span>
   );
 }
 

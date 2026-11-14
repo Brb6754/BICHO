@@ -23,7 +23,7 @@ describe('isReservedSlug', () => {
   });
 
   it('refuses the app’s own top-level routes', () => {
-    for (const name of ['demo', 'ia', 'plataforma', 'privacidad', 'terminos', 'api']) {
+    for (const name of ['demo', 'ia', 'plataforma', 'privacidad', 'terminos', 'negocios', 'api']) {
       expect(isReservedSlug(name)).toBe(true);
     }
   });

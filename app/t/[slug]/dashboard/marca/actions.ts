@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireTenantStaff, StaffAccessError } from '@/lib/auth/tenantStaff';
 import { ESTILOS, type Estilo } from '@/lib/branding/dashEstilo';
+import { guardarDirectorio, type DirectorioInput, type DirectorioResult } from '@/lib/directorio/servidor';
 import { LOGO_EXT, isHexColor, logoFileError, sniffImageType } from '@/lib/branding/logoUpload';
 
 const BUCKET = 'tenant-logos';
@@ -102,4 +103,24 @@ export async function updateDashboardEstilo(slug: string, estilo: Estilo): Promi
   }
   revalidatePath(`/t/${slug}/dashboard`, 'layout');
   return { ok: true };
+}
+
+// Directorio Bicho (db/055). Mismo patrón: pertenencia y rol aquí, y el
+// update con el cliente de cookies para que RLS vuelva a exigir owner.
+export async function updateOwnDirectorio(slug: string, input: DirectorioInput): Promise<DirectorioResult> {
+  let tenantId: string;
+  try {
+    const staff = await requireTenantStaff(slug);
+    if (staff.role !== 'owner') return { ok: false, error: 'Solo el dueño puede cambiar esto.' };
+    tenantId = staff.tenantId;
+  } catch (err) {
+    if (err instanceof StaffAccessError) return { ok: false, error: err.message };
+    throw err;
+  }
+  const r = await guardarDirectorio(await createClient(), tenantId, slug, input);
+  if (r.ok) {
+    revalidatePath(`/t/${slug}/dashboard/marca`);
+    revalidatePath('/negocios', 'layout');
+  }
+  return r;
 }

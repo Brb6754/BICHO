@@ -25,6 +25,9 @@ export function MarketingFooter() {
           <a href="/reservas#vendedores" className={`rounded-sm transition-colors hover:text-white ${focusRingOnDark}`}>
             Vendedores
           </a>
+          <a href="/negocios" className={`rounded-sm transition-colors hover:text-white ${focusRingOnDark}`}>
+            Negocios
+          </a>
           <a href="mailto:nonameynk@gmail.com" className={`rounded-sm transition-colors hover:text-white ${focusRingOnDark}`}>
             Contacto
           </a>

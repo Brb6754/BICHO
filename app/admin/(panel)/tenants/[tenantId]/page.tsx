@@ -20,6 +20,7 @@ import {
   createTenantOwner,
   setTenantWhatsapp,
   setTenantProduct,
+  setTenantDirectorio,
   type TenantBranding,
 } from './actions';
 import { BrandEditor } from './BrandEditor';
@@ -31,6 +32,9 @@ import { ESTILOS, estiloDe } from '@/lib/branding/dashEstilo';
 import { getWhatsappAddon } from '@/lib/whatsapp/addonStatus';
 import { formatMxn, isMissingResellersTable } from '@/lib/resellers';
 import { OwnerCreator } from './OwnerCreator';
+import { DirectorioForm } from '@/components/tenant-setup/DirectorioForm';
+import { direccionDeBloques, estadoDirectorio } from '@/lib/directorio/servidor';
+import { isDemoSlug } from '@/lib/domains';
 import { isMissingReferrals } from '@/lib/referidos/grant';
 import { TemplateBuilder } from '../../templates/[templateId]/TemplateBuilder';
 import { createDefaultBlock, type Block } from '@/lib/templates/blocks';
@@ -208,6 +212,9 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ t
     ? await admin.from('tenants').select('id, name').eq('id', referredBy.referrer_tenant_id).maybeSingle()
     : { data: null };
   const CREDIT_LABEL: Record<string, string> = { none: 'Sin pago aún', applied: 'Mes aplicado (prueba +30 días)', pending: 'Pendiente: aplicar a mano', done: 'Aplicado a mano' };
+
+  const dir = await estadoDirectorio(admin, tenant.id);
+  const direccionBloque = direccionDeBloques(tenant.page_blocks);
 
   return (
     <div>
@@ -401,6 +408,23 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ t
         )}
       </section>
 
+
+      <section className="mt-10 max-w-3xl [&>section]:rounded-2xl">
+        {isDemoSlug(tenant.slug) ? (
+          <Card className="max-w-xl">
+            <p className="text-sm font-medium text-ink">Directorio Bicho</p>
+            <p className="mt-1.5 text-sm text-muted">Es un negocio de demostración: nunca sale en el directorio.</p>
+          </Card>
+        ) : (
+          <DirectorioForm
+            slug={tenant.slug}
+            disponible={dir !== null}
+            conPin={dir?.conPin ?? false}
+            inicial={{ enDirectorio: dir?.enDirectorio ?? false, ciudad: dir?.ciudad ?? '', direccion: dir?.direccion || direccionBloque }}
+            onSave={setTenantDirectorio.bind(null, tenant.id)}
+          />
+        )}
+      </section>
 
       {resellersAvailable && (
         <section className="mt-10">

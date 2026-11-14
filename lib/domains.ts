@@ -83,6 +83,7 @@ export const RESERVED_SLUGS = new Set<string>([
   'registro',
   'privacidad',
   'terminos',
+  'negocios',
   'api',
   'auth',
   // Infrastructure and brand names that must stay ours.

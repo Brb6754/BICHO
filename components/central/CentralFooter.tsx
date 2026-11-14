@@ -30,6 +30,9 @@ export function CentralFooter() {
           <Link href="/reservas" className={`rounded-sm transition-colors hover:text-white ${focusRingOnDark}`}>
             La plataforma
           </Link>
+          <Link href="/negocios" className={`rounded-sm transition-colors hover:text-white ${focusRingOnDark}`}>
+            Negocios
+          </Link>
           <a
             href="mailto:nonameynk@gmail.com"
             className={`rounded-sm transition-colors hover:text-white ${focusRingOnDark}`}

@@ -7,6 +7,7 @@ import { syncSubscriptionForTenant } from '@/lib/payments/resellerSubscription';
 import { COLUMNA_MODULO, PLANES, moduloIncluido, planDe, planMinimoPara } from '@/lib/billing/planes';
 import { cambiarPlan } from '@/lib/billing/planServer';
 import { ESTILOS } from '@/lib/branding/dashEstilo';
+import { guardarDirectorio, type DirectorioInput, type DirectorioResult } from '@/lib/directorio/servidor';
 
 // Real writes, no redirect() involved — safe from the Server-Action
 // redirect-bypasses-middleware issue documented in CLAUDE.md.
@@ -301,4 +302,18 @@ export async function setTenantProduct(
 
   revalidatePath(`/admin/tenants/${tenantId}`);
   revalidatePath(`/vendedor/negocios/${tenantId}`);
+}
+
+/** El switch del directorio Bicho (db/055), desde el panel interno. */
+export async function setTenantDirectorio(tenantId: string, input: DirectorioInput): Promise<DirectorioResult> {
+  await requireAdmin();
+  const admin = createAdminClient();
+  const { data: t } = await admin.from('tenants').select('slug').eq('id', tenantId).maybeSingle();
+  if (!t) return { ok: false, error: 'Ese negocio ya no existe.' };
+  const r = await guardarDirectorio(admin, tenantId, t.slug as string, input);
+  if (r.ok) {
+    revalidatePath(`/admin/tenants/${tenantId}`);
+    revalidatePath('/negocios', 'layout');
+  }
+  return r;
 }

@@ -1,6 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { appointmentWhen } from '@/lib/dates/tenantTime';
 import { toE164Mx } from './phone';
+import { enviarPlantilla } from './media';
 
 // WhatsApp confirmations, as a paid add-on.
 //
@@ -165,4 +166,29 @@ export async function sendBookingWhatsApp({
     console.error('whatsapp send threw', error);
     return { status: 'failed', reason: message };
   }
+}
+
+// ── Boost de clientes (db/058) ───────────────────────────────────────
+// Plantillas de Meta, no texto libre: la clienta no está chateando.
+//   vip    → WHATSAPP_TEMPLATE_BOOST_VIP    (UTILITY, aviso de hueco liberado, sin descuento)
+//   flojas → WHATSAPP_TEMPLATE_BOOST_FLOJAS (MARKETING, promoción con ventana)
+// Variables y texto sugerido: WHATSAPP_SETUP.md → "Boost". Sale del número
+// propio del negocio si tiene; si no, del de la plataforma. Nunca lanza;
+// quien llama registra el resultado en boost_mensajes (sin el teléfono).
+export type BoostEnvio = { status: 'sent' | 'failed' | 'skipped'; reason?: string };
+
+export async function sendBoostWhatsApp(
+  tipo: 'vip' | 'flojas',
+  phoneNumberIdNegocio: string | null | undefined,
+  telefono: string,
+  variables: string[]
+): Promise<BoostEnvio> {
+  const phoneNumberId = phoneNumberIdNegocio || process.env.WHATSAPP_PHONE_NUMBER_ID;
+  if (!process.env.WHATSAPP_ACCESS_TOKEN || !phoneNumberId) return { status: 'skipped', reason: 'WhatsApp no configurado en la plataforma' };
+  const plantilla = process.env[tipo === 'vip' ? 'WHATSAPP_TEMPLATE_BOOST_VIP' : 'WHATSAPP_TEMPLATE_BOOST_FLOJAS'];
+  if (!plantilla) return { status: 'skipped', reason: `Falta la plantilla de Boost "${tipo}"` };
+  const to = toE164Mx(telefono);
+  if (!to) return { status: 'skipped', reason: 'Teléfono no utilizable' };
+  const r = await enviarPlantilla(phoneNumberId, to, plantilla, variables);
+  return r.ok ? { status: 'sent' } : { status: 'failed', reason: (r.error ?? 'error').slice(0, 300) };
 }

@@ -44,6 +44,23 @@ export const ADDON_COTIZA_WHATSAPP = {
   requiere: 'pro' as PlanId,
 };
 
+// Add-on "Boost de clientes" (db/058): llena huecos de la agenda con
+// clientas que el negocio ya tiene (lista VIP de cancelaciones + horas
+// flojas con descuento). Se vende ENCIMA de Negocio o Pro, con tope de
+// mensajes al mes. El cobro todavía no está conectado a MP.
+export const PRECIO_BOOST_MXN = 399;
+export const TOPE_BOOST_MENSAJES_MES = 300;
+export const ADDON_BOOST = {
+  nombre: 'Boost de clientes',
+  precio: PRECIO_BOOST_MXN,
+  topeMensajes: TOPE_BOOST_MENSAJES_MES,
+  planes: ['negocio', 'pro'] as PlanId[],
+};
+
+// Add-ons: se contratan en estos planes, pero cambiar de plan NO los
+// prende (banderasDelPlan los salta): se pagan aparte.
+const ADDON_PLANES: Partial<Record<Modulo, PlanId[]>> = { boost: ADDON_BOOST.planes };
+
 // Módulos que no dependen del plan: posts está apagado como producto y
 // WhatsApp (recepcionista + Cotiza) se gobierna con sus propios switches
 // en /dashboard/whatsapp; banderasDelPlan no los toca.
@@ -64,6 +81,7 @@ export const COLUMNA_MODULO: Record<Modulo, string> = {
   comisiones: 'comisiones_enabled',
   inventario: 'inventario_enabled',
   whatsapp: 'agente_whatsapp_enabled',
+  boost: 'boost_vip_enabled',
 };
 
 export function planDe(raw: unknown): PlanId | null {
@@ -72,12 +90,12 @@ export function planDe(raw: unknown): PlanId | null {
 
 /** Sin plan nuevo (null) todo se puede prender, como antes. */
 export function moduloIncluido(plan: PlanId | null, modulo: Modulo): boolean {
-  return plan === null || SIN_PLAN.includes(modulo) || PLANES[plan].modulos.includes(modulo);
+  return plan === null || SIN_PLAN.includes(modulo) || (ADDON_PLANES[modulo]?.includes(plan) ?? PLANES[plan].modulos.includes(modulo));
 }
 
 /** El plan más barato que incluye el módulo (para "incluido en Pro"). */
 export function planMinimoPara(modulo: Modulo): PlanId {
-  return PLAN_IDS.find((p) => PLANES[p].modulos.includes(modulo)) ?? 'pro';
+  return PLAN_IDS.find((p) => ADDON_PLANES[modulo]?.includes(p) ?? PLANES[p].modulos.includes(modulo)) ?? 'pro';
 }
 
 /** Lo que paga al mes un negocio ya dado de alta. */
@@ -116,7 +134,7 @@ export function congelaFundador(
 export function banderasDelPlan(plan: PlanId): Record<string, boolean> {
   const out: Record<string, boolean> = {};
   for (const m of Object.keys(COLUMNA_MODULO) as Modulo[]) {
-    if (!SIN_PLAN.includes(m)) out[COLUMNA_MODULO[m]] = PLANES[plan].modulos.includes(m);
+    if (!SIN_PLAN.includes(m) && !ADDON_PLANES[m]) out[COLUMNA_MODULO[m]] = PLANES[plan].modulos.includes(m);
   }
   return out;
 }

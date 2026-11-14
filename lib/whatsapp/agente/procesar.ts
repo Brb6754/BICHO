@@ -11,6 +11,8 @@ import { correrAgente, type Turno } from './agente';
 import { TOOLS, ejecutarHerramienta } from './herramientas';
 import { agenteDisponible, cotizaDisponible, resolverTenant } from './ruteo';
 import { puedeMandarArchivo, revisarTope } from './tope';
+import { esBaja } from '@/lib/boost/reglas';
+import { darDeBaja } from '@/lib/boost/publico';
 
 // Un mensaje entrante, de punta a punta: dedup → negocio → tope →
 // conversación → (si está en modo IA) agente → respuesta. Corre DESPUÉS
@@ -69,8 +71,9 @@ export type Deps = {
   factura?: ContextoCotiza['deps'];
 };
 
-export type Resultado = 'duplicado' | 'ignorado' | 'sin_resolver' | 'agente_apagado' | 'tope' | 'humano' | 'respondido' | 'error';
+export type Resultado = 'baja' | 'duplicado' | 'ignorado' | 'sin_resolver' | 'agente_apagado' | 'tope' | 'humano' | 'respondido' | 'error';
 
+const CONFIRMA_BAJA = 'Listo, ya no te mandaremos avisos de horarios libres ni promociones. Si cambias de opinión, vuelve a apuntarte en la página del negocio.';
 const AVISO_TOPE = 'Recibí muchos mensajes seguidos. Dame un rato y te contesto, o espera a que alguien del negocio te escriba por aquí.';
 const SOLO_TEXTO = 'Por ahora solo puedo leer mensajes de texto. ¿Me lo escribes?';
 const SIN_AUDIO = 'Por ahora no puedo escuchar notas de voz. ¿Me escribes tu mensaje?';
@@ -95,6 +98,19 @@ export async function procesarMensaje(m: MensajeEntrante, deps: Deps = {}): Prom
     // Sin tabla de dedup (db/056 sin correr) no se arriesga a duplicar citas.
     console.error('whatsapp dedup falló', { id: m.id, code: dupError.code });
     return 'error';
+  }
+
+  // "BAJA" de los avisos de Boost (db/058), antes que el agente: es una
+  // orden, no una plática. Si la persona no está en ninguna lista VIP (o
+  // db/058 no está corrida), el mensaje sigue su camino normal.
+  if (m.type === 'text' && esBaja(m.texto)) {
+    const { data: propio } = await db.from('tenants').select('id').eq('whatsapp_phone_number_id', m.phoneNumberId).maybeSingle();
+    const marcadas = await darDeBaja(db, m.from, (propio?.id as string | undefined) ?? null);
+    if (marcadas) {
+      console.info('whatsapp baja boost', { id: m.id });
+      await enviar(m.phoneNumberId, m.from, CONFIRMA_BAJA);
+      return 'baja';
+    }
   }
 
   const ruteo = await resolverTenant(db, { phoneNumberId: m.phoneNumberId, from: m.from, texto: m.texto });

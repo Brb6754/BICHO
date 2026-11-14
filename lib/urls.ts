@@ -97,3 +97,13 @@ export function quotePdfUrl(quoteId: string): string {
   const protocol = rootDomain.startsWith('localhost') ? 'http' : 'https';
   return `${protocol}://${rootDomain}/api/cotizacion/${quoteId}/pdf`;
 }
+
+// Link de una oferta de Boost (lista VIP u horas flojas) que va en la
+// plantilla de WhatsApp. Misma forma por path que tenantManageBookingUrl.
+// El id de la oferta (uuid) es el único token: el precio lo decide el
+// servidor leyendo la fila, nunca un parámetro de la URL.
+export function tenantBoostOfferUrl(slug: string, ofertaId: string): string {
+  const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? 'localhost:3000';
+  const protocol = rootDomain.startsWith('localhost') ? 'http' : 'https';
+  return `${protocol}://${rootDomain}/t/${slug}/reservar/boost/${ofertaId}`;
+}

@@ -5,6 +5,7 @@ import { esServicio } from '@/lib/meetings/kinds';
 import { addDaysKey, appointmentWhen, dayKey, formatTime } from '@/lib/dates/tenantTime';
 import { tenantManageBookingUrl } from '@/lib/urls';
 import { toE164Mx } from '@/lib/whatsapp/phone';
+import { avisarCitaLiberada } from '@/lib/boost/motor';
 
 // Las herramientas de la recepcionista. Cada una recibe el contexto
 // (negocio + teléfono del remitente) por cierre, NUNCA del modelo: el
@@ -232,6 +233,8 @@ export async function ejecutarHerramienta(ctx: Contexto, nombre: string, input: 
         .gt('starts_at', new Date().toISOString())
         .select('id');
       if (error || !data?.length) throw new Error('No se pudo cancelar la cita.');
+      // Boost (db/058): el hueco se liberó; avisa a la lista VIP. Nunca lanza.
+      await avisarCitaLiberada(ctx.db, ctx.tenantId, id);
       return { cancelada: true };
     }
 

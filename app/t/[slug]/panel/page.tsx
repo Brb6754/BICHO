@@ -30,6 +30,8 @@ const PRODUCTOS_DEMO = {
   posts: false,
   // La demo enseña la recepcionista y Cotiza con pláticas inventadas (panel/whatsapp).
   whatsapp: true,
+  // Boost de clientes con lista VIP y resultados de ejemplo (panel/boost).
+  boost: true,
 };
 
 export const metadata: Metadata = {

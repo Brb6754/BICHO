@@ -63,6 +63,8 @@ export default async function PanelDemoLayout({
         inventarioEnabled
         // Y WhatsApp, con pláticas y cotizaciones inventadas (panel/whatsapp).
         whatsappEnabled
+        // Boost con lista VIP y resultados de ejemplo (panel/boost).
+        boost="on"
         bookingHref="/"
         footer={
           // El Sidebar ya trae arriba "Ver mi página de reservas", así

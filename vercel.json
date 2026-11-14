@@ -7,6 +7,10 @@
     {
       "path": "/api/cron/seguimiento-cotizaciones",
       "schedule": "0 17 * * *"
+    },
+    {
+      "path": "/api/cron/boost",
+      "schedule": "0 18 * * *"
     }
   ]
 }

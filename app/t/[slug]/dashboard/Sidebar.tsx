@@ -28,6 +28,8 @@ import {
   House,
   Ellipsis,
   MessageCircle,
+  Zap,
+  Lock,
 } from 'lucide-react';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { BusinessMark } from '@/components/tenant-dash/BusinessMark';
@@ -87,6 +89,8 @@ const NAV_ITEMS: {
   requiresComisiones?: boolean;
   requiresInventario?: boolean;
   requiresWhatsapp?: boolean;
+  /** Boost de clientes: add-on de Negocio/Pro (con candado en Esencial). */
+  requiresBoost?: boolean;
   /** Citas O reuniones: las dos agendan sobre las mismas personas y el mismo horario. */
   requiresAgenda?: boolean;
   /** Solo el dueño de un negocio real (los demos con navBase no tienen esta página). */
@@ -119,6 +123,8 @@ const NAV_ITEMS: {
   { href: '/dashboard/posts', label: 'Posts con IA', icon: Megaphone, requiresPosts: true, group: 'clientes' },
   // WhatsApp (db/056, db/057): recepcionista y Cotiza por WhatsApp; habla con las mismas personas.
   { href: '/dashboard/whatsapp', label: 'WhatsApp', icon: MessageCircle, requiresWhatsapp: true, group: 'clientes' },
+  // Boost (db/058): llena huecos de la agenda con esas mismas clientas.
+  { href: '/dashboard/boost', label: 'Boost', icon: Zap, requiresBoost: true, group: 'clientes' },
   { href: '/dashboard/cotizaciones', label: 'Cotizaciones', icon: FileText, requiresQuotes: true, group: 'dinero' },
   // Cuarto módulo. Arriba de cotizaciones no: primero se habla con el
   // prospecto y después se le pone precio, así que este es el orden
@@ -176,6 +182,7 @@ export function Sidebar({
   comisionesEnabled = false,
   inventarioEnabled = false,
   whatsappEnabled = false,
+  boost,
   bookingHref,
   footer,
 }: {
@@ -217,6 +224,8 @@ export function Sidebar({
   inventarioEnabled?: boolean;
   /** WhatsApp: plan Pro o recepcionista/Cotiza prendidos (lib/products whatsappVisible). */
   whatsappEnabled?: boolean;
+  /** Boost: 'on' = abre su página; 'locked' = el plan no lo incluye, candado a /dashboard/plan; sin valor = oculto. */
+  boost?: 'on' | 'locked';
   // Same reason: the demo's booking page isn't on a tenant subdomain.
   bookingHref?: string;
   // Defaults to the real sign-out. The demo has no session to end.
@@ -257,13 +266,16 @@ export function Sidebar({
       (!item.requiresComisiones || comisionesEnabled) &&
       (!item.requiresInventario || inventarioEnabled) &&
       (!item.requiresWhatsapp || whatsappEnabled) &&
+      (!item.requiresBoost || Boolean(boost)) &&
       (!item.requiresAgenda || reservasEnabled || reunionesEnabled) &&
       (!item.requiresFacturacion || facturacionEnabled) &&
       (!item.ownerOnly || (role === 'owner' && !navBase))
   ).map((item) => {
-    const href = navBase ? `${navBase}${item.href.slice(DASHBOARD_ROOT.length)}` : item.href;
+    const locked = item.requiresBoost === true && boost === 'locked';
+    const destino = locked ? `${DASHBOARD_ROOT}/plan` : item.href;
+    const href = navBase ? `${navBase}${destino.slice(DASHBOARD_ROOT.length)}` : destino;
     const isActive = item.exact ? pathname === href : (pathname?.startsWith(href) ?? false);
-    return { ...item, href, key: item.href, isActive };
+    return { ...item, href, key: item.href, isActive: locked ? false : isActive, locked };
   });
 
   const bottom = BOTTOM_PRIORITY.map((h) => visible.find((v) => v.key === h))
@@ -397,6 +409,9 @@ export function Sidebar({
                             aria-hidden="true"
                           />
                           <span className="truncate">{item.label}</span>
+                          {item.locked && (
+                            <Lock className="ml-auto h-3.5 w-3.5 shrink-0" aria-label="Fuera de tu plan" />
+                          )}
                         </Link>
                       </li>
                     );

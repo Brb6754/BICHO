@@ -18,6 +18,7 @@
   - Migración `db/056` SIN correr.
   - Faltan: botón wa.me en reservar y la prueba real con el número (tope de mensajes y link en Sidebar ya hechos).
 - Add-on Cotiza por WhatsApp (cotizar del catálogo, aceptar, facturar CFDI con constancia leída por Claude, seguimiento 48 h): migración `db/057` SIN correr, plantilla de seguimiento sin aprobar, precio por decidir ($1,499 propuesto), sin cobro (Mercado Pago por negocio = siguiente paso). Ver WHATSAPP_SETUP.md → "Cotiza".
+- Add-on Boost de clientes (Negocio/Pro, $399/mes, 300 msj/mes): lista VIP de cancelaciones + horas flojas con descuento de 20 min, panel `/dashboard/boost`, demo `/panel/boost`, cron diario `/api/cron/boost`. Migración `db/058` SIN correr, plantillas `WHATSAPP_TEMPLATE_BOOST_VIP/FLOJAS` sin aprobar, sin cobro. Ver WHATSAPP_SETUP.md → "Boost".
 
 ## Pendiente de Bruno
 - Correr `db/055_directorio.sql`.

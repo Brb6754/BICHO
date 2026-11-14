@@ -5,6 +5,8 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireTenantStaff } from '@/lib/auth/tenantStaff';
 import { rescheduleBooking } from '@/lib/bookings/reschedule';
+import { after } from 'next/server';
+import { avisarCitaLiberada } from '@/lib/boost/motor';
 
 export async function cancelBooking(bookingId: string, slug: string) {
   const supabase = await createClient();
@@ -18,6 +20,8 @@ export async function cancelBooking(bookingId: string, slug: string) {
     .eq('tenant_id', tenant.id);
   if (error) throw new Error(`No se pudo cancelar la cita: ${error.message}`);
 
+  // Boost (db/058): el hueco se liberó; avisa a la lista VIP sin hacer esperar al dueño.
+  after(() => avisarCitaLiberada(createAdminClient(), tenant.id, bookingId));
   revalidatePath(`/t/${slug}/dashboard/calendar`);
 }
 

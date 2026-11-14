@@ -11,7 +11,7 @@ import { Sidebar } from './Sidebar';
 import { TrialBanner } from '@/components/tenant-dash/TrialBanner';
 import { tenantAccess } from '@/lib/billing/trial';
 import { estiloDe } from '@/lib/branding/dashEstilo';
-import { whatsappVisible } from '@/lib/products';
+import { boostVisible, whatsappVisible } from '@/lib/products';
 
 export default async function DashboardLayout({
   children,
@@ -92,6 +92,8 @@ export default async function DashboardLayout({
   const inventarioEnabled = ajustes?.inventario_enabled === true;
   // WhatsApp (db/056/057): visible con plan Pro (ahí se prende) o si ya está prendido.
   const whatsappEnabled = whatsappVisible(ajustes);
+  // Boost (db/058): add-on de Negocio/Pro. En Esencial sale con candado hacia /dashboard/plan.
+  const boost = boostVisible(ajustes) ? 'on' : ajustes?.plan === 'esencial' ? 'locked' : undefined;
 
   const { data: membership } = await supabase
     .from('business_users')
@@ -143,6 +145,7 @@ export default async function DashboardLayout({
         comisionesEnabled={comisionesEnabled}
         inventarioEnabled={inventarioEnabled}
         whatsappEnabled={whatsappEnabled}
+        boost={boost}
       />
       <main className="dash-main relative z-10 min-w-0 flex-1 px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-20 sm:px-8 lg:px-12 lg:pb-16 lg:pt-12">
         <div className="dash-page mx-auto max-w-5xl">

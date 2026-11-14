@@ -32,6 +32,8 @@ export type ProductosDelNegocio = {
   inventario: boolean;
   /** /dashboard/whatsapp visible: plan Pro (para poder prenderlo) o algo ya prendido. */
   whatsapp: boolean;
+  /** /dashboard/boost visible: plan Negocio o Pro (donde se prende), o ya prendido. */
+  boost: boolean;
 };
 
 export async function productosDe(slug: string): Promise<ProductosDelNegocio> {
@@ -70,7 +72,14 @@ export async function productosDe(slug: string): Promise<ProductosDelNegocio> {
     inventario: data?.inventario_enabled === true,
     // WhatsApp (db/056, db/057): no es un switch único; ver whatsappVisible.
     whatsapp: whatsappVisible(data),
+    // Boost de clientes (db/058): add-on de Negocio/Pro; ver boostVisible.
+    boost: boostVisible(data),
   };
+}
+
+/** Boost se enseña a un negocio Negocio/Pro (ahí se prende) o a uno que ya lo tiene prendido. */
+export function boostVisible(t: Record<string, unknown> | null | undefined): boolean {
+  return t?.plan === 'negocio' || t?.plan === 'pro' || t?.boost_vip_enabled === true || t?.boost_flojas_enabled === true;
 }
 
 /** El menú enseña WhatsApp a un negocio Pro (es donde se prende) o a uno que ya lo tiene prendido. */

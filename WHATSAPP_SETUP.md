@@ -202,3 +202,73 @@ plática normal son 5–15 mensajes). Constantes en `lib/whatsapp/agente/tope.ts
 - **Precio** del add-on: `PRECIO_COTIZA_WHATSAPP_MXN` en `lib/billing/planes.ts`
   (propuesta $1,499/mes). No está en la landing ni se cobra todavía.
 - **Cobro** por WhatsApp: no implementado; necesita la cuenta de Mercado Pago de cada negocio.
+
+## 7. Boost de clientes (add-on de Negocio y Pro)
+
+Llena huecos de la agenda con clientas que el negocio ya tiene. $399/mes,
+tope de **300 mensajes al mes por negocio** (`PRECIO_BOOST_MXN` y
+`TOPE_BOOST_MENSAJES_MES` en `lib/billing/planes.ts`). El cobro todavía no
+está conectado a Mercado Pago. Se prende en `/dashboard/boost`.
+
+- **Lista VIP de cancelaciones:** la clienta se apunta en la página de
+  reservas ("Avísame si se libera algo") con su teléfono, días, franjas y
+  la casilla de permiso (obligatoria). Cuando se cancela una cita (panel,
+  link de la clienta o recepcionista), se avisa hasta a 3 compatibles, sin
+  descuento. La primera que aparta se lo queda; a la segunda se le dice que
+  ya lo ganaron (el exclusion constraint de `bookings` evita la cita doble).
+- **Horas flojas:** el cron `/api/cron/boost` (diario, 18:00 UTC = 12:00
+  CDMX) busca huecos libres en las próximas horas y se los ofrece con el
+  descuento máximo del negocio a clientas con historial en esa franja que
+  aceptaron promociones. El descuento vale 20 minutos (fila en
+  `boost_ofertas` con `expira_at`, validada en el servidor); después el
+  link cobra precio normal. Máximo una promoción por clienta cada 7 días.
+- **Baja:** si la clienta responde "BAJA" (o "stop", "alto", "no más
+  promociones"…) al webhook, se marca `baja_at` y se le confirma. Al número
+  propio de un negocio: baja de ese negocio; al número de la plataforma:
+  de todos (pidió que ese número deje de escribirle).
+
+### Lo que hay que hacer
+1. Correr `db/058_boost.sql` en el SQL Editor (idempotente).
+2. Aprobar en Meta las dos plantillas de abajo y poner sus nombres en
+   `WHATSAPP_TEMPLATE_BOOST_VIP` y `WHATSAPP_TEMPLATE_BOOST_FLOJAS`.
+   Sin ellas no se manda nada: queda `skipped` en `boost_mensajes` y no
+   gasta el tope.
+3. `CRON_SECRET` ya existe. El plan Hobby de Vercel solo deja crons
+   diarios: por eso horas flojas corre una vez al día. Con Vercel Pro se
+   puede subir a cada hora (`"0 * * * *"`) sin tocar código.
+
+### Plantilla VIP (categoría UTILITY, es_MX) — *por aprobar*
+Nombre sugerido: `boost_hueco_libre`
+
+| # | Contenido |
+|---|---|
+| `{{1}}` | Nombre de la clienta |
+| `{{2}}` | Negocio |
+| `{{3}}` | Servicio |
+| `{{4}}` | Cuándo ("Martes 17 de noviembre, 16:00") |
+| `{{5}}` | Link para apartar |
+
+> Hola {{1}}, se liberó un horario en {{2}}: {{3}} el {{4}}. Si lo quieres,
+> apártalo aquí: {{5}}
+> Te escribimos porque pediste que te avisáramos. Responde BAJA para no recibir más avisos.
+
+### Plantilla horas flojas (categoría MARKETING, es_MX) — *por aprobar*
+Nombre sugerido: `boost_hora_floja`
+
+| # | Contenido |
+|---|---|
+| `{{1}}` | Nombre |
+| `{{2}}` | Negocio |
+| `{{3}}` | Servicio |
+| `{{4}}` | Cuándo |
+| `{{5}}` | Descuento ("15%") |
+| `{{6}}` | Minutos que vale ("20") |
+| `{{7}}` | Link |
+
+> Hola {{1}}, en {{2}} tenemos libre {{3}} el {{4}} con {{5}} de descuento
+> si lo apartas en los próximos {{6}} minutos: {{7}}
+> Responde BAJA para no recibir promociones.
+
+Costo estimado (lo que enseña el panel, marcado como estimación): MX$0.20
+por aviso de utilidad y MX$0.60 por promoción de marketing (≈3× utilidad,
+sección 3). Verificar contra el cobro real de Meta.

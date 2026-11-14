@@ -3,6 +3,8 @@
 import { revalidatePath } from 'next/cache';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { rescheduleBooking } from '@/lib/bookings/reschedule';
+import { after } from 'next/server';
+import { avisarCitaLiberada } from '@/lib/boost/motor';
 
 // Both actions here are reachable with NO login — the booking's own
 // UUID (unguessable, 128 bits) is the only thing standing in for auth,
@@ -29,6 +31,8 @@ export async function cancelPublicBooking(bookingId: string, slug: string) {
     .gt('starts_at', new Date().toISOString()); // ...or an appointment that already happened
   if (error) throw new Error('No se pudo cancelar la cita.');
 
+  // Boost (db/058): el hueco se liberó; avisa a la lista VIP.
+  after(() => avisarCitaLiberada(admin, tenant.id, bookingId));
   revalidatePath(`/t/${slug}/reservar/cita/${bookingId}`);
 }
 

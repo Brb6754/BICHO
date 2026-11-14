@@ -19,6 +19,8 @@ import { esServicio } from '@/lib/meetings/kinds';
 import { PublicShell } from '@/components/tenant-public/PublicShell';
 import { BookingPausedNotice, bookingPause } from '@/components/tenant-public/BookingPausedNotice';
 import { promosVigentes } from '@/components/tenant-public/PromosVigentes';
+import { ListaVip } from '@/components/booking/ListaVip';
+import { boostActivo, type TenantBoost } from '@/lib/boost/reglas';
 
 function resolveFontKey(value: unknown): FontKey {
   return typeof value === 'string' && isFontKey(value) ? value : 'inter';
@@ -298,6 +300,13 @@ export default async function ReservarPage({ params }: { params: Promise<{ slug:
     enabled: productos.lealtad,
   });
 
+  // Boost (db/058): "Avísame si se libera algo" debajo del flujo, solo si
+  // el negocio tiene la lista VIP prendida (y su plan la incluye).
+  const { data: boostRow } = await supabase.from('tenants').select('*').eq('id', tenant.id).maybeSingle();
+  const conListaVip = boostActivo(boostRow as TenantBoost | null, 'vip') && services.length > 0;
+  const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? 'localhost:3000';
+  const privacidadUrl = `${rootDomain.startsWith('localhost') ? 'http' : 'https'}://${rootDomain}/privacidad`;
+
   return (
     <PublicShell
       headingKey={headingKey}
@@ -315,6 +324,16 @@ export default async function ReservarPage({ params }: { params: Promise<{ slug:
       textColor={branding_raw?.text_color ?? '#1A1A1A'}
     >
       <BlockRenderer blocks={pageBlocks} bookingData={bookingData} branding={branding} promos={promos} />
+      {conListaVip && (
+        <div className="mx-auto w-full max-w-xl px-4 pb-16 pt-2">
+          <ListaVip
+            slug={slug}
+            businessName={tenant.name}
+            services={services.map((s) => ({ id: s.id as string, name: s.name as string }))}
+            privacidadUrl={privacidadUrl}
+          />
+        </div>
+      )}
     </PublicShell>
   );
 }

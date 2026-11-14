@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { LucideIcon } from 'lucide-react';
 import {
+  Zap,
   CalendarDays,
   ChevronRight,
   FileText,
@@ -46,6 +47,7 @@ const ICONO: Record<ClaveColor, LucideIcon> = {
   reuniones: Handshake,
   posts: Megaphone,
   whatsapp: MessageCircle,
+  boost: Zap,
 };
 
 function Tile({ t, ancho }: { t: TileModulo; ancho: boolean }) {

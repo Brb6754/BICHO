@@ -12,6 +12,23 @@ import { seAcaba } from '@/lib/inventario/logica';
 import { tenantBookingPageUrl } from '@/lib/urls';
 import { cookies } from 'next/headers';
 import { COOKIE_ESTILO_DEMO, estiloDe } from '@/lib/branding/dashEstilo';
+import { tilesDe } from '@/lib/branding/moduloColores';
+
+// Los módulos que la demo enseña (los mismos que prende su Sidebar en panel/layout.tsx).
+const PRODUCTOS_DEMO = {
+  reservas: true,
+  regresan: true,
+  caja: true,
+  lealtad: true,
+  resico: true,
+  comisiones: true,
+  inventario: true,
+  cotizaciones: false,
+  facturacion: false,
+  reuniones: false,
+  copiloto: false,
+  posts: false,
+};
 
 export const metadata: Metadata = {
   title: 'Panel del negocio · demo',
@@ -92,6 +109,7 @@ export default async function PanelDemoPage({
         dinero={dineroDe(demoCaja(slug, services, tz, now), hoyKey)}
         alertas={alertas}
         base="/panel"
+        modulos={tilesDe(PRODUCTOS_DEMO, '/panel', null, false)}
       />
 
       <p className="mt-12 text-[13px] leading-relaxed text-muted">

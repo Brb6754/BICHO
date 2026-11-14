@@ -4,6 +4,7 @@ import type { AgendaBooking } from '@/components/tenant-dash/AgendaList';
 import { addDaysKey, dayKey, longDate } from '@/lib/dates/tenantTime';
 import type { Estilo } from '@/lib/branding/dashEstilo';
 import type { Alerta, Dinero } from '@/components/tenant-dash/ResumenHoy';
+import type { TileModulo } from '@/lib/branding/moduloColores';
 
 // Lo que los cuatro estilos del Resumen comparten: las mismas props que
 // recibía ResumenHoy y las mismas cuentas sobre ellas. Cada estilo solo
@@ -24,6 +25,8 @@ export type ResumenProps = {
   /** El checklist de "tu página todavía no puede recibir citas", si aplica. */
   setup?: React.ReactNode;
   estilo?: Estilo;
+  /** Tiles del inicio móvil (<768px). Sin ellos, el teléfono ve el estilo de siempre. */
+  modulos?: TileModulo[];
 };
 
 function hourIn(now: Date, timezone: string | null): number {

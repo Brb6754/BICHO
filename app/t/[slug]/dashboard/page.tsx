@@ -15,6 +15,8 @@ import { cargarCaja } from '@/lib/caja/datos';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { estiloDe } from '@/lib/branding/dashEstilo';
 import { ajustesDe, armarRegresan, type CitaRegresan } from '@/lib/regresan/armar';
+import { tilesDe } from '@/lib/branding/moduloColores';
+import { planDe } from '@/lib/billing/planes';
 
 // RESUMEN — rebuilt around the one question an owner has when they open
 // this page: "what do I have today?"
@@ -33,7 +35,7 @@ import { ajustesDe, armarRegresan, type CitaRegresan } from '@/lib/regresan/arma
 export default async function DashboardOverviewPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const supabase = await createClient();
-  const { data: tenant } = await supabase.from('tenants').select('id, name, timezone').eq('slug', slug).single();
+  const { data: tenant } = await supabase.from('tenants').select('id, name, timezone, plan').eq('slug', slug).single();
 
   // Un negocio que solo contrató cotizaciones no tiene agenda, ni
   // servicios, ni horario — y este Resumen está escrito entero
@@ -132,6 +134,7 @@ export default async function DashboardOverviewPage({ params }: { params: Promis
       dinero={dinero}
       alertas={alertas}
       base="/dashboard"
+      modulos={tilesDe(productos, '/dashboard', planDe(tenant?.plan))}
       action={<CopyLinkButton url={tenantBookingPageUrl(slug)} />}
       setup={
         setupComplete ? undefined : (

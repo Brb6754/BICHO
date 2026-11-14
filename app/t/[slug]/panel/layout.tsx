@@ -74,7 +74,7 @@ export default async function PanelDemoLayout({
         }
       />
 
-      <div className="dash-main relative z-10 min-w-0 flex-1 pb-24 pt-14 lg:pb-0 lg:pt-0">
+      <div className="dash-main relative z-10 min-w-0 flex-1 pb-[calc(9rem+env(safe-area-inset-bottom))] pt-14 lg:pb-0 lg:pt-0">
         {/* La franja que dice qué es esto. Sin ella alguien podría creer
             que está viendo la agenda real de un negocio, y son citas
             inventadas. */}

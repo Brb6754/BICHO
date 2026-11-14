@@ -140,7 +140,7 @@ export default async function DashboardLayout({
         comisionesEnabled={comisionesEnabled}
         inventarioEnabled={inventarioEnabled}
       />
-      <main className="dash-main relative z-10 min-w-0 flex-1 px-4 pb-28 pt-20 sm:px-8 lg:px-12 lg:pb-16 lg:pt-12">
+      <main className="dash-main relative z-10 min-w-0 flex-1 px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-20 sm:px-8 lg:px-12 lg:pb-16 lg:pt-12">
         <div className="dash-page mx-auto max-w-5xl">
           <TrialBanner access={tenantAccess(ajustes)} />
           {children}

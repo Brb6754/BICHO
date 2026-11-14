@@ -10,7 +10,6 @@ import {
   Tag,
   Users,
   Clock3,
-  Menu,
   X,
   ArrowUpRight,
   FileText,
@@ -26,6 +25,8 @@ import {
   Landmark,
   HandCoins,
   Package,
+  House,
+  Ellipsis,
 } from 'lucide-react';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { BusinessMark } from '@/components/tenant-dash/BusinessMark';
@@ -57,9 +58,15 @@ const GROUP_LABELS: Record<NavGroup, string> = {
 };
 const GROUP_ORDER: (NavGroup | undefined)[] = [undefined, 'dinero', 'clientes', 'negocio'];
 
-// La barra de abajo en el teléfono: las tres secciones que más se abren
-// de las que el negocio tenga, más "Menú" para todo lo demás.
-const BOTTOM_PRIORITY = ['/dashboard', '/dashboard/calendar', '/dashboard/caja', '/dashboard/customers', '/dashboard/cotizaciones', '/dashboard/reuniones'];
+// La barra de abajo en el teléfono, como la de una app: Inicio / Citas /
+// Clientes / Más. Si el negocio no tiene agenda, el hueco lo toma la
+// siguiente sección que sí tenga. "Más" abre el cajón con todo lo demás.
+const BOTTOM_PRIORITY = ['/dashboard', '/dashboard/calendar', '/dashboard/customers', '/dashboard/cotizaciones', '/dashboard/reuniones', '/dashboard/caja'];
+// En la barra se llaman como en una app; en el cajón, como el título de cada página.
+const BOTTOM_LABEL: Record<string, { label: string; icon?: typeof LayoutDashboard }> = {
+  '/dashboard': { label: 'Inicio', icon: House },
+  '/dashboard/calendar': { label: 'Citas' },
+};
 
 const NAV_ITEMS: {
   href: string;
@@ -254,37 +261,32 @@ export function Sidebar({
   const bottom = BOTTOM_PRIORITY.map((h) => visible.find((v) => v.key === h))
     .filter((v): v is (typeof visible)[number] => Boolean(v))
     .slice(0, 3);
-  // "Menú" se pinta activo cuando estás en una sección que no está abajo.
+  // "Más" se pinta activo cuando estás en una sección que no está abajo.
   const menuActive = !bottom.some((b) => b.isActive);
 
   return (
     <>
-      {/* Mobile top bar: content scrolls under it instead of colliding
-          with a floating button. main's pt-20 reserves the space. */}
-      <div className="fixed inset-x-0 top-0 z-30 flex h-14 items-center gap-2.5 border-b border-border bg-paper/85 px-3 backdrop-blur-xl backdrop-saturate-150 lg:hidden">
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          aria-label="Abrir menú"
-          aria-expanded={open}
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-ink transition-colors hover:bg-ink/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-        >
-          <Menu className="h-5 w-5" />
-        </button>
-        <BusinessMark name={tenantName} logoUrl={logoUrl} color={primaryColor} size="sm" />
-        <p className="min-w-0 truncate text-[15px] font-semibold tracking-tight text-ink">{tenantName}</p>
+      {/* Mobile top bar, in the business's own color like an app's. The
+          menu lives in the bottom bar ("Más"), so there's no hamburger
+          up here. main's pt-20 reserves the space. */}
+      <div className="fixed inset-x-0 top-0 z-30 flex h-14 items-center gap-2.5 bg-primary px-4 text-[rgb(var(--color-cta-fg))] shadow-[0_1px_0_rgb(0_0_0/0.08)] lg:hidden">
+        <span className="rounded-[0.6rem] ring-2 ring-[rgb(var(--color-cta-fg)/0.3)]">
+          <BusinessMark name={tenantName} logoUrl={logoUrl} color={primaryColor} size="sm" />
+        </span>
+        <p className="min-w-0 truncate text-[16px] font-semibold tracking-tight">{tenantName}</p>
       </div>
 
       {/* Phone bottom bar. The owner holds the phone in one hand between
           clients; the three sections she opens all day sit under that
-          thumb. Everything else lives behind "Menú" (the same drawer). */}
+          thumb. Everything else lives behind "Más" (the same drawer). */}
       <nav
         aria-label="Accesos rápidos"
         className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl backdrop-saturate-150 lg:hidden"
       >
         <ul className="mx-auto flex max-w-md items-stretch justify-around px-2">
           {bottom.map((item) => {
-            const Icon = item.icon;
+            const alias = BOTTOM_LABEL[item.key];
+            const Icon = alias?.icon ?? item.icon;
             return (
               <li key={item.key} className="min-w-0 flex-1">
                 <Link
@@ -300,7 +302,7 @@ export function Sidebar({
                     <Icon className="h-[19px] w-[19px]" aria-hidden="true" />
                   </span>
                   <span className={`max-w-full truncate px-1 ${item.isActive ? 'font-semibold text-ink' : 'text-muted'}`}>
-                    {item.label}
+                    {alias?.label ?? item.label}
                   </span>
                 </Link>
               </li>
@@ -318,9 +320,9 @@ export function Sidebar({
                   menuActive ? 'bg-primary text-[rgb(var(--color-cta-fg))] dark:ring-1 dark:ring-inset dark:ring-[rgb(var(--tenant-dark-glow)/0.55)]' : 'text-muted'
                 }`}
               >
-                <Menu className="h-[19px] w-[19px]" aria-hidden="true" />
+                <Ellipsis className="h-[19px] w-[19px]" aria-hidden="true" />
               </span>
-              <span className={menuActive ? 'font-semibold text-ink' : 'text-muted'}>Menú</span>
+              <span className={menuActive ? 'font-semibold text-ink' : 'text-muted'}>Más</span>
             </button>
           </li>
         </ul>

@@ -7,6 +7,7 @@ import { ResumenClasico } from './resumen/Clasico';
 import { ResumenSuave } from './resumen/Suave';
 import { ResumenVibrante } from './resumen/Vibrante';
 import { ResumenPoster } from './resumen/Poster';
+import { InicioMovil } from './resumen/InicioMovil';
 
 // EL RESUMEN — la pantalla con la que la dueña abre el día.
 //
@@ -76,14 +77,24 @@ export function alertaRegresan(nombres: string[], semanas: number, base: string)
 // radios, sombras— vive en globals.css bajo .tenant-dash[data-estilo].
 export function ResumenHoy(props: ResumenProps) {
   const d = armar(props);
-  switch (props.estilo) {
-    case 'suave':
-      return <ResumenSuave p={props} d={d} />;
-    case 'vibrante':
-      return <ResumenVibrante p={props} d={d} />;
-    case 'poster':
-      return <ResumenPoster p={props} d={d} />;
-    default:
-      return <ResumenClasico p={props} d={d} />;
-  }
+  const estilo = (() => {
+    switch (props.estilo) {
+      case 'suave':
+        return <ResumenSuave p={props} d={d} />;
+      case 'vibrante':
+        return <ResumenVibrante p={props} d={d} />;
+      case 'poster':
+        return <ResumenPoster p={props} d={d} />;
+      default:
+        return <ResumenClasico p={props} d={d} />;
+    }
+  })();
+  if (!props.modulos) return estilo;
+  // Teléfono: el inicio tipo app. De 768px para arriba, el estilo intacto.
+  return (
+    <>
+      <InicioMovil p={props} d={d} modulos={props.modulos} />
+      <div className="hidden md:block">{estilo}</div>
+    </>
+  );
 }

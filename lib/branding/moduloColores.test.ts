@@ -4,7 +4,7 @@ import type { ProductosDelNegocio } from '@/lib/products';
 
 const nada: ProductosDelNegocio = {
   reservas: false, cotizaciones: false, facturacion: false, reuniones: false, copiloto: false, caja: false,
-  lealtad: false, regresan: false, posts: false, resico: false, comisiones: false, inventario: false,
+  lealtad: false, regresan: false, posts: false, resico: false, comisiones: false, inventario: false, whatsapp: false,
 };
 
 describe('moduloColores', () => {

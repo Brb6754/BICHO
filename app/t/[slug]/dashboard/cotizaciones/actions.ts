@@ -5,7 +5,7 @@ import { requireTenantStaff } from '@/lib/auth/tenantStaff';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { computeTotals } from '@/lib/quotes/totals';
 import { sendQuoteEmail } from '@/lib/email/sendQuote';
-import { resolveContact } from '@/lib/contacts/resolve';
+import { crearCotizacion } from '@/lib/quotes/crear';
 
 // Todo lo que escribe una cotización.
 //
@@ -62,104 +62,20 @@ export async function createQuote(
       }
     }
 
-    const db = createAdminClient();
-    const { data: tenant } = await db
-      .from('tenants')
-      .select('tax_rate, tax_label')
-      .eq('id', tenantId)
-      .maybeSingle();
-
-    // El folio lo entrega Postgres con un candado por negocio, no la
-    // app: calcular max(folio)+1 aquí es una condición de carrera que,
-    // con dos vendedores cotizando a la vez, choca contra el unique
-    // (tenant_id, folio).
-    //
-    // El fallback existe porque la función puede faltar o estar rota en
-    // un ambiente —a mí me pasó: la primera versión usaba FOR UPDATE
-    // sobre un agregado, que Postgres rechaza— y un folio no vale
-    // bloquear el producto entero. El unique sigue siendo la garantía
-    // de verdad: si dos coinciden, el insert falla y se reintenta.
-    let folio: number;
-    const { data: folioRpc, error: eFolio } = await db.rpc('next_quote_folio', { p_tenant_id: tenantId });
-    if (!eFolio && typeof folioRpc === 'number') {
-      folio = folioRpc;
-    } else {
-      const { data: ultima } = await db
-        .from('quotes')
-        .select('folio')
-        .eq('tenant_id', tenantId)
-        .order('folio', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      folio = (ultima?.folio ?? 0) + 1;
-    }
-
-    // El contacto se resuelve ANTES del insert para que la cotización
-    // nazca ya ligada. Si falla, se guarda igual sin contacto: una
-    // cotización sin ficha sigue siendo una cotización válida, y
-    // bloquearla por eso sería castigar al vendedor por un problema del
-    // CRM.
-    const contactId = await resolveContact(db, tenantId, {
-      name: nombre,
-      phone: datos.customerPhone,
+    const r = await crearCotizacion(createAdminClient(), tenantId, {
+      nombre,
       email: datos.customerEmail,
+      telefono: datos.customerPhone,
+      notas: datos.notes,
+      discountCents: Number(datos.discountMxn ?? 0) * 100,
+      taxRate: datos.taxRate,
+      validUntil: datos.validUntil,
+      partidas,
     });
-
-    const insertar = (f: number) =>
-      db
-        .from('quotes')
-        .insert({
-          tenant_id: tenantId,
-          folio: f,
-          customer_name: nombre,
-          customer_email: datos.customerEmail?.trim() || null,
-          customer_phone: datos.customerPhone?.trim() || null,
-          notes: datos.notes?.trim() || null,
-          // La tasa se CONGELA aquí. Si el negocio cambia su IVA mañana,
-          // una cotización ya enviada no puede cambiar sola: lo que el
-          // cliente recibió es lo que vale.
-          tax_rate: datos.taxRate ?? tenant?.tax_rate ?? 16,
-          tax_label: tenant?.tax_label ?? 'IVA',
-          discount_cents: Math.max(0, Math.round(Number(datos.discountMxn ?? 0) * 100)),
-          valid_until: datos.validUntil || null,
-          status: 'draft',
-          contact_id: contactId,
-        })
-        .select('id, folio')
-        .single();
-
-    let { data: quote, error } = await insertar(folio);
-
-    // 23505 = otro vendedor se quedó con ese folio entre el cálculo y
-    // el insert. Una vez más con el siguiente número: el unique es la
-    // garantía real, el candado solo evita llegar hasta aquí.
-    if (error?.code === '23505') {
-      ({ data: quote, error } = await insertar(folio + 1));
-    }
-
-    if (error || !quote) {
-      return { ok: false, error: `No se pudo crear la cotización: ${error?.message ?? 'intenta de nuevo'}` };
-    }
-
-    const { error: eItems } = await db.from('quote_items').insert(
-      partidas.map((p, i) => ({
-        quote_id: quote.id,
-        position: i,
-        description: p.description,
-        quantity: p.quantity,
-        unit: p.unit,
-        unit_price_cents: p.unitPriceCents,
-      }))
-    );
-    // Sin partidas la cotización no significa nada, así que si fallan se
-    // borra el encabezado en vez de dejar un folio huérfano quemado.
-    if (eItems) {
-      await db.from('quotes').delete().eq('id', quote.id);
-      return { ok: false, error: `No se pudieron guardar los conceptos: ${eItems.message}` };
-    }
+    if (!r.ok) return r;
 
     revalidatePath(`/t/${slug}/dashboard/cotizaciones`);
-    return { ok: true, quoteId: quote.id, folio: quote.folio };
+    return { ok: true, quoteId: r.quoteId, folio: r.folio };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : 'No se pudo crear la cotización.' };
   }

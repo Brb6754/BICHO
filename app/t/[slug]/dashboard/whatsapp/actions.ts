@@ -5,6 +5,7 @@ import { requireTenantStaff } from '@/lib/auth/tenantStaff';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { planPermiteAgente } from '@/lib/whatsapp/agente/ruteo';
 import { enviarTexto } from '@/lib/whatsapp/texto';
+import { COLUMNAS_QUOTE_FACTURA, timbrarYEnviar, type QuoteFactura } from '@/lib/whatsapp/cotiza/facturar';
 
 // Acciones del panel de la recepcionista. Cada una prueba membresía
 // (requireTenantStaff) y filtra por tenant_id: un id de conversación de
@@ -65,4 +66,70 @@ export async function responder(slug: string, conversacionId: string, formData: 
     .eq('id', c.id)
     .eq('tenant_id', tenantId);
   revalidatePath(`/t/${slug}/dashboard/whatsapp`);
+}
+
+// ── Cotiza por WhatsApp (db/057) ─────────────────────────────────────
+
+const faltaColumna = (code?: string) => code === '42703' || code === 'PGRST204';
+
+/** Prender el add-on: dueño/admin, plan Pro y cotizaciones prendidas. El número propio lo revisa el webhook. */
+export async function cambiarCotiza(slug: string, prender: boolean) {
+  const { tenantId, role } = await requireTenantStaff(slug);
+  if (role !== 'owner' && role !== 'admin') throw new Error('Solo el dueño o un administrador puede cambiar esto.');
+  const db = createAdminClient();
+  if (prender) {
+    const { data: t } = await db.from('tenants').select('*').eq('id', tenantId).single();
+    if (!planPermiteAgente(t?.plan)) throw new Error('Cotiza por WhatsApp va sobre el plan Pro.');
+    if (t?.quotes_enabled !== true) throw new Error('Primero hay que tener prendidas las cotizaciones.');
+  }
+  const { error } = await db.from('tenants').update({ cotiza_whatsapp_enabled: prender }).eq('id', tenantId);
+  if (error) throw new Error(faltaColumna(error.code) ? 'Falta correr db/057_cotiza_whatsapp.sql.' : 'No se pudo guardar.');
+  revalidatePath(`/t/${slug}/dashboard/whatsapp`);
+}
+
+export async function cambiarConfirmarFacturas(slug: string, valor: boolean) {
+  const { tenantId, role } = await requireTenantStaff(slug);
+  if (role !== 'owner' && role !== 'admin') throw new Error('Solo el dueño o un administrador puede cambiar esto.');
+  const { error } = await createAdminClient().from('tenants').update({ cotiza_confirmar_facturas: valor }).eq('id', tenantId);
+  if (error) throw new Error(faltaColumna(error.code) ? 'Falta correr db/057_cotiza_whatsapp.sql.' : 'No se pudo guardar.');
+  revalidatePath(`/t/${slug}/dashboard/whatsapp`);
+}
+
+/**
+ * El dueño aprueba una factura que el cliente ya confirmó por WhatsApp:
+ * se timbra y, si el cliente escribió en las últimas 24 h, se le mandan
+ * PDF y XML. Mismo tope de timbres y misma protección contra doble CFDI
+ * que el panel de Facturas (lib/billing/timbrar.ts).
+ */
+export async function aprobarFactura(slug: string, quoteId: string) {
+  const { tenantId, timezone } = await requireTenantStaff(slug);
+  const db = createAdminClient();
+  const { data: t } = await db.from('tenants').select('facturacion_enabled').eq('id', tenantId).single();
+  if (t?.facturacion_enabled !== true) throw new Error('Este negocio no tiene contratada la facturación.');
+
+  const { data: quote } = await db
+    .from('quotes')
+    .select(COLUMNAS_QUOTE_FACTURA)
+    .eq('id', quoteId)
+    .eq('tenant_id', tenantId)
+    .eq('origen', 'whatsapp')
+    .in('factura_estado', ['por_aprobar', 'error'])
+    .maybeSingle();
+  if (!quote) throw new Error('Esa factura ya no está pendiente.');
+
+  // Solo dentro de la ventana de 24 h se pueden mandar archivos.
+  const { data: conv } = await db
+    .from('whatsapp_conversaciones')
+    .select('phone_number_id, historial')
+    .eq('tenant_id', tenantId)
+    .eq('telefono', quote.whatsapp_telefono ?? '')
+    .maybeSingle();
+  const historial = (Array.isArray(conv?.historial) ? conv.historial : []) as { role: string; at?: string }[];
+  const ultimoCliente = [...historial].reverse().find((h) => h.role === 'user')?.at;
+  const dentro = !!ultimoCliente && Date.now() - new Date(ultimoCliente).getTime() < VENTANA_MS;
+
+  const r = await timbrarYEnviar(db, { tenantId, timezone, quote: quote as QuoteFactura, phoneNumberId: dentro ? (conv?.phone_number_id ?? null) : null });
+  revalidatePath(`/t/${slug}/dashboard/whatsapp`);
+  revalidatePath(`/t/${slug}/dashboard/facturas`);
+  if (!r.ok) throw new Error(r.error);
 }

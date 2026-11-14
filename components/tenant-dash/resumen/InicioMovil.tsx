@@ -45,6 +45,7 @@ const ICONO: Record<ClaveColor, LucideIcon> = {
   cotizaciones: FileText,
   reuniones: Handshake,
   posts: Megaphone,
+  whatsapp: MessageCircle,
 };
 
 function Tile({ t, ancho }: { t: TileModulo; ancho: boolean }) {

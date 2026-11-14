@@ -87,3 +87,13 @@ export function tenantLoyaltyCardUrl(slug: string, token: string): string {
   const protocol = rootDomain.startsWith('localhost') ? 'http' : 'https';
   return `${protocol}://${rootDomain}/t/${slug}/tarjeta/${token}`;
 }
+
+// El PDF público de una cotización (el uuid hace de llave). Lo descarga
+// Meta cuando el agente de WhatsApp lo manda como documento, así que
+// tiene que ser absoluto y vivir en el dominio raíz (las rutas /api no
+// pasan por el rewrite de subdominio).
+export function quotePdfUrl(quoteId: string): string {
+  const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? 'localhost:3000';
+  const protocol = rootDomain.startsWith('localhost') ? 'http' : 'https';
+  return `${protocol}://${rootDomain}/api/cotizacion/${quoteId}/pdf`;
+}

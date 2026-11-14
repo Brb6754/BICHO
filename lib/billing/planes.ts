@@ -33,9 +33,21 @@ export const CUPO_FUNDADOR = 20;
 export const TOPE_COPILOTO_MES = 500;
 export const TOPE_TIMBRES_MES = 100;
 
+// Add-on premium "Cotiza, cobra y factura por WhatsApp" (db/057). Va
+// ENCIMA de Pro: requiere cotizaciones y el número propio del negocio.
+// No se publica en la landing todavía; el cobro no está conectado a MP.
+// precio por decidir; propuesta $1,499/mes
+export const PRECIO_COTIZA_WHATSAPP_MXN = 1499;
+export const ADDON_COTIZA_WHATSAPP = {
+  nombre: 'Cotiza, cobra y factura por WhatsApp',
+  precio: PRECIO_COTIZA_WHATSAPP_MXN,
+  requiere: 'pro' as PlanId,
+};
+
 // Módulos que no dependen del plan: posts está apagado como producto y
-// WhatsApp es un add-on aparte (no es un Modulo).
-const SIN_PLAN: Modulo[] = ['posts'];
+// WhatsApp (recepcionista + Cotiza) se gobierna con sus propios switches
+// en /dashboard/whatsapp; banderasDelPlan no los toca.
+const SIN_PLAN: Modulo[] = ['posts', 'whatsapp'];
 
 /** Columna de `tenants` que prende cada módulo. */
 export const COLUMNA_MODULO: Record<Modulo, string> = {
@@ -51,6 +63,7 @@ export const COLUMNA_MODULO: Record<Modulo, string> = {
   resico: 'resico_enabled',
   comisiones: 'comisiones_enabled',
   inventario: 'inventario_enabled',
+  whatsapp: 'agente_whatsapp_enabled',
 };
 
 export function planDe(raw: unknown): PlanId | null {

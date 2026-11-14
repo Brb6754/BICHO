@@ -21,6 +21,7 @@ export const COLOR_MODULO = {
   cotizaciones: '#14213D', // azul marino
   reuniones: '#C6FF3D', // lima
   posts: '#00E5FF', // cian
+  whatsapp: '#25D366', // verde WhatsApp: el canal se reconoce por su color
 } as const;
 export const ACENTO_COPILOTO = '#00E5FF';
 
@@ -62,6 +63,7 @@ const TILES: { clave: ClaveColor; modulo: Modulo; label: string; ruta: string }[
   { clave: 'posts', modulo: 'posts', label: 'Posts con IA', ruta: '/posts' },
   { clave: 'servicios', modulo: 'reservas', label: 'Servicios', ruta: '/services' },
   { clave: 'copiloto', modulo: 'copiloto', label: 'Copiloto', ruta: '/copiloto' },
+  { clave: 'whatsapp', modulo: 'whatsapp', label: 'WhatsApp', ruta: '/whatsapp' },
 ];
 
 /**

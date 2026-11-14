@@ -144,3 +144,61 @@ bloquea la respuesta manual pasadas las 24 h.
 - En modo "humano" la IA no contesta; el dueño responde desde el panel.
 - Solo lee texto (audios e imágenes reciben "solo leo texto").
 - Logs: solo id, tipo y timestamp del mensaje, nunca el contenido.
+
+## 6. Cotiza, cobra y factura por WhatsApp (add-on Pro)
+
+Para negocios que cotizan (instalador solar, clínica, distribuidora). El
+agente arma cotizaciones **solo** con el catálogo y precios del negocio
+(servicios con precio visible + productos de inventario con precio); si
+algo no está, pregunta o pasa a un humano. Nunca inventa precios.
+
+### Lo que hay que hacer
+1. Correr `db/057_cotiza_whatsapp.sql` en el SQL Editor (idempotente; requiere `db/056`).
+2. El negocio necesita **número propio**: su Phone number ID en
+   `tenants.whatsapp_phone_number_id`. En el número compartido de la
+   plataforma Cotiza no corre (no se sabe de qué negocio es la cotización).
+3. Plan Pro + Cotizaciones prendido; para facturar, además Facturación con
+   su llave de Facturapi. Se prende en `/dashboard/whatsapp`.
+4. Aprobar en Meta la plantilla de seguimiento (abajo) y poner su nombre en
+   `WHATSAPP_TEMPLATE_SEGUIMIENTO_COTIZACION`. Sin ella el cron no manda nada.
+5. `CRON_SECRET` ya existe (lo usa `/api/cron/recordatorios`); el cron nuevo
+   `/api/cron/seguimiento-cotizaciones` corre diario 17:00 UTC (`vercel.json`).
+
+### Plantilla sugerida (categoría UTILITY, es_MX) — *por aprobar*
+Nombre: `seguimiento_cotizacion`
+
+> Hola {{1}}, te escribimos de {{2}}. ¿Pudiste revisar la cotización {{3}}
+> que te mandamos? Si tienes dudas o quieres ajustar algo, responde a este
+> mensaje.
+
+Una sola vez por cotización, a las 48 h sin respuesta (en la práctica
+48–72 h porque el cron es diario); no se persiguen cotizaciones de más de 7 días.
+
+### Facturación
+- El cliente manda su Constancia de Situación Fiscal (PDF o foto) o sus datos.
+  Claude (`claude-opus-5-5`, una llamada por constancia) extrae RFC, razón
+  social, régimen, CP y uso de CFDI (G03 si no lo dice). Se validan formato de
+  RFC, CP, régimen según persona física/moral y uso de CFDI.
+- Se le enseñan los datos al cliente y **tiene que confirmarlos en otro
+  mensaje** antes de timbrar (se impone en código, no en el prompt).
+- "Confirmar facturas antes de timbrar" (prendido por defecto): la factura
+  queda "por aprobar" y el dueño la timbra desde el panel.
+- Respeta el tope de 100 timbres/mes. PDF y XML se mandan por WhatsApp; el
+  XML va como `text/plain` con nombre `.xml` porque Meta no acepta
+  `application/xml` como documento. Si el dueño aprueba pasadas 24 h del
+  último mensaje del cliente, no se manda: se descarga en Facturas.
+- Datos fiscales = PII: viven en `quotes.receptor_*` (solo service_role,
+  leídos tras verificar membresía), nunca se loguean.
+
+### Topes de mensajes (todo el agente)
+Por teléfono: 20/hora y 60/día; por negocio: 400/día; archivos por teléfono:
+5/día. Al pasar el tope se avisa una vez y luego se calla sin llamar a Claude.
+Cortan spam y bucles bot-contra-bot sin estorbar a un cliente real (una
+plática normal son 5–15 mensajes). Constantes en `lib/whatsapp/agente/tope.ts`.
+
+### Pendiente de decidir (Bruno)
+- **Notas de voz**: no hay proveedor de voz a texto. `lib/whatsapp/transcribir.ts`
+  está apagado; hoy se responde "por ahora escríbeme tu mensaje".
+- **Precio** del add-on: `PRECIO_COTIZA_WHATSAPP_MXN` en `lib/billing/planes.ts`
+  (propuesta $1,499/mes). No está en la landing ni se cobra todavía.
+- **Cobro** por WhatsApp: no implementado; necesita la cuenta de Mercado Pago de cada negocio.

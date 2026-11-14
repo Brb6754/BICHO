@@ -28,6 +28,8 @@ const PRODUCTOS_DEMO = {
   reuniones: false,
   copiloto: false,
   posts: false,
+  // La demo enseña la recepcionista y Cotiza con pláticas inventadas (panel/whatsapp).
+  whatsapp: true,
 };
 
 export const metadata: Metadata = {

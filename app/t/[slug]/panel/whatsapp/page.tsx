@@ -3,6 +3,8 @@ import { PageHeader } from '@/components/tenant-dash/PageHeader';
 import { DemoNote } from '@/components/demo/DemoNote';
 import { cargarPanelDemo } from '@/lib/demo/panelData';
 import { Conversaciones, type ConversacionVista } from '@/app/t/[slug]/dashboard/whatsapp/Conversaciones';
+import { CotizacionesWhatsapp, type CotizacionWA } from '@/app/t/[slug]/dashboard/whatsapp/CotizacionesWhatsapp';
+import { ADDON_COTIZA_WHATSAPP } from '@/lib/billing/planes';
 
 export const dynamic = 'force-dynamic';
 
@@ -45,6 +47,30 @@ export default async function WhatsappDemoPage({ params }: { params: Promise<{ s
     },
   ];
 
+  // Cotizaciones de ejemplo: nombres, teléfonos (618 000 …), montos y RFC inventados (EKU9003173C9 es el RFC de pruebas del SAT).
+  const base = { seguimiento_enviado_at: null, factura_estado: null, receptor_rfc: null, receptor_razon_social: null, receptor_regimen: null, receptor_codigo_postal: null, receptor_uso_cfdi: null };
+  const cotizaciones: CotizacionWA[] = [
+    { ...base, id: 'demo-q1', folio: 41, customer_name: 'Ejemplo: Laura Méndez', whatsapp_telefono: '526180002203', status: 'sent', created_at: hace(60 * 5), total_cents: 348000 },
+    { ...base, id: 'demo-q2', folio: 38, customer_name: 'Ejemplo: Taller Ríos', whatsapp_telefono: '526180002204', status: 'sent', seguimiento_enviado_at: hace(60 * 20), created_at: hace(60 * 72), total_cents: 1276000 },
+    {
+      ...base,
+      id: 'demo-q3',
+      folio: 35,
+      customer_name: 'Ejemplo: Empresa Demo',
+      whatsapp_telefono: '526180002205',
+      status: 'accepted',
+      factura_estado: 'por_aprobar',
+      created_at: hace(60 * 30),
+      total_cents: 580000,
+      receptor_rfc: 'EKU9003173C9',
+      receptor_razon_social: 'ESCUELA KEMPER URGATE',
+      receptor_regimen: '601',
+      receptor_codigo_postal: '42501',
+      receptor_uso_cfdi: 'G03',
+    },
+    { ...base, id: 'demo-q4', folio: 31, customer_name: 'Ejemplo: Carlos Ibarra', whatsapp_telefono: '526180002206', status: 'accepted', factura_estado: 'timbrada', created_at: hace(60 * 96), total_cents: 232000 },
+  ];
+
   return (
     <div>
       <PageHeader
@@ -55,6 +81,17 @@ export default async function WhatsappDemoPage({ params }: { params: Promise<{ s
         <Conversaciones conversaciones={ejemplo} timezone={tenant.timezone} />
       </div>
       <DemoNote>Conversaciones de ejemplo: los teléfonos y mensajes son inventados y los botones no envían nada.</DemoNote>
+
+      <section className="mt-12">
+        <h2 className="text-lg font-semibold text-ink">{ADDON_COTIZA_WHATSAPP.nombre}</h2>
+        <p className="mt-1 max-w-xl text-sm text-muted">
+          Add-on premium para negocios que cotizan: el cliente pide precio por WhatsApp, recibe la cotización en PDF con el catálogo del negocio, la acepta y pide su factura ahí mismo.
+        </p>
+        <div className="mt-6">
+          <CotizacionesWhatsapp cotizaciones={cotizaciones} timezone={tenant.timezone} />
+        </div>
+        <DemoNote>Cotizaciones de ejemplo: clientes, montos y datos fiscales inventados. No se timbra nada.</DemoNote>
+      </section>
     </div>
   );
 }

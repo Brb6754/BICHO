@@ -11,6 +11,14 @@
   - sitemap y robots, OG, JSON-LD, Vercel Analytics (`cta_registro`, `alta_completada`).
 - Search Console verificado y sitemap enviado. www → apex con 308 (Vercel).
 
+- Dashboard móvil tipo app: tiles con colores de campaña (5dce738). Paleta en `lib/branding/moduloColores.ts`.
+- Recepcionista IA por WhatsApp (919bf58), desplegada pero sin conectar:
+  - Webhook: `/api/webhooks/whatsapp`.
+  - Panel: `/dashboard/whatsapp`.
+  - Migración `db/056` SIN correr.
+  - Faltan: botón wa.me en reservar y la prueba real con el número (tope de mensajes y link en Sidebar ya hechos).
+- Add-on Cotiza por WhatsApp (cotizar del catálogo, aceptar, facturar CFDI con constancia leída por Claude, seguimiento 48 h): migración `db/057` SIN correr, plantilla de seguimiento sin aprobar, precio por decidir ($1,499 propuesto), sin cobro (Mercado Pago por negocio = siguiente paso). Ver WHATSAPP_SETUP.md → "Cotiza".
+
 ## Pendiente de Bruno
 - Correr `db/055_directorio.sql`.
 - Google Business Profile y Bing Webmaster (importar desde Search Console).

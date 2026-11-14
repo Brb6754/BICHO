@@ -68,8 +68,8 @@ export async function registrarPreguntaCopiloto(tenantId: string, userId: string
 }
 
 /** Facturas timbradas este mes (las canceladas también gastaron su timbre). */
-export async function timbresMes(tenantId: string, timezone: string | null): Promise<number> {
-  const { count, error } = await createAdminClient()
+export async function timbresMes(tenantId: string, timezone: string | null, admin: Admin = createAdminClient()): Promise<number> {
+  const { count, error } = await admin
     .from('invoices')
     .select('id', { count: 'exact', head: true })
     .eq('tenant_id', tenantId)

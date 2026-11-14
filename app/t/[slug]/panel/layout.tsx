@@ -61,6 +61,8 @@ export default async function PanelDemoLayout({
         comisionesEnabled
         // Y el Inventario, con productos inventados (panel/inventario).
         inventarioEnabled
+        // Y WhatsApp, con pláticas y cotizaciones inventadas (panel/whatsapp).
+        whatsappEnabled
         bookingHref="/"
         footer={
           // El Sidebar ya trae arriba "Ver mi página de reservas", así

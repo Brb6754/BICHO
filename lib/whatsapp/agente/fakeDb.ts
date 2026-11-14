@@ -20,7 +20,8 @@ export function fakeDb(
 
   function from(tabla: string) {
     const filtros: Filtro[] = [];
-    let op: 'select' | 'insert' | 'update' = 'select';
+    let op: 'select' | 'insert' | 'update' | 'delete' = 'select';
+    let contar = false;
     let payload: Row | Row[] | null = null;
     let orden: { col: string; asc: boolean } | null = null;
     let lim: number | null = null;
@@ -31,6 +32,7 @@ export function fakeDb(
       if (op === 'insert') {
         const nuevas: Row[] = (Array.isArray(payload) ? payload : [payload!]).map((r) => ({
           id: `id-${++n}`,
+          created_at: new Date().toISOString(),
           ...(tabla === 'whatsapp_conversaciones' ? { historial: [], estado: 'ia', last_message_at: new Date().toISOString() } : {}),
           ...r,
         }));
@@ -47,6 +49,11 @@ export function fakeDb(
         res.forEach((r) => Object.assign(r, payload));
         return fin(res);
       }
+      if (op === 'delete') {
+        tablas[tabla] = filas.filter((r) => !res.includes(r));
+        return fin(res);
+      }
+      if (contar) return { data: null, error: null, count: res.length };
       if (orden) {
         const { col, asc } = orden;
         res = [...res].sort((a, b) => (String(a[col]) < String(b[col]) ? -1 : 1) * (asc ? 1 : -1));
@@ -61,11 +68,15 @@ export function fakeDb(
     };
 
     const q = {
-      select: () => q,
+      select: (_c?: string, o?: { count?: string; head?: boolean }) => ((contar = contar || Boolean(o?.head)), q),
+      delete: () => ((op = 'delete'), q),
       insert: (p: Row | Row[]) => ((op = 'insert'), (payload = p), q),
       update: (p: Row) => ((op = 'update'), (payload = p), q),
       eq: (c: string, v: unknown) => (filtros.push((r) => r[c] === v), q),
       gt: (c: string, v: string) => (filtros.push((r) => String(r[c]) > v), q),
+      gte: (c: string, v: string) => (filtros.push((r) => String(r[c]) >= v), q),
+      lt: (c: string, v: string) => (filtros.push((r) => String(r[c]) < v), q),
+      is: (c: string, v: unknown) => (filtros.push((r) => (r[c] ?? null) === v), q),
       in: (c: string, vs: unknown[]) => (filtros.push((r) => vs.includes(r[c])), q),
       order: (col: string, o?: { ascending?: boolean }) => ((orden = { col, asc: o?.ascending !== false }), q),
       limit: (k: number) => ((lim = k), q),

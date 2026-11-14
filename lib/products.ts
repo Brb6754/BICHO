@@ -30,6 +30,8 @@ export type ProductosDelNegocio = {
   resico: boolean;
   comisiones: boolean;
   inventario: boolean;
+  /** /dashboard/whatsapp visible: plan Pro (para poder prenderlo) o algo ya prendido. */
+  whatsapp: boolean;
 };
 
 export async function productosDe(slug: string): Promise<ProductosDelNegocio> {
@@ -66,5 +68,12 @@ export async function productosDe(slug: string): Promise<ProductosDelNegocio> {
     comisiones: data?.comisiones_enabled === true,
     // Inventario (db/049): mismo criterio, apagado hasta que se prende.
     inventario: data?.inventario_enabled === true,
+    // WhatsApp (db/056, db/057): no es un switch único; ver whatsappVisible.
+    whatsapp: whatsappVisible(data),
   };
+}
+
+/** El menú enseña WhatsApp a un negocio Pro (es donde se prende) o a uno que ya lo tiene prendido. */
+export function whatsappVisible(t: Record<string, unknown> | null | undefined): boolean {
+  return t?.plan === 'pro' || t?.agente_whatsapp_enabled === true || t?.cotiza_whatsapp_enabled === true;
 }

@@ -27,6 +27,7 @@ import {
   Package,
   House,
   Ellipsis,
+  MessageCircle,
 } from 'lucide-react';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { BusinessMark } from '@/components/tenant-dash/BusinessMark';
@@ -85,6 +86,7 @@ const NAV_ITEMS: {
   requiresResico?: boolean;
   requiresComisiones?: boolean;
   requiresInventario?: boolean;
+  requiresWhatsapp?: boolean;
   /** Citas O reuniones: las dos agendan sobre las mismas personas y el mismo horario. */
   requiresAgenda?: boolean;
   /** Solo el dueño de un negocio real (los demos con navBase no tienen esta página). */
@@ -115,6 +117,8 @@ const NAV_ITEMS: {
   // no usa es ruido permanente.
   // Posts con IA (db/048): para traer a esas mismas clientas desde redes.
   { href: '/dashboard/posts', label: 'Posts con IA', icon: Megaphone, requiresPosts: true, group: 'clientes' },
+  // WhatsApp (db/056, db/057): recepcionista y Cotiza por WhatsApp; habla con las mismas personas.
+  { href: '/dashboard/whatsapp', label: 'WhatsApp', icon: MessageCircle, requiresWhatsapp: true, group: 'clientes' },
   { href: '/dashboard/cotizaciones', label: 'Cotizaciones', icon: FileText, requiresQuotes: true, group: 'dinero' },
   // Cuarto módulo. Arriba de cotizaciones no: primero se habla con el
   // prospecto y después se le pone precio, así que este es el orden
@@ -171,6 +175,7 @@ export function Sidebar({
   resicoEnabled = false,
   comisionesEnabled = false,
   inventarioEnabled = false,
+  whatsappEnabled = false,
   bookingHref,
   footer,
 }: {
@@ -210,6 +215,8 @@ export function Sidebar({
   comisionesEnabled?: boolean;
   /** Inventario (db/049). */
   inventarioEnabled?: boolean;
+  /** WhatsApp: plan Pro o recepcionista/Cotiza prendidos (lib/products whatsappVisible). */
+  whatsappEnabled?: boolean;
   // Same reason: the demo's booking page isn't on a tenant subdomain.
   bookingHref?: string;
   // Defaults to the real sign-out. The demo has no session to end.
@@ -249,6 +256,7 @@ export function Sidebar({
       (!item.requiresResico || resicoEnabled) &&
       (!item.requiresComisiones || comisionesEnabled) &&
       (!item.requiresInventario || inventarioEnabled) &&
+      (!item.requiresWhatsapp || whatsappEnabled) &&
       (!item.requiresAgenda || reservasEnabled || reunionesEnabled) &&
       (!item.requiresFacturacion || facturacionEnabled) &&
       (!item.ownerOnly || (role === 'owner' && !navBase))

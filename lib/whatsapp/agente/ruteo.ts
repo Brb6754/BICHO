@@ -23,6 +23,11 @@ export type TenantAgente = {
   whatsapp_phone_number_id?: string | null;
   direccion?: string | null;
   page_blocks?: unknown;
+  // Add-on Cotiza por WhatsApp (db/057) y los módulos de los que depende.
+  quotes_enabled?: boolean | null;
+  facturacion_enabled?: boolean | null;
+  cotiza_whatsapp_enabled?: boolean | null;
+  cotiza_confirmar_facturas?: boolean | null;
 };
 
 export type Ruteo =
@@ -37,6 +42,18 @@ export function planPermiteAgente(plan: unknown): boolean {
 
 export function agenteDisponible(t: Pick<TenantAgente, 'plan' | 'agente_whatsapp_enabled'>): boolean {
   return t.agente_whatsapp_enabled === true && planPermiteAgente(t.plan);
+}
+
+/**
+ * Add-on "Cotiza, cobra y factura por WhatsApp": switch + plan Pro +
+ * cotizaciones prendidas, y SOLO en el número propio del negocio (en el
+ * número compartido de bicho la conversación no es "del negocio").
+ */
+export function cotizaDisponible(
+  t: Pick<TenantAgente, 'plan' | 'cotiza_whatsapp_enabled' | 'quotes_enabled'>,
+  porPlataforma: boolean
+): boolean {
+  return !porPlataforma && t.cotiza_whatsapp_enabled === true && t.quotes_enabled === true && planPermiteAgente(t.plan);
 }
 
 const RE_CODIGO = /^\s*hola\s+([a-z0-9][a-z0-9-]{0,62})(?![a-z0-9-])/i;

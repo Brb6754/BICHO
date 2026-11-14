@@ -19,7 +19,10 @@ export type QuoteItemInput = {
 export type QuoteTotals = {
   subtotalCents: number;
   discountCents: number;
-  /** Base sobre la que se calcula el impuesto: subtotal menos descuento. */
+  /**
+   * Base del impuesto, sin IVA. Con precios sin IVA es subtotal menos
+   * descuento; con precios que ya lo incluyen, se desglosa del total.
+   */
   taxableCents: number;
   taxCents: number;
   totalCents: number;
@@ -39,27 +42,38 @@ export function lineTotalCents(item: QuoteItemInput): number {
 
 export function computeTotals(
   items: QuoteItemInput[],
-  { discountCents = 0, taxRate = 16 }: { discountCents?: number; taxRate?: number } = {}
+  {
+    discountCents = 0,
+    taxRate = 16,
+    pricesIncludeTax = false,
+  }: { discountCents?: number; taxRate?: number; pricesIncludeTax?: boolean } = {}
 ): QuoteTotals {
   const subtotalCents = items.reduce((suma, item) => suma + lineTotalCents(item), 0);
 
   // El descuento nunca deja un total negativo: un descuento mayor que el
   // subtotal es un error de captura, y cobrar -$300 no significa nada.
   const discount = Math.min(Math.max(Math.round(discountCents), 0), subtotalCents);
-  const taxableCents = subtotalCents - discount;
+  const netoCents = subtotalCents - discount;
 
   // Tasa en porcentaje (16 = 16%). Negativa no existe; por encima de 100
   // tampoco, y dejarlo pasar convierte un dedazo en una cotización
   // absurda enviada a un cliente.
   const rate = Math.min(Math.max(taxRate, 0), 100);
-  const taxCents = Math.round((taxableCents * rate) / 100);
 
+  if (pricesIncludeTax) {
+    // El precio del catálogo YA es el total: se desglosa hacia adentro, y
+    // el impuesto es lo que sobra, así base + impuesto = total al centavo.
+    const taxableCents = Math.round((netoCents * 100) / (100 + rate));
+    return { subtotalCents, discountCents: discount, taxableCents, taxCents: netoCents - taxableCents, totalCents: netoCents };
+  }
+
+  const taxCents = Math.round((netoCents * rate) / 100);
   return {
     subtotalCents,
     discountCents: discount,
-    taxableCents,
+    taxableCents: netoCents,
     taxCents,
-    totalCents: taxableCents + taxCents,
+    totalCents: netoCents + taxCents,
   };
 }
 

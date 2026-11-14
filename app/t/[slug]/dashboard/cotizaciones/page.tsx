@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { requireTenantStaff } from '@/lib/auth/tenantStaff';
 import { PageHeader } from '@/components/tenant-dash/PageHeader';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { cotizacionesConIva } from '@/lib/quotes/preciosIva';
 import { computeTotals, formatMoney, formatFolio, isExpired } from '@/lib/quotes/totals';
 import { QuoteRowActions } from './QuoteRowActions';
 
@@ -67,6 +68,7 @@ export default async function CotizacionesPage({ params }: { params: Promise<{ s
   const { data: items } = ids.length
     ? await supabase.from('quote_items').select('quote_id, quantity, unit_price_cents').in('quote_id', ids)
     : { data: [] as { quote_id: string; quantity: number; unit_price_cents: number }[] };
+  const conIva = await cotizacionesConIva(supabase, ids);
 
   const ahora = new Date();
 
@@ -104,7 +106,7 @@ export default async function CotizacionesPage({ params }: { params: Promise<{ s
                 quantity: Number(i.quantity),
                 unitPriceCents: i.unit_price_cents,
               })),
-              { discountCents: q.discount_cents, taxRate: Number(q.tax_rate) }
+              { discountCents: q.discount_cents, taxRate: Number(q.tax_rate), pricesIncludeTax: conIva.has(q.id) }
             );
             // "Vencida" se decide al leer, no con un proceso a medianoche.
             const estado =

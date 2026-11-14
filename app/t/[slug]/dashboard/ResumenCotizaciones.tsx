@@ -3,6 +3,7 @@ import { ArrowUpRight, Eye, FileText, Check, Handshake } from 'lucide-react';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireTenantStaff } from '@/lib/auth/tenantStaff';
 import { PageHeader } from '@/components/tenant-dash/PageHeader';
+import { cotizacionesConIva } from '@/lib/quotes/preciosIva';
 import { computeTotals, formatMoney, formatFolio, isExpired } from '@/lib/quotes/totals';
 import { longDate, appointmentWhen } from '@/lib/dates/tenantTime';
 import { modalidadLabel } from '@/lib/meetings/kinds';
@@ -69,13 +70,14 @@ export async function ResumenCotizaciones({
   const { data: items } = ids.length
     ? await supabase.from('quote_items').select('quote_id, quantity, unit_price_cents').in('quote_id', ids)
     : { data: [] as { quote_id: string; quantity: number; unit_price_cents: number }[] };
+  const conIva = await cotizacionesConIva(supabase, ids);
 
   const totalDe = (quoteId: string, discount: number, rate: number) =>
     computeTotals(
       (items ?? [])
         .filter((i) => i.quote_id === quoteId)
         .map((i) => ({ description: '', quantity: Number(i.quantity), unitPriceCents: i.unit_price_cents })),
-      { discountCents: discount, taxRate: Number(rate) }
+      { discountCents: discount, taxRate: Number(rate), pricesIncludeTax: conIva.has(quoteId) }
     ).totalCents;
 
   const vivas = (quotes ?? []).filter(

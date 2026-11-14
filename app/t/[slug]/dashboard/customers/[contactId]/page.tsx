@@ -5,6 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { requireTenantStaff } from '@/lib/auth/tenantStaff';
 import { productosDe } from '@/lib/products';
 import { PageHeader } from '@/components/tenant-dash/PageHeader';
+import { cotizacionesConIva } from '@/lib/quotes/preciosIva';
 import { computeTotals, formatMoney, formatFolio } from '@/lib/quotes/totals';
 import { appointmentWhen, dayKey, longDate } from '@/lib/dates/tenantTime';
 import { ContactNotes } from './ContactNotes';
@@ -106,6 +107,7 @@ export default async function ContactPage({
         .select('quote_id, quantity, unit_price_cents')
         .in('quote_id', quoteIds)
     : { data: [] as { quote_id: string; quantity: number; unit_price_cents: number }[] };
+  const conIva = await cotizacionesConIva(db, quoteIds);
 
   const eventos: Evento[] = [];
 
@@ -134,7 +136,7 @@ export default async function ContactPage({
           quantity: Number(p.quantity),
           unitPriceCents: p.unit_price_cents,
         })),
-      { discountCents: q.discount_cents, taxRate: Number(q.tax_rate) }
+      { discountCents: q.discount_cents, taxRate: Number(q.tax_rate), pricesIncludeTax: conIva.has(q.id) }
     ).totalCents;
 
     eventos.push({

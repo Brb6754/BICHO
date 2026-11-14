@@ -3,6 +3,8 @@ import { ArrowLeft } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/tenant-dash/PageHeader';
 import { QuoteForm } from '../QuoteForm';
+import { preciosIncluyenIva } from '@/lib/quotes/preciosIva';
+import { requireTenantStaff } from '@/lib/auth/tenantStaff';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,6 +20,8 @@ export default async function NuevaCotizacionPage({ params }: { params: Promise<
     .select('tax_rate, tax_label')
     .eq('slug', slug)
     .maybeSingle();
+  const { tenantId } = await requireTenantStaff(slug);
+  const conIva = await preciosIncluyenIva(supabase, tenantId);
 
   return (
     <div>
@@ -40,6 +44,7 @@ export default async function NuevaCotizacionPage({ params }: { params: Promise<
         slug={slug}
         taxRateDefault={Number(tenant?.tax_rate ?? 16)}
         taxLabel={tenant?.tax_label ?? 'IVA'}
+        preciosConIvaDefault={conIva}
       />
     </div>
   );

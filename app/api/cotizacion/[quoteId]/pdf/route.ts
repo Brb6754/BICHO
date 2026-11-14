@@ -3,6 +3,7 @@ import { createElement } from 'react';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { QuotePdf, type QuotePdfData } from '@/components/quotes/QuotePdf';
 import { formatFolio } from '@/lib/quotes/totals';
+import { cotizacionesConIva } from '@/lib/quotes/preciosIva';
 
 // @react-pdf necesita APIs de Node (streams, buffers): en el runtime
 // edge no existe.
@@ -30,7 +31,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ quoteId
     return new Response('No encontramos esa cotización.', { status: 404 });
   }
 
-  const [{ data: tenant }, { data: items }] = await Promise.all([
+  const [{ data: tenant }, { data: items }, conIva] = await Promise.all([
     db
       .from('tenants')
       .select('slug, name, logo_url, primary_color, accent_color, location, quote_terms, timezone')
@@ -41,6 +42,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ quoteId
       .select('description, quantity, unit, unit_price_cents')
       .eq('quote_id', quoteId)
       .order('position'),
+    cotizacionesConIva(db, [quoteId]),
   ]);
 
   const data: QuotePdfData = {
@@ -54,6 +56,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ quoteId
     timezone: tenant?.timezone ?? 'America/Mexico_City',
     taxRate: Number(quote.tax_rate),
     taxLabel: quote.tax_label,
+    pricesIncludeTax: conIva.has(quoteId),
     discountCents: quote.discount_cents,
     // El mismo enlace publico que manda el correo. Sin tenant (caso
     // imposible, pero el tipo lo admite) el bloque no se dibuja.

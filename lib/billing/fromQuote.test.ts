@@ -39,6 +39,24 @@ describe('buildInvoicePayload', () => {
     expect(item.product.taxes[0].rate).toBe(0.16);
   });
 
+  it('con precios con IVA manda tax_included y el total del CFDI es el de la cotización', () => {
+    const q = {
+      items: [
+        { description: 'Corte', quantity: 1, unitPriceCents: 116000 },
+        { description: 'Tinte', quantity: 3, unitPriceCents: 33333 },
+      ],
+      discountCents: 10001,
+      taxRate: 16,
+      pricesIncludeTax: true,
+      receptor,
+    };
+    const items = buildInvoicePayload(q).items as { quantity: number; discount: number; product: { price: number; tax_included: boolean } }[];
+    expect(items.every((i) => i.product.tax_included)).toBe(true);
+    const totalCfdi = Math.round(items.reduce((s, i) => s + i.quantity * i.product.price - i.discount, 0) * 100);
+    expect(totalCfdi).toBe(totalEsperadoCents(q));
+    expect(totalEsperadoCents(q)).toBe(116000 + 99999 - 10001);
+  });
+
   it('el total de la factura es el de la cotización', () => {
     const q = {
       items: [{ description: 'Masaje', quantity: 1, unitPriceCents: 50000 }],

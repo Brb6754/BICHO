@@ -38,6 +38,8 @@ export type QuotePdfData = {
   timezone: string;
   taxRate: number;
   taxLabel: string;
+  /** Precios con IVA incluido (db/059): el total es la suma del catálogo. */
+  pricesIncludeTax?: boolean;
   discountCents: number;
   items: { description: string; quantity: number; unit: string | null; unitPriceCents: number }[];
   /** URL pública para verla y aceptarla. Sin ella el bloque no se dibuja. */
@@ -157,7 +159,7 @@ export function QuotePdf({ data }: { data: QuotePdfData }) {
       quantity: i.quantity,
       unitPriceCents: i.unitPriceCents,
     })),
-    { discountCents: data.discountCents, taxRate: data.taxRate }
+    { discountCents: data.discountCents, taxRate: data.taxRate, pricesIncludeTax: data.pricesIncludeTax }
   );
 
   const marca = data.business.primaryColor;
@@ -264,14 +266,22 @@ export function QuotePdf({ data }: { data: QuotePdfData }) {
           </View>
 
           <View style={[styles.tarjetaTotales, { backgroundColor: fondoTotales }]} wrap={false}>
-            <View style={styles.filaTotal}>
-              <Text style={{ color: TENUE }}>Subtotal</Text>
-              <Text>{formatMoney(totals.subtotalCents)}</Text>
-            </View>
+            {!data.pricesIncludeTax || totals.discountCents > 0 ? (
+              <View style={styles.filaTotal}>
+                <Text style={{ color: TENUE }}>{data.pricesIncludeTax ? 'Importe' : 'Subtotal'}</Text>
+                <Text>{formatMoney(totals.subtotalCents)}</Text>
+              </View>
+            ) : null}
             {totals.discountCents > 0 ? (
               <View style={styles.filaTotal}>
                 <Text style={{ color: TENUE }}>Descuento</Text>
                 <Text>−{formatMoney(totals.discountCents)}</Text>
+              </View>
+            ) : null}
+            {data.pricesIncludeTax ? (
+              <View style={styles.filaTotal}>
+                <Text style={{ color: TENUE }}>Subtotal (sin {data.taxLabel})</Text>
+                <Text>{formatMoney(totals.taxableCents)}</Text>
               </View>
             ) : null}
             <View style={styles.filaTotal}>

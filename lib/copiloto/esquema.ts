@@ -26,10 +26,10 @@ Si una consulta falla, lee el error, corrígela y reintenta (máximo 2 veces). N
 ## Tablas
 contacts — una fila por persona. id, name, phone, email, razon_social (empresa), rfc, tags text[], notes, created_at.
 
-quotes — cotizaciones. id, folio (el número que ve el dueño: "cotización 12" = folio 12), contact_id → contacts, customer_name, customer_email, customer_phone, notes, tax_rate (porcentaje, 16 = IVA), discount_cents, valid_until (date, fecha de vencimiento), status, sent_at, viewed_at, accepted_at, created_at.
+quotes — cotizaciones. id, folio (el número que ve el dueño: "cotización 12" = folio 12), contact_id → contacts, customer_name, customer_email, customer_phone, notes, tax_rate (porcentaje, 16 = IVA), prices_include_tax (boolean, puede no existir si falta db/059), discount_cents, valid_until (date, fecha de vencimiento), status, sent_at, viewed_at, accepted_at, created_at.
   status: draft = borrador sin enviar · sent = enviada · viewed = el cliente la abrió (sigue pendiente) · accepted = aceptada · declined = rechazada · expired = vencida.
   "Enviadas/pendientes" = status in ('sent','viewed').
-  quotes NO tiene columna de total. Total = (subtotal - discount_cents) * (1 + tax_rate/100), con subtotal = sum(quote_items.quantity * quote_items.unit_price_cents).
+  quotes NO tiene columna de total. Con subtotal = sum(quote_items.quantity * quote_items.unit_price_cents): si quotes.prices_include_tax es true (precios con IVA incluido), Total = subtotal - discount_cents; si es false, Total = (subtotal - discount_cents) * (1 + tax_rate/100).
 
 quote_items — partidas. quote_id → quotes, position, description, quantity, unit, unit_price_cents.
 

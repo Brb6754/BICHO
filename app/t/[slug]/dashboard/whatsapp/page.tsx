@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { ADDON_COTIZA_WHATSAPP } from '@/lib/billing/planes';
 import { computeTotals } from '@/lib/quotes/totals';
+import { cotizacionesConIva } from '@/lib/quotes/preciosIva';
 import { Conversaciones, type ConversacionVista } from './Conversaciones';
 import { CotizacionesWhatsapp, type CotizacionWA } from './CotizacionesWhatsapp';
 import { aprobarFactura, cambiarAgente, cambiarConfirmarFacturas, cambiarCotiza, cambiarEstado, responder } from './actions';
@@ -80,11 +81,12 @@ export default async function WhatsappPage({ params }: { params: Promise<{ slug:
       ? await admin.from('quote_items').select('quote_id, quantity, unit_price_cents').in('quote_id', lista.map((q) => q.id))
       : { data: [] };
     type I = { quote_id: string; quantity: number; unit_price_cents: number };
+    const conIva = await cotizacionesConIva(admin, lista.map((q) => q.id));
     cotizaciones = lista.map((q) => ({
       ...q,
       total_cents: computeTotals(
         ((items ?? []) as I[]).filter((i) => i.quote_id === q.id).map((i) => ({ description: '', quantity: Number(i.quantity), unitPriceCents: i.unit_price_cents })),
-        { discountCents: q.discount_cents, taxRate: Number(q.tax_rate) }
+        { discountCents: q.discount_cents, taxRate: Number(q.tax_rate), pricesIncludeTax: conIva.has(q.id) }
       ).totalCents,
     }));
   }

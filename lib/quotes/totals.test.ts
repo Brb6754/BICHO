@@ -72,6 +72,42 @@ describe('computeTotals', () => {
   });
 });
 
+describe('computeTotals con precios que ya incluyen IVA', () => {
+  const x = (unitPriceCents: number, quantity = 1) => [{ description: 'x', quantity, unitPriceCents }];
+
+  it('$1,160 → base $1,000 + IVA $160 = $1,160', () => {
+    const t = computeTotals(x(116000), { taxRate: 16, pricesIncludeTax: true });
+    expect(t.taxableCents).toBe(100000);
+    expect(t.taxCents).toBe(16000);
+    expect(t.totalCents).toBe(116000);
+  });
+
+  it('el descuento se resta del precio con IVA y luego se desglosa', () => {
+    const t = computeTotals(x(116000), { discountCents: 11600, taxRate: 16, pricesIncludeTax: true });
+    expect(t.totalCents).toBe(104400);
+    expect(t.taxableCents).toBe(90000);
+    expect(t.taxCents).toBe(14400);
+  });
+
+  it('con centavos raros, base + IVA cuadra exacto con el total', () => {
+    for (const precio of [1, 99, 10001, 33333, 123457]) {
+      const t = computeTotals(x(precio, 1.5), { taxRate: 16, pricesIncludeTax: true });
+      expect(t.totalCents).toBe(Math.round(precio * 1.5));
+      expect(t.taxableCents + t.taxCents).toBe(t.totalCents);
+      expect(Math.abs(t.taxableCents * 0.16 - t.taxCents)).toBeLessThanOrEqual(1);
+    }
+    const t = computeTotals(x(10001), { taxRate: 16, pricesIncludeTax: true });
+    expect(t.taxableCents).toBe(8622); // 100.01 / 1.16 = 86.215…
+    expect(t.taxCents).toBe(1379);
+  });
+
+  it('flag false = igual que antes', () => {
+    const items = x(116000);
+    expect(computeTotals(items, { taxRate: 16, pricesIncludeTax: false })).toEqual(computeTotals(items, { taxRate: 16 }));
+    expect(computeTotals(items, { taxRate: 16 }).totalCents).toBe(134560);
+  });
+});
+
 describe('formatFolio', () => {
   it('rellena con ceros', () => {
     expect(formatFolio(7)).toBe('0007');

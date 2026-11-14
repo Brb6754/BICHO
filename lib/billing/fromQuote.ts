@@ -11,8 +11,9 @@ import { lineTotalCents, computeTotals } from '@/lib/quotes/totals';
 //
 //  1. `tax_included` llega en TRUE por omisión. Mandar `price: 500` sin
 //     tocarlo produce una factura de $500 totales (431.03 + IVA), no de
-//     $580. Las cotizaciones de bicho guardan el precio SIN impuesto, así
-//     que aquí siempre va en false y la tasa explícita.
+//     $580. Por eso se manda SIEMPRE explícito: false para las cotizaciones
+//     con precio sin IVA, true para las de precios con IVA (db/059), y la
+//     tasa siempre explícita.
 //  2. La cotización tiene UN descuento global; Facturapi lo quiere por
 //     partida. Se reparte en proporción, y el sobrante de centavos cae
 //     en la partida más grande — si se reparte "a ojo", la suma de las
@@ -35,6 +36,8 @@ export type QuoteParaFacturar = {
   discountCents: number;
   /** Tasa en porcentaje, congelada en la cotización (16 = 16%). */
   taxRate: number;
+  /** Si los precios de la cotización ya traían el IVA (db/059). */
+  pricesIncludeTax?: boolean;
   receptor: ReceptorFiscal;
   /** Clave de uso de CFDI del receptor. G03 = gastos en general. */
   usoCfdi?: string;
@@ -89,17 +92,36 @@ export function buildInvoicePayload(q: QuoteParaFacturar): Record<string, unknow
       address: { zip: q.receptor.zip },
       ...(q.receptor.email ? { email: q.receptor.email } : {}),
     },
-    items: q.items.map((i, idx) => ({
-      quantity: i.quantity,
-      discount: descuentos[idx] / 100,
-      product: {
-        description: i.description,
-        product_key: q.productKey ?? '01010101',
-        price: i.unitPriceCents / 100,
-        tax_included: false,
-        taxes: [{ type: 'IVA', rate }],
-      },
-    })),
+    items: q.items.map((i, idx) =>
+      q.pricesIncludeTax
+        ? {
+            // Precio con IVA (tax_included: true, verificado en docs.facturapi.io:
+            // "los impuestos están incluidos en el precio y se desglosarán").
+            // shortcut: el descuento se resta del precio unitario en vez de ir en
+            // `discount`, porque la doc no dice si ese campo es con o sin IVA;
+            // cambiarlo cuando se verifique contra la API de prueba.
+            quantity: i.quantity,
+            discount: 0,
+            product: {
+              description: i.description,
+              product_key: q.productKey ?? '01010101',
+              price: Math.round(((lineas[idx] - descuentos[idx]) / i.quantity) * 1e4) / 1e6,
+              tax_included: true,
+              taxes: [{ type: 'IVA', rate }],
+            },
+          }
+        : {
+            quantity: i.quantity,
+            discount: descuentos[idx] / 100,
+            product: {
+              description: i.description,
+              product_key: q.productKey ?? '01010101',
+              price: i.unitPriceCents / 100,
+              tax_included: false,
+              taxes: [{ type: 'IVA', rate }],
+            },
+          }
+    ),
     payment_form: q.paymentForm ?? '03',
     use: q.usoCfdi ?? 'G03',
   };
@@ -112,5 +134,5 @@ export function buildInvoicePayload(q: QuoteParaFacturar): Record<string, unknow
  * rompió y es mejor no timbrar que timbrar mal.
  */
 export function totalEsperadoCents(q: QuoteParaFacturar): number {
-  return computeTotals(q.items, { discountCents: q.discountCents, taxRate: q.taxRate }).totalCents;
+  return computeTotals(q.items, { discountCents: q.discountCents, taxRate: q.taxRate, pricesIncludeTax: q.pricesIncludeTax }).totalCents;
 }

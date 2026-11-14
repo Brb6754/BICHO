@@ -3,6 +3,7 @@ import { buildInvoicePayload, totalEsperadoCents, type ReceptorFiscal } from '@/
 import { createInvoice } from '@/lib/billing/facturapi';
 import { TOPE_TIMBRES_MES, mensajeTope } from '@/lib/billing/planes';
 import { timbresMes } from '@/lib/billing/planServer';
+import { cotizacionesConIva } from '@/lib/quotes/preciosIva';
 
 // Timbrar una cotización. Lo comparten el panel (facturas/actions.ts) y
 // el agente de WhatsApp; quien llama ya comprobó QUIÉN pide (membresía o
@@ -84,6 +85,7 @@ export async function timbrarCotizacion(
     })),
     discountCents: quote.discount_cents,
     taxRate: Number(quote.tax_rate),
+    pricesIncludeTax: (await cotizacionesConIva(db, [quoteId])).has(quoteId),
     receptor: datos.receptor,
     usoCfdi: datos.usoCfdi,
     paymentForm: datos.paymentForm,

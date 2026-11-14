@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { requireTenantStaff } from '@/lib/auth/tenantStaff';
 import { productosDe } from '@/lib/products';
 import { PageHeader } from '@/components/tenant-dash/PageHeader';
+import { cotizacionesConIva } from '@/lib/quotes/preciosIva';
 import { computeTotals, formatMoney, formatFolio } from '@/lib/quotes/totals';
 import { NuevaFacturaForm, type CotizacionFacturable } from '../NuevaFacturaForm';
 
@@ -53,6 +54,7 @@ export default async function NuevaFacturaPage({
     ? await db.from('invoices').select('quote_id').in('quote_id', ids).in('status', ['draft', 'stamped'])
     : { data: [] as { quote_id: string | null }[] };
 
+  const conIva = await cotizacionesConIva(db, ids);
   const ocupadas = new Set((yaFacturadas ?? []).map((i) => i.quote_id));
 
   const facturables: CotizacionFacturable[] = (quotes ?? [])
@@ -66,7 +68,7 @@ export default async function NuevaFacturaPage({
           (items ?? [])
             .filter((i) => i.quote_id === q.id)
             .map((i) => ({ description: '', quantity: Number(i.quantity), unitPriceCents: i.unit_price_cents })),
-          { discountCents: q.discount_cents, taxRate: Number(q.tax_rate) }
+          { discountCents: q.discount_cents, taxRate: Number(q.tax_rate), pricesIncludeTax: conIva.has(q.id) }
         ).totalCents
       ),
     }));

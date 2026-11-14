@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { Download } from 'lucide-react';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { cotizacionesConIva } from '@/lib/quotes/preciosIva';
 import { computeTotals, formatMoney, formatFolio, isExpired, lineTotalCents } from '@/lib/quotes/totals';
 import { tenantColorCssVars, mixToPaper, readableFgRgb, darkenHex } from '@/lib/branding/colors';
 import { AcceptQuote } from './AcceptQuote';
@@ -65,9 +66,11 @@ export default async function CotizacionPage({
     unitPriceCents: i.unit_price_cents,
   }));
 
+  const conIva = (await cotizacionesConIva(db, [quoteId])).has(quoteId);
   const totals = computeTotals(partidas, {
     discountCents: quote.discount_cents,
     taxRate: Number(quote.tax_rate),
+    pricesIncludeTax: conIva,
   });
 
   const vencida = quote.status !== 'accepted' && isExpired(quote.valid_until, new Date());
@@ -168,14 +171,22 @@ export default async function CotizacionPage({
           </ul>
 
           <dl className="flex flex-col gap-2 border-t border-border px-5 py-4 text-sm">
-            <div className="flex justify-between">
-              <dt className="text-muted">Subtotal</dt>
-              <dd className="tabular-nums text-ink">{formatMoney(totals.subtotalCents)}</dd>
-            </div>
+            {(!conIva || totals.discountCents > 0) && (
+              <div className="flex justify-between">
+                <dt className="text-muted">{conIva ? 'Importe' : 'Subtotal'}</dt>
+                <dd className="tabular-nums text-ink">{formatMoney(totals.subtotalCents)}</dd>
+              </div>
+            )}
             {totals.discountCents > 0 && (
               <div className="flex justify-between">
                 <dt className="text-muted">Descuento</dt>
                 <dd className="tabular-nums text-ink">−{formatMoney(totals.discountCents)}</dd>
+              </div>
+            )}
+            {conIva && (
+              <div className="flex justify-between">
+                <dt className="text-muted">Subtotal (sin {quote.tax_label})</dt>
+                <dd className="tabular-nums text-ink">{formatMoney(totals.taxableCents)}</dd>
               </div>
             )}
             <div className="flex justify-between">

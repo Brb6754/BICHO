@@ -3,7 +3,9 @@
 import { revalidatePath } from 'next/cache';
 import { requireTenantStaff } from '@/lib/auth/tenantStaff';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { createClient } from '@/lib/supabase/server';
 import { computeTotals } from '@/lib/quotes/totals';
+import { cotizacionesConIva } from '@/lib/quotes/preciosIva';
 import { sendQuoteEmail } from '@/lib/email/sendQuote';
 import { crearCotizacion } from '@/lib/quotes/crear';
 
@@ -29,6 +31,8 @@ export type NuevaCotizacion = {
   notes?: string;
   discountMxn?: number;
   taxRate?: number;
+  /** "Mis precios ya incluyen IVA" (db/059). */
+  pricesIncludeTax?: boolean;
   validUntil?: string;
   items: QuoteItemPayload[];
 };
@@ -38,7 +42,7 @@ export async function createQuote(
   datos: NuevaCotizacion
 ): Promise<{ ok: true; quoteId: string; folio: number } | { ok: false; error: string }> {
   try {
-    const { tenantId } = await requireTenantStaff(slug);
+    const { tenantId, role } = await requireTenantStaff(slug);
 
     const nombre = datos.customerName?.trim();
     if (!nombre) return { ok: false, error: 'Falta el nombre del cliente.' };
@@ -69,10 +73,19 @@ export async function createQuote(
       notas: datos.notes,
       discountCents: Number(datos.discountMxn ?? 0) * 100,
       taxRate: datos.taxRate,
+      pricesIncludeTax: typeof datos.pricesIncludeTax === 'boolean' ? datos.pricesIncludeTax : undefined,
       validUntil: datos.validUntil,
       partidas,
     });
     if (!r.ok) return r;
+
+    // La casilla también es el ajuste del negocio (lo usa el agente de
+    // WhatsApp). Solo el dueño lo cambia; con cookies, RLS lo vuelve a exigir.
+    // Sin db/059 el update falla y no pasa nada: la cotización ya se guardó.
+    if (role === 'owner' && typeof datos.pricesIncludeTax === 'boolean') {
+      const supabase = await createClient();
+      await supabase.from('tenants').update({ precios_incluyen_iva: datos.pricesIncludeTax }).eq('id', tenantId);
+    }
 
     revalidatePath(`/t/${slug}/dashboard/cotizaciones`);
     return { ok: true, quoteId: r.quoteId, folio: r.folio };
@@ -98,9 +111,10 @@ export async function sendQuote(
       .maybeSingle();
     if (!quote) return { ok: false, error: 'Esa cotización no existe.' };
 
-    const [{ data: tenant }, { data: items }] = await Promise.all([
+    const [{ data: tenant }, { data: items }, conIva] = await Promise.all([
       db.from('tenants').select('name, primary_color, accent_color').eq('id', tenantId).maybeSingle(),
       db.from('quote_items').select('description, quantity, unit_price_cents').eq('quote_id', quoteId),
+      cotizacionesConIva(db, [quoteId]),
     ]);
 
     const totals = computeTotals(
@@ -109,7 +123,7 @@ export async function sendQuote(
         quantity: Number(i.quantity),
         unitPriceCents: i.unit_price_cents,
       })),
-      { discountCents: quote.discount_cents, taxRate: Number(quote.tax_rate) }
+      { discountCents: quote.discount_cents, taxRate: Number(quote.tax_rate), pricesIncludeTax: conIva.has(quoteId) }
     );
 
     let emailed = false;

@@ -3,6 +3,7 @@ import { validarDatosFiscales } from '@/lib/billing/validarFiscal';
 import { esServicio } from '@/lib/meetings/kinds';
 import { crearCotizacion } from '@/lib/quotes/crear';
 import { computeTotals, formatFolio, formatMoney } from '@/lib/quotes/totals';
+import { cotizacionesConIva, preciosIncluyenIva } from '@/lib/quotes/preciosIva';
 import { quotePdfUrl } from '@/lib/urls';
 import { enviarDocumento } from '@/lib/whatsapp/media';
 import type { Contexto } from '@/lib/whatsapp/agente/herramientas';
@@ -33,7 +34,7 @@ const MAX_CANTIDAD = 100_000;
 export const TOOLS_COTIZA: Anthropic.Tool[] = [
   {
     name: 'ver_catalogo',
-    description: 'El catálogo del negocio con precios (sin IVA). Úsalo antes de hablar de precios o cotizar.',
+    description: 'El catálogo del negocio con precios; el campo iva dice si el precio ya lo incluye o se suma aparte. Úsalo antes de hablar de precios o cotizar.',
     input_schema: { type: 'object', properties: {}, additionalProperties: false },
   },
   {
@@ -179,9 +180,10 @@ export async function ejecutarHerramientaCotiza(ctx: ContextoCotiza, nombre: str
 
   switch (nombre) {
     case 'ver_catalogo': {
-      const lista = await catalogo(ctx);
+      const [lista, conIva] = await Promise.all([catalogo(ctx), preciosIncluyenIva(ctx.db, ctx.tenantId)]);
+      const iva = conIva ? 'IVA incluido' : 'más IVA';
       return lista.length
-        ? lista.map((c) => ({ id: c.id, concepto: c.concepto, precio_sin_iva: formatMoney(c.precio_cents), unidad: c.unidad }))
+        ? lista.map((c) => ({ id: c.id, concepto: c.concepto, precio: formatMoney(c.precio_cents), iva, unidad: c.unidad }))
         : { aviso: 'El negocio no tiene conceptos con precio en su catálogo. Pasa la plática a una persona.' };
     }
 
@@ -210,13 +212,14 @@ export async function ejecutarHerramientaCotiza(ctx: ContextoCotiza, nombre: str
       if (!r.ok) throw new Error(r.error);
 
       const { data: q } = await ctx.db.from('quotes').select('tax_rate').eq('id', r.quoteId).eq('tenant_id', ctx.tenantId).maybeSingle();
-      const total = computeTotals(partidas, { taxRate: Number(q?.tax_rate ?? 16) }).totalCents;
+      const pricesIncludeTax = (await cotizacionesConIva(ctx.db, [r.quoteId])).has(r.quoteId);
+      const total = computeTotals(partidas, { taxRate: Number(q?.tax_rate ?? 16), pricesIncludeTax }).totalCents;
       const envio = await (ctx.deps?.enviarDoc ?? enviarDocumento)(ctx.phoneNumberId, ctx.telefono, {
         link: quotePdfUrl(r.quoteId),
         filename: `cotizacion-${formatFolio(r.folio)}.pdf`,
-        caption: `Cotización ${formatFolio(r.folio)} · ${formatMoney(total)} con IVA`,
+        caption: `Cotización ${formatFolio(r.folio)} · ${formatMoney(total)} IVA incluido`,
       });
-      return { folio: r.folio, total_con_iva: formatMoney(total), pdf_enviado: envio.ok };
+      return { folio: r.folio, total: `${formatMoney(total)} IVA incluido`, pdf_enviado: envio.ok };
     }
 
     case 'ver_mis_cotizaciones': {
@@ -233,16 +236,17 @@ export async function ejecutarHerramientaCotiza(ctx: ContextoCotiza, nombre: str
         ? await ctx.db.from('quote_items').select('quote_id, quantity, unit_price_cents').in('quote_id', qs.map((q) => q.id))
         : { data: [] };
       type I = { quote_id: string; quantity: number; unit_price_cents: number };
+      const conIva = await cotizacionesConIva(ctx.db, qs.map((q) => q.id));
       return qs.map((q) => ({
         folio: q.folio,
         estado: q.status === 'accepted' ? 'aceptada' : q.status === 'sent' || q.status === 'viewed' ? 'enviada' : q.status,
         factura: q.factura_estado,
-        total_con_iva: formatMoney(
+        total: `${formatMoney(
           computeTotals(
             ((items ?? []) as I[]).filter((i) => i.quote_id === q.id).map((i) => ({ description: '', quantity: Number(i.quantity), unitPriceCents: i.unit_price_cents })),
-            { discountCents: q.discount_cents, taxRate: Number(q.tax_rate) }
+            { discountCents: q.discount_cents, taxRate: Number(q.tax_rate), pricesIncludeTax: conIva.has(q.id) }
           ).totalCents
-        ),
+        )} IVA incluido`,
       }));
     }
 

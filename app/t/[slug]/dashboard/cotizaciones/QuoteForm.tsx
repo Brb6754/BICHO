@@ -29,16 +29,20 @@ export function QuoteForm({
   slug,
   taxRateDefault,
   taxLabel,
+  preciosConIvaDefault,
 }: {
   slug: string;
   taxRateDefault: number;
   taxLabel: string;
+  /** El ajuste del negocio (db/059). */
+  preciosConIvaDefault: boolean;
 }) {
   const router = useRouter();
   const [cliente, setCliente] = useState({ name: '', email: '', phone: '' });
   const [partidas, setPartidas] = useState<Partida[]>([{ ...PARTIDA_VACIA }]);
   const [descuento, setDescuento] = useState('');
   const [taxRate, setTaxRate] = useState(String(taxRateDefault));
+  const [conIva, setConIva] = useState(preciosConIvaDefault);
   const [vigencia, setVigencia] = useState('');
   const [notas, setNotas] = useState('');
   const [guardando, setGuardando] = useState(false);
@@ -52,9 +56,9 @@ export function QuoteForm({
           quantity: Number(p.quantity) || 0,
           unitPriceCents: Math.round((Number(p.unitPriceMxn) || 0) * 100),
         })),
-        { discountCents: Math.round((Number(descuento) || 0) * 100), taxRate: Number(taxRate) || 0 }
+        { discountCents: Math.round((Number(descuento) || 0) * 100), taxRate: Number(taxRate) || 0, pricesIncludeTax: conIva }
       ),
-    [partidas, descuento, taxRate]
+    [partidas, descuento, taxRate, conIva]
   );
 
   const cambiar = (i: number, campo: keyof Partida, valor: string) =>
@@ -73,6 +77,7 @@ export function QuoteForm({
       notes: notas,
       discountMxn: Number(descuento) || 0,
       taxRate: Number(taxRate) || 0,
+      pricesIncludeTax: conIva,
       validUntil: vigencia || undefined,
       items: partidas
         .filter((p) => p.description.trim())
@@ -232,6 +237,16 @@ export function QuoteForm({
               onChange={(e) => setTaxRate(e.target.value)}
             />
           </div>
+          <label className="flex min-h-11 items-center gap-2 text-sm text-ink sm:col-span-3">
+            <input
+              type="checkbox"
+              checked={conIva}
+              onChange={(e) => setConIva(e.target.checked)}
+              className="h-4 w-4 accent-[rgb(var(--color-primary))]"
+            />
+            Mis precios ya incluyen {taxLabel}
+            <span className="text-muted">· se recuerda para tus próximas cotizaciones</span>
+          </label>
           <div>
             <Label htmlFor="q-valid">Válida hasta</Label>
             <Input
@@ -259,14 +274,22 @@ export function QuoteForm({
             a decir en voz alta por teléfono mientras llena esto. */}
         <aside className="h-fit rounded-2xl bg-surface p-5 ring-1 ring-border">
           <dl className="flex flex-col gap-2 text-sm">
-            <div className="flex justify-between">
-              <dt className="text-muted">Subtotal</dt>
-              <dd className="tabular-nums text-ink">{formatMoney(totales.subtotalCents)}</dd>
-            </div>
+            {(!conIva || totales.discountCents > 0) && (
+              <div className="flex justify-between">
+                <dt className="text-muted">{conIva ? 'Importe' : 'Subtotal'}</dt>
+                <dd className="tabular-nums text-ink">{formatMoney(totales.subtotalCents)}</dd>
+              </div>
+            )}
             {totales.discountCents > 0 && (
               <div className="flex justify-between">
                 <dt className="text-muted">Descuento</dt>
                 <dd className="tabular-nums text-ink">−{formatMoney(totales.discountCents)}</dd>
+              </div>
+            )}
+            {conIva && (
+              <div className="flex justify-between">
+                <dt className="text-muted">Subtotal (sin {taxLabel})</dt>
+                <dd className="tabular-nums text-ink">{formatMoney(totales.taxableCents)}</dd>
               </div>
             )}
             <div className="flex justify-between">

@@ -21,7 +21,7 @@ export function promoDemo(now: Date, timezone: string): Promo {
   return {
     id: 'demo-promo',
     title: 'Martes 20% en tu segundo servicio',
-    details: 'Menciona la promo al llegar. Válida todo el mes.',
+    details: 'Todo el mes.',
     code: 'MARTES20',
     starts_on: addDaysKey(hoy, -3),
     ends_on: addDaysKey(hoy, 25),

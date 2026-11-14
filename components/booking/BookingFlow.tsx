@@ -633,7 +633,7 @@ export default function BookingFlow({
           <>
             <StepTitle
               title="¿Qué vas a reservar?"
-              hint={serviceHint?.trim() || 'Después eliges cuándo. Puedes cambiarlo en cualquier momento.'}
+              hint={serviceHint?.trim() || undefined}
             />
             <div className="flex flex-col gap-3">
               {bookableServices.map((s) => (

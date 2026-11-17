@@ -18,7 +18,10 @@ export async function cancelBooking(bookingId: string, slug: string) {
     .update({ status: 'cancelled' })
     .eq('id', bookingId)
     .eq('tenant_id', tenant.id);
-  if (error) throw new Error(`No se pudo cancelar la cita: ${error.message}`);
+  if (error) {
+    console.error('cancelBooking', error);
+    throw new Error('No se pudo cancelar la cita. Inténtalo otra vez.');
+  }
 
   // Boost (db/058): el hueco se liberó; avisa a la lista VIP sin hacer esperar al dueño.
   after(() => avisarCitaLiberada(createAdminClient(), tenant.id, bookingId));
@@ -186,7 +189,7 @@ export async function markBookingAttendance(
     // rather than "no se pudo guardar" — it's the one failure here with
     // a specific fix.
     if (error.code === '23514') {
-      return { error: 'Falta correr la migración 023 en la base de datos.' };
+      return { error: 'Esto todavía no está listo en tu cuenta. Escríbenos y lo activamos.' };
     }
     console.error('markBookingAttendance failed', error);
     return { error: 'No se pudo guardar. Intenta de nuevo.' };

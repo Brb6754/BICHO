@@ -15,13 +15,18 @@ export async function createService(slug: string, formData: FormData) {
   // constraint and fail with an opaque Postgres error instead of a clear
   // one — validate here so the message actually says what's wrong.
   if (!name?.trim()) {
-    throw new Error('Falta el nombre del servicio.');
+    throw new Error('Escribe el nombre del servicio, por ejemplo "Corte de dama".');
   }
   if (!Number.isFinite(durationMinutes) || durationMinutes <= 0) {
-    throw new Error('La duración debe ser un número mayor a 0.');
+    throw new Error('Pon cuántos minutos dura, por ejemplo 45.');
+  }
+  // Un campo vacío llega como '' y Number('') es 0: sin esta revisión,
+  // olvidar el precio publicaba el servicio como gratis.
+  if (String(formData.get('price_mxn') ?? '').trim() === '') {
+    throw new Error('Pon el precio, por ejemplo 250. Si es gratis, pon 0.');
   }
   if (!Number.isFinite(priceMxn) || priceMxn < 0) {
-    throw new Error('El precio debe ser un número igual o mayor a 0.');
+    throw new Error('El precio tiene que ser 0 o más, por ejemplo 250.');
   }
 
   const supabase = await createClient();
@@ -48,7 +53,10 @@ export async function createService(slug: string, formData: FormData) {
     ({ error } = await supabase.from('service_types').insert(sinColumna));
   }
 
-  if (error) throw new Error(`No se pudo crear el servicio: ${error.message}`);
+  if (error) {
+    console.error('createService', error);
+    throw new Error('No se pudo agregar el servicio. Revisa tu internet e inténtalo otra vez.');
+  }
 
   revalidatePath(`/t/${slug}/dashboard/services`);
 }
@@ -63,7 +71,10 @@ export async function toggleServiceActive(serviceId: string, active: boolean, sl
     .update({ active })
     .eq('id', serviceId)
     .eq('tenant_id', tenant.id);
-  if (error) throw new Error(`No se pudo actualizar el servicio: ${error.message}`);
+  if (error) {
+    console.error('toggleServiceActive', error);
+    throw new Error('No se pudo cambiar el servicio. Inténtalo otra vez.');
+  }
 
   revalidatePath(`/t/${slug}/dashboard/services`);
 }
@@ -78,7 +89,15 @@ export async function deleteService(serviceId: string, slug: string) {
     .delete()
     .eq('id', serviceId)
     .eq('tenant_id', tenant.id);
-  if (error) throw new Error(`No se pudo borrar el servicio: ${error.message}`);
+  if (error) {
+    console.error('deleteService', error);
+    // 23503: hay citas que apuntan a este servicio y la base no deja borrarlo.
+    throw new Error(
+      error.code === '23503'
+        ? 'Este servicio ya tiene citas, así que no se puede borrar. Apaga el interruptor para ocultarlo de tu página.'
+        : 'No se pudo borrar el servicio. Inténtalo otra vez.'
+    );
+  }
 
   revalidatePath(`/t/${slug}/dashboard/services`);
 }

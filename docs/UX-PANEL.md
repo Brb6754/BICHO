@@ -315,3 +315,37 @@ mandaba a una pantalla que dice "Primero agrega quién atiende".
 ## Pedidos a cimientos
 
 (Los grupos de la fase 2 anotan aquí lo que necesitan cambiar en archivos compartidos.)
+
+### Grupo A (Agenda)
+
+1. **P0 — `ActionForm` borra lo escrito cuando la action falla** (`components/tenant-dash/ui/ActionForm.tsx`).
+   El envoltorio atrapa el error, así que React 19 ve la action como exitosa y
+   resetea el formulario. Probado en el navegador: se escribe "Corte", la action
+   avienta "Pon cuántos minutos dura…", el toast sale bien y el campo queda vacío.
+   Arreglo sugerido: guardar el `FormData` y, en el `catch`, volver a poner los
+   valores en `form.elements` (o usar `onSubmit` + `startTransition` en vez de
+   `action`). Mientras tanto, los formularios del grupo A validan en el navegador
+   (`required`, `min`) para que el caso común no llegue al servidor.
+2. **`ConfirmForm` con `success`** (`components/ui/ConfirmForm.tsx`): que avise con
+   toast y atrape el error como `ActionForm`. Hoy lo hace
+   `components/tenant-dash/AccionesFila.tsx` (`ConfirmarConAviso`, archivo nuevo del
+   grupo A); con el cambio se borra.
+3. **`Button` mide 40 px de alto** (`py-2.5 text-sm`). Pedido: `min-h-[2.75rem]`
+   en la base. El grupo A lo pone a mano en sus botones.
+4. **`Modal`**: el botón de cerrar mide 24 px (`p-1`) y el diálogo no hace scroll.
+   En el teléfono, "Mover la cita" (con la lista de horas) puede quedar más alto
+   que la pantalla. Pedido: `max-h-[90dvh] overflow-y-auto`, hoja abajo en `< sm`
+   y cerrar en `h-11 w-11`.
+5. **`FormField` / `Label`**: la etiqueta sale en `text-xs text-muted` y el
+   `text-[13px]` que agrega FormField no gana de forma confiable (la trampa de
+   className de CLAUDE.md). Pedido: prop o variante con 13 px y `text-ink`.
+6. **Demo (`lib/demo/panelFixtures.ts`)**: el teléfono no va amarrado al nombre
+   (`NOMBRES[(base+n*5)%…]` y `TELEFONOS[(base+n)%…]`), así que dos clientas
+   distintas comparten número; además casi todas las citas caen con la misma
+   estilista (G12). La demo de Clientes agrupa por nombre para no fusionarlas.
+   Pedido: teléfono derivado del nombre y repartir las citas entre quienes atienden.
+7. **Menú del teléfono**: la barra de abajo dice "Citas" y la página se llama
+   "Agenda" (§2.1: menú = título). Pedido: "Agenda" en `BOTTOM_LABEL` de `Sidebar.tsx`.
+8. Los atajos del inicio usan `?nueva=1#agendar` (abre "Agendar una cita"),
+   `/schedule#bloquear` y `/customers#buscar` (pone el cursor en el buscador). Si
+   cimientos agrega atajos al menú, que usen esas mismas URLs.

@@ -19,12 +19,12 @@ export default async function ServiciosDemoPage({ params }: { params: Promise<{ 
     <div>
       <PageHeader
         title="Servicios"
-        description="Lo que el negocio ofrece, con su duración y su precio. Es la misma lista que ve el cliente al reservar."
+        description="Lo que tus clientas pueden reservar en tu página, con cuánto dura y cuánto cuesta."
       />
 
       <ul className="mt-8 divide-y divide-border overflow-hidden rounded-2xl bg-surface ring-1 ring-border">
         {datos.services.map((s) => (
-          <li key={s.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-5 py-4">
+          <li key={s.id} className="flex items-center gap-x-4 px-4 py-4 sm:px-5">
             <div className="min-w-0 flex-1">
               <p className="text-[15px] font-medium text-ink">{s.name}</p>
               <p className="mt-0.5 flex items-center gap-1.5 text-[13px] text-muted">
@@ -33,7 +33,7 @@ export default async function ServiciosDemoPage({ params }: { params: Promise<{ 
               </p>
             </div>
             <span className="rounded-full bg-primary/[0.14] px-3 py-1 text-sm font-bold tabular-nums text-ink">
-              {formatPrice(s.price_cents) || 'Sin costo'}
+              {formatPrice(s.price_cents) || 'Gratis'}
             </span>
           </li>
         ))}

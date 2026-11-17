@@ -1,73 +1,48 @@
 import { notFound } from 'next/navigation';
 import { PageHeader } from '@/components/tenant-dash/PageHeader';
+import { ContactDirectory } from '@/components/tenant-dash/ContactDirectory';
 import { cargarPanelDemo } from '@/lib/demo/panelData';
-import { buildRoster, customerTenure } from '@/lib/customers/roster';
-import { dayLabel, dayKey } from '@/lib/dates/tenantTime';
+import { buildDirectory, type ContactSeedRow } from '@/lib/contacts/directory';
 
 export const dynamic = 'force-dynamic';
 
-const ETIQUETA: Record<string, string> = {
-  nuevo: 'Nuevo',
-  recurrente: 'Frecuente',
-  inactivo: 'No ha vuelto',
-};
-
-// Clientes: la MISMA función que arma la lista del panel real
-// (buildRoster) sobre las citas de ejemplo. El conteo de visitas, la
-// antigüedad y el "no ha vuelto" se calculan igual que en producción —
-// si cambiara esa lógica, esta pantalla cambiaría con ella en vez de
-// quedarse enseñando una versión vieja del producto.
+// Clientes: el MISMO directorio del panel real (ContactDirectory +
+// buildDirectory) sobre las citas de ejemplo, con su buscador y sus
+// secciones. Antes la demo tenía su propia lista, distinta de la real:
+// quien la veía aprendía una pantalla que no iba a encontrar al entrar.
+//
+// Las citas de la demo no traen contacto, así que se agrupan por NOMBRE
+// para armar uno por persona: en los datos de ejemplo el teléfono no va
+// amarrado al nombre (dos personas distintas comparten número), y agrupar
+// por teléfono juntaba a cinco clientas en una.
 export default async function ClientesDemoPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const datos = await cargarPanelDemo(slug);
   if (!datos) notFound();
 
   const { citas, now, tenant } = datos;
-  const clientes = buildRoster(
-    citas.map((c) => ({
-      id: c.id,
-      starts_at: c.starts_at,
-      status: c.status,
-      customers: c.customers,
-      service_types: c.service_types,
-    })),
-    now
-  );
+
+  const contactos = new Map<string, ContactSeedRow>();
+  const bookings = citas.map((c) => {
+    const nombre = c.customers?.name ?? 'Clienta';
+    const tel = c.customers?.phone ?? null;
+    const id = `demo-${nombre}`;
+    if (!contactos.has(id)) {
+      contactos.set(id, { id, name: nombre, phone: tel, email: null, tags: [], notes: null, rfc: null });
+    }
+    return { contact_id: id, starts_at: c.starts_at, status: c.status };
+  });
+
+  const entries = buildDirectory([...contactos.values()], bookings, [], [], now, tenant.timezone);
 
   return (
     <div>
       <PageHeader
         title="Clientes"
-        description="Quién ha venido, cuántas veces y quién lleva tiempo sin aparecer."
+        description="Busca a cualquier cliente, llámale o mira quién dejó de venir."
       />
-
-      <ul className="mt-8 divide-y divide-border overflow-hidden rounded-2xl bg-surface ring-1 ring-border">
-        {clientes.map((c) => {
-          const tenure = customerTenure(c, now, tenant.timezone);
-          return (
-            <li key={c.key} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-5 py-4">
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-[15px] font-medium text-ink">{c.name}</p>
-                <p className="truncate text-[13px] text-muted">
-                  {c.phone ?? 'Sin teléfono'}
-                  {c.lastVisit && ` · última visita ${dayLabel(dayKey(c.lastVisit, tenant.timezone), now, tenant.timezone)}`}
-                </p>
-              </div>
-              <span className="rounded-full bg-primary/[0.12] px-2.5 py-1 text-[12px] font-semibold text-ink">
-                {ETIQUETA[tenure] ?? tenure}
-              </span>
-              <span className="text-[13px] tabular-nums text-muted">
-                {c.visits} {c.visits === 1 ? 'visita' : 'visitas'}
-              </span>
-            </li>
-          );
-        })}
-      </ul>
-
-      <p className="mt-6 text-[13px] leading-relaxed text-muted">
-        Esta lista se arma agrupando por teléfono al leer: el sistema guarda un cliente por cita, y
-        juntarlos aquí evita fusionar a dos personas que compartan un número.
-      </p>
+      {/* hrefBase null: en la demo no hay ficha que abrir. */}
+      <ContactDirectory entries={entries} now={now} timezone={tenant.timezone} hrefBase={null} />
     </div>
   );
 }

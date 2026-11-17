@@ -14,13 +14,15 @@ export default async function RecursosDemoPage({ params }: { params: Promise<{ s
   if (!datos) notFound();
 
   const { tenant, resources, citas } = datos;
-  const etiqueta = tenant.resourceLabel ?? 'Quién atiende';
+  // El título es el del menú ("Quién atiende"); la palabra del giro
+  // (estilistas, barberos, consultorios) queda en la descripción.
+  const giro = tenant.resourceLabel?.toLowerCase();
 
   return (
     <div>
       <PageHeader
-        title={etiqueta}
-        description={`Lo que se puede reservar en ${tenant.name}. Cada uno con su propio horario y su propia agenda.`}
+        title="Quién atiende"
+        description={`Las personas o lugares con los que tus clientas pueden reservar${giro ? ` (${giro})` : ''}. Cada uno lleva su agenda.`}
       />
 
       <ul className="mt-8 grid gap-3 sm:grid-cols-2">
@@ -30,7 +32,7 @@ export default async function RecursosDemoPage({ params }: { params: Promise<{ s
             <li key={r.id} className="rounded-2xl bg-surface p-5 ring-1 ring-border">
               <p className="text-[15px] font-medium text-ink">{r.name}</p>
               <p className="mt-1 text-[13px] text-muted">
-                {suyas} {suyas === 1 ? 'cita esta semana' : 'citas esta semana'}
+                {suyas === 0 ? 'Agenda libre esta semana' : `${suyas} ${suyas === 1 ? 'cita esta semana' : 'citas esta semana'}`}
               </p>
             </li>
           );

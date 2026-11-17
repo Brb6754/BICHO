@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronDown } from 'lucide-react';
 import { setResourceServices } from './actions';
+import { toast } from '@/components/tenant-dash/ui/Toast';
+import { mensajeDeError } from '@/components/tenant-dash/ui/ActionForm';
 
 // El checklist de "qué hace" cada recurso.
 //
@@ -37,13 +39,12 @@ export function ResourceServices({
     selected.length === 0 ? services.map((s) => s.id) : selected
   );
   const [guardando, setGuardando] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const todos = marcados.length === services.length;
   const resumen = todos
-    ? 'Hace todo'
+    ? 'Da todos los servicios'
     : marcados.length === 0
-      ? 'Sin servicios asignados'
+      ? 'No da ningún servicio'
       : services
           .filter((s) => marcados.includes(s.id))
           .map((s) => s.name)
@@ -61,12 +62,14 @@ export function ResourceServices({
     if (igual) return;
 
     setGuardando(true);
-    setError(null);
     try {
       await setResourceServices(slug, resourceId, marcados);
+      toast(`Servicios de ${resourceName} guardados`);
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'No se pudo guardar.');
+      // Vuelve a abrir con lo que marcó: no se pierde la selección.
+      setAbierto(true);
+      toast(mensajeDeError(e), 'error');
     } finally {
       setGuardando(false);
     }
@@ -80,28 +83,29 @@ export function ResourceServices({
         type="button"
         onClick={() => (abierto ? cerrarYGuardar() : setAbierto(true))}
         aria-expanded={abierto}
-        className="inline-flex min-h-9 items-center gap-1.5 rounded-full px-2 text-[13px] text-muted transition-colors hover:bg-ink/[0.04] hover:text-ink"
+        className="-ml-2 inline-flex min-h-[2.75rem] max-w-full items-center gap-1.5 rounded-full px-2 text-[13px] text-muted transition-colors hover:bg-ink/[0.04] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
       >
         <ChevronDown
           className={'h-3.5 w-3.5 transition-transform ' + (abierto ? 'rotate-180' : '')}
           aria-hidden="true"
         />
         <span className="truncate">{guardando ? 'Guardando…' : resumen}</span>
+        {!abierto && !guardando && <span className="shrink-0 font-medium text-ink underline underline-offset-4">Cambiar</span>}
       </button>
 
       {abierto && (
         <div className="mt-2 flex flex-col gap-1.5 rounded-xl bg-paper p-3 ring-1 ring-border">
           <p className="mb-1 text-[13px] text-muted">
-            Qué puede dar {resourceName}. Lo que desmarques deja de ofrecerse con {resourceName} en
-            tu página.
+            Marca lo que da {resourceName}. Lo que quites ya no se ofrece con {resourceName} en tu
+            página.
           </p>
           {services.map((s) => (
-            <label key={s.id} className="flex items-center gap-2.5 text-sm text-ink">
+            <label key={s.id} className="flex min-h-[2.75rem] items-center gap-3 text-sm text-ink">
               <input
                 type="checkbox"
                 checked={marcados.includes(s.id)}
                 onChange={() => alternar(s.id)}
-                className="h-4 w-4 accent-primary"
+                className="h-5 w-5 shrink-0 accent-primary"
               />
               {s.name}
             </label>
@@ -114,14 +118,13 @@ export function ResourceServices({
           <button
             type="button"
             onClick={cerrarYGuardar}
-            className="mt-2 inline-flex min-h-9 w-fit items-center rounded-full bg-ink/[0.06] px-3 text-[13px] font-medium text-ink"
+            className="mt-2 inline-flex min-h-[2.75rem] w-fit items-center rounded-full bg-primary px-5 text-sm font-semibold text-[rgb(var(--color-cta-fg))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
           >
-            Listo
+            Guardar
           </button>
         </div>
       )}
 
-      {error && <p className="mt-1 text-[13px] text-error">{error}</p>}
     </div>
   );
 }

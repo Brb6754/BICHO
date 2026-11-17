@@ -1,4 +1,7 @@
-import { Mail, Phone } from 'lucide-react';
+import { Contact, Mail, Phone } from 'lucide-react';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { ShareLink } from '@/components/tenant-dash/ui/ShareLink';
+import { tenantBookingPageUrl } from '@/lib/urls';
 import { createClient } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/tenant-dash/PageHeader';
 import { buildRoster, customerTenure, type RosterBooking } from '@/lib/customers/roster';
@@ -43,12 +46,13 @@ export default async function CustomersPage({ params }: { params: Promise<{ slug
   const supabase = await createClient();
   const { data: tenant } = await supabase
     .from('tenants')
-    .select('id, timezone')
+    .select('id, name, timezone')
     .eq('slug', slug)
     .single();
 
   const now = new Date();
   const tz = tenant?.timezone ?? null;
+  const compartir = <ShareLink url={tenantBookingPageUrl(slug)} slug={slug} negocio={tenant?.name} />;
 
   // ── El directorio nuevo (db/037) ──────────────────────────────────
   //
@@ -102,9 +106,9 @@ export default async function CustomersPage({ params }: { params: Promise<{ slug
       <div>
         <PageHeader
           title="Clientes"
-          description="Quién viene, quién dejó de venir y quién está esperando una respuesta tuya." 
+          description="Busca a cualquier cliente, llámale o mira quién dejó de venir."
         />
-        <ContactDirectory entries={entries} now={now} timezone={tz} />
+        <ContactDirectory entries={entries} now={now} timezone={tz} emptyAction={compartir} />
       </div>
     );
   }
@@ -127,21 +131,22 @@ export default async function CustomersPage({ params }: { params: Promise<{ slug
     <div>
       <PageHeader
         title="Clientes"
-        description={
+        description="Quién ha venido, cuántas veces y a quién llamarle porque ya no ha vuelto."
+        eyebrow={
           roster.length > 0
-            ? `${roster.length} ${roster.length === 1 ? 'persona ha reservado' : 'personas han reservado'} contigo.`
-            : 'Cada persona que reserve desde tu página va a aparecer aquí.'
+            ? `${roster.length} ${roster.length === 1 ? 'persona ha reservado' : 'personas han reservado'} contigo`
+            : undefined
         }
       />
 
       {roster.length === 0 ? (
-        <div className="mt-8 rounded-2xl border border-dashed border-border px-6 py-16 text-center">
-          <p className="text-sm font-medium text-ink">Todavía nadie ha reservado</p>
-          <p className="mx-auto mt-1 max-w-sm text-sm leading-relaxed text-muted">
-            Esta lista se arma sola con las citas. En cuanto alguien reserve, vas a ver aquí su
-            teléfono, cuántas veces ha venido y cuándo fue la última.
-          </p>
-        </div>
+        <EmptyState
+          icon={Contact}
+          title="Todavía nadie ha reservado"
+          description="Esta lista se arma sola con las citas: teléfono, cuántas veces ha venido y cuándo fue la última."
+          why="Así sabes quién viene seguido y a quién escribirle porque ya no ha vuelto."
+          action={compartir}
+        />
       ) : (
         <>
           {/* Two numbers, not a wall of cards: how many come back, and how
@@ -193,7 +198,7 @@ export default async function CustomersPage({ params }: { params: Promise<{ slug
                         {c.phone && (
                           <a
                             href={`tel:${c.phone.replace(/\s/g, '')}`}
-                            className="inline-flex items-center gap-1.5 rounded-sm text-muted underline-offset-4 hover:text-ink hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                            className="inline-flex min-h-[2.75rem] items-center gap-1.5 rounded-sm text-muted underline-offset-4 hover:text-ink hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 sm:min-h-0"
                           >
                             <Phone className="h-3.5 w-3.5" aria-hidden="true" />
                             {c.phone}
@@ -244,8 +249,8 @@ export default async function CustomersPage({ params }: { params: Promise<{ slug
                         </span>
                       )}
                       {c.noShows > 0 && (
-                        <span className="text-warning" title="Citas a las que no vino">
-                          {c.noShows} no vino
+                        <span className="text-warning">
+                          Faltó {c.noShows} {c.noShows === 1 ? 'vez' : 'veces'}
                         </span>
                       )}
                     </div>

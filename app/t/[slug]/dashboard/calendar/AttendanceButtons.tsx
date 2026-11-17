@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { markBookingAttendance } from './actions';
+import { toast } from '@/components/tenant-dash/ui/Toast';
 
 // How an appointment that has already happened gets closed out.
 //
@@ -39,13 +40,14 @@ export function AttendanceButtons({
       setError(result.error);
       return;
     }
+    toast(attended ? `Listo: ${customerName} sí vino` : `Anotado: ${customerName} no vino`);
     // The row re-renders as completed/no-show from the server, so there
     // is no local copy of the status here to drift out of sync.
     router.refresh();
   }
 
   return (
-    <div className="flex flex-col items-end gap-1">
+    <div className="flex flex-col items-start gap-1 sm:items-end">
       <div className="flex items-center gap-2">
         <Button
           type="button"
@@ -53,7 +55,7 @@ export function AttendanceButtons({
           isLoading={pending === 'came'}
           disabled={pending !== null}
           onClick={() => mark(true)}
-          className="px-3 py-1.5 text-xs"
+          className="min-h-[2.75rem] px-4 text-[13px]"
           aria-label={`${customerName} sí vino`}
         >
           {pending !== 'came' && <Check className="h-3.5 w-3.5" aria-hidden="true" />}
@@ -65,7 +67,7 @@ export function AttendanceButtons({
           isLoading={pending === 'missed'}
           disabled={pending !== null}
           onClick={() => mark(false)}
-          className="px-3 py-1.5 text-xs"
+          className="min-h-[2.75rem] px-4 text-[13px]"
           aria-label={`${customerName} no vino`}
         >
           {pending !== 'missed' && <X className="h-3.5 w-3.5" aria-hidden="true" />}
@@ -73,7 +75,7 @@ export function AttendanceButtons({
         </Button>
       </div>
       {error && (
-        <p role="alert" className="max-w-[16rem] text-right text-xs text-error">
+        <p role="alert" className="max-w-[16rem] text-[13px] text-error sm:text-right">
           {error}
         </p>
       )}

@@ -6,6 +6,7 @@ import { X } from 'lucide-react';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { updateContact } from '../actions';
+import { toast } from '@/components/tenant-dash/ui/Toast';
 
 // Notas y etiquetas de la ficha.
 //
@@ -42,6 +43,7 @@ export function ContactNotes({
       return;
     }
     setEstado('listo');
+    toast(patch.notes !== undefined ? 'Nota guardada' : 'Etiquetas guardadas');
     router.refresh();
   }
 
@@ -67,7 +69,7 @@ export function ContactNotes({
     <section className="rounded-2xl border border-border bg-surface p-5">
       <div className="flex items-center justify-between gap-4">
         <h2 className="text-[15px] font-semibold text-ink">Notas</h2>
-        {estado === 'guardando' && <span className="text-xs text-muted">Guardando…</span>}
+        {estado === 'guardando' && <span className="text-[13px] text-muted">Guardando…</span>}
       </div>
 
       <textarea
@@ -78,10 +80,10 @@ export function ContactNotes({
         }}
         rows={4}
         maxLength={4000}
-        placeholder="Prefiere a Renata. Alérgica al acrílico. Siempre pide factura a nombre de su empresa."
+        placeholder="Ej. Prefiere a Renata. Alérgica al acrílico."
         className="mt-3 w-full rounded-xl border border-border bg-paper px-3 py-2.5 text-base text-ink placeholder:text-muted/70 focus:outline-none focus:ring-2 focus:ring-primary/40 sm:text-sm"
       />
-      <p className="mt-1.5 text-xs text-muted">
+      <p className="mt-1.5 text-[13px] text-muted">
         Lo que escribas aquí se ve cada vez que abras esta ficha. Se guarda al salir del campo.
       </p>
 
@@ -90,16 +92,16 @@ export function ContactNotes({
         {etiquetas.map((t) => (
           <span
             key={t}
-            className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 py-1 pl-3 pr-1.5 text-sm font-medium text-primary"
+            className="inline-flex items-center rounded-full bg-primary/10 pl-3.5 text-sm font-medium text-ink"
           >
             {t}
             <button
               type="button"
               onClick={() => quitarEtiqueta(t)}
               aria-label={`Quitar etiqueta ${t}`}
-              className="flex h-5 w-5 items-center justify-center rounded-full transition-colors hover:bg-primary/20"
+              className="flex h-11 w-11 items-center justify-center rounded-full transition-colors hover:bg-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
             >
-              <X className="h-3 w-3" aria-hidden="true" />
+              <X className="h-4 w-4" aria-hidden="true" />
             </button>
           </span>
         ))}
@@ -118,12 +120,13 @@ export function ContactNotes({
               agregarEtiqueta();
             }
           }}
-          placeholder="VIP, solo sábados, pide factura"
+          placeholder="Ej. VIP, solo sábados"
+          aria-label="Nueva etiqueta"
           maxLength={40}
-          className="w-full sm:w-64"
+          className="min-h-[2.75rem] w-full sm:w-64"
         />
-        <Button type="button" onClick={agregarEtiqueta} disabled={!nueva.trim()}>
-          Agregar
+        <Button type="button" onClick={agregarEtiqueta} disabled={!nueva.trim()} className="min-h-[2.75rem]">
+          Agregar etiqueta
         </Button>
       </div>
 

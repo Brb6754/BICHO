@@ -40,16 +40,18 @@ export function WeekdayPicker({ defaultDays = [] }: { defaultDays?: number[] }) 
 
   return (
     <div>
-      <span className="mb-1.5 block text-xs font-medium text-muted">Días</span>
+      <span className="mb-1.5 block text-[13px] font-medium text-ink">¿Qué días?</span>
 
-      <div className="flex flex-wrap items-center gap-1.5">
+      {/* Siete columnas iguales: en un teléfono de 375 px caben los siete en una
+          fila (unos 42 px cada uno) en vez de dejar el domingo solo abajo. */}
+      <div className="grid max-w-sm grid-cols-7 gap-1 sm:gap-1.5">
         {DIAS.map((d, i) => {
           const activo = marcados.includes(d.value);
           return (
             <label
               key={d.value}
               className={
-                'relative inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-full text-sm font-semibold transition-colors ' +
+                'relative inline-flex h-11 w-full cursor-pointer items-center justify-center rounded-full text-sm font-semibold transition-colors ' +
                 (activo
                   ? 'bg-primary text-[rgb(var(--color-cta-fg))]'
                   : 'bg-ink/[0.05] text-muted hover:bg-ink/[0.09]')
@@ -70,7 +72,7 @@ export function WeekdayPicker({ defaultDays = [] }: { defaultDays?: number[] }) 
               <span className="sr-only">{d.largo}</span>
               {/* Separador visual entre viernes y sábado, para que el
                   fin de semana se lea aparte sin añadir una etiqueta. */}
-              {i === 4 && <span className="absolute -right-1 h-5 w-px bg-border" aria-hidden="true" />}
+              {i === 4 && <span className="absolute -right-[3px] h-5 w-px bg-border" aria-hidden="true" />}
             </label>
           );
         })}
@@ -82,7 +84,7 @@ export function WeekdayPicker({ defaultDays = [] }: { defaultDays?: number[] }) 
             key={a.label}
             type="button"
             onClick={() => setMarcados(a.dias)}
-            className="inline-flex min-h-9 items-center rounded-full border border-border px-3 text-[13px] text-muted transition-colors hover:bg-ink/[0.04] hover:text-ink"
+            className="inline-flex min-h-[2.75rem] items-center rounded-full border border-border px-4 text-[13px] text-ink transition-colors hover:bg-ink/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           >
             {a.label}
           </button>
@@ -91,7 +93,7 @@ export function WeekdayPicker({ defaultDays = [] }: { defaultDays?: number[] }) 
           <button
             type="button"
             onClick={() => setMarcados([])}
-            className="inline-flex min-h-9 items-center rounded-full px-3 text-[13px] text-muted transition-colors hover:text-ink"
+            className="inline-flex min-h-[2.75rem] items-center rounded-full px-3 text-[13px] text-muted transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           >
             Limpiar
           </button>

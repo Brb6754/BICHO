@@ -1,11 +1,14 @@
 import { productosDe } from '@/lib/products';
 import { redirect } from 'next/navigation';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Users } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { createResource, toggleResourceActive, deleteResource } from './actions';
-import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { ConfirmForm } from '@/components/ui/ConfirmForm';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { ActionForm, SubmitButton } from '@/components/tenant-dash/ui/ActionForm';
+import { FormField } from '@/components/tenant-dash/ui/FormField';
+import { HelpTip } from '@/components/tenant-dash/ui/HelpTip';
+import { ConfirmarConAviso, IrAlCampo, BOTON_ICONO } from '@/components/tenant-dash/AccionesFila';
 import { PageHeader } from '@/components/tenant-dash/PageHeader';
 import { ItemList, ItemRow, ActiveSwitch, AddBar } from '@/components/tenant-dash/ItemList';
 import { ResourceServices } from './ResourceServices';
@@ -58,44 +61,62 @@ export default async function ResourcesPage({ params }: { params: Promise<{ slug
     <div>
       <PageHeader
         title="Quién atiende"
-        description="Las personas, sillas, consultorios o pistas que se pueden reservar. Solo los activos aparecen en tu página."
+        description="Las personas o lugares con los que tus clientas pueden reservar. Cada uno lleva su agenda."
+        help={
+          <HelpTip title="¿Qué va en “Quién atiende”?">
+            Una persona (Renata, Paola) o un lugar (Silla 2, Cabina 1, Consultorio A). Si tú sola
+            atiendes, agrégate a ti. Cada uno tiene su propio horario, y dos clientas no pueden
+            reservar con el mismo a la misma hora.
+          </HelpTip>
+        }
       />
 
       <div className="mt-8">
         <AddBar>
-          <form action={createResource.bind(null, slug)} className="flex flex-col gap-3 sm:flex-row">
-            <label className="sr-only" htmlFor="resource-name">
-              Nombre
-            </label>
-            <Input
-              id="resource-name"
-              type="text"
-              name="name"
-              placeholder="Ej. Renata, Silla 2, Consultorio A"
-              required
-              className="w-full flex-1"
-            />
-            <Button type="submit" className="shrink-0">
-              <Plus className="h-4 w-4" />
-              Agregar
-            </Button>
-          </form>
+          <ActionForm action={createResource.bind(null, slug)} success="Agregado a quién atiende">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+              <FormField label="Nombre" hint="Una persona o un lugar: Renata, Silla 2, Cabina 1." className="flex-1">
+                <Input
+                  id="resource-name"
+                  type="text"
+                  name="name"
+                  placeholder="Ej. Renata"
+                  required
+                  maxLength={80}
+                  className="min-h-[2.75rem] w-full"
+                />
+              </FormField>
+              <SubmitButton className="min-h-[2.75rem] shrink-0 sm:mt-[1.4rem]">
+                <Plus className="h-4 w-4" aria-hidden="true" />
+                Agregar
+              </SubmitButton>
+            </div>
+          </ActionForm>
         </AddBar>
       </div>
 
       <div className="mt-8">
         {resources && resources.length > 0 ? (
           <>
-            <p className="mb-3 px-1 text-sm text-muted">
-              {activeCount} de {resources.length} {resources.length === 1 ? 'activo' : 'activos'}
-            </p>
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-x-4 px-1">
+              <p className="text-sm text-muted">
+                {activeCount} de {resources.length} se ofrecen en tu página
+              </p>
+              {links && services.length > 0 && (
+                <HelpTip title="¿Qué servicios da cada quien?" label="¿Qué servicios da cada quien?">
+                  Debajo de cada nombre dice qué servicios da. Si no cambias nada, da todos. Tócalo
+                  para quitar los que no hace: por ejemplo, si Paola no hace uñas, tu página ya no
+                  ofrece uñas con Paola.
+                </HelpTip>
+              )}
+            </div>
             <ItemList>
               {resources.map((r, i) => (
                 <ItemRow
                   key={r.id}
                   first={i === 0}
                   title={r.name}
-                  meta={r.active ? 'Disponible para reservar' : 'Oculto de tu página'}
+                  meta={r.active ? 'Se ofrece en tu página' : 'Oculto de tu página'}
                   inactive={!r.active}
                   body={
                     links ? (
@@ -103,27 +124,34 @@ export default async function ResourcesPage({ params }: { params: Promise<{ slug
                         slug={slug}
                         resourceId={r.id}
                         resourceName={r.name}
-                        services={services ?? []}
+                        services={services}
                         selected={serviciosDe(r.id)}
                       />
                     ) : null
                   }
                   trail={
                     <>
-                      <form action={toggleResourceActive.bind(null, r.id, !r.active, slug)}>
-                        <ActiveSwitch active={r.active} label={r.name} />
-                      </form>
-                      <ConfirmForm
-                        action={deleteResource.bind(null, r.id, slug)}
-                        confirmTitle="Borrar recurso"
-                        confirmMessage={`¿Borrar "${r.name}"? Esta acción no se puede deshacer. Si solo quieres dejar de ofrecerlo, apágalo con el interruptor.`}
-                        confirmLabel="Borrar"
-                        triggerVariant="ghost"
-                        triggerClassName="h-8 w-8 !border-0 !p-0 !text-muted hover:!bg-error-soft hover:!text-error"
+                      <ActionForm
+                        action={toggleResourceActive.bind(null, r.id, !r.active, slug)}
+                        success={r.active ? `${r.name}: oculto de tu página` : `${r.name}: ya se ofrece en tu página`}
                       >
-                        <Trash2 className="h-4 w-4" />
-                        <span className="sr-only">Borrar {r.name}</span>
-                      </ConfirmForm>
+                        <ActiveSwitch active={r.active} label={r.name} />
+                      </ActionForm>
+                      <ConfirmarConAviso
+                        action={deleteResource.bind(null, r.id, slug)}
+                        success={`${r.name} se borró`}
+                        confirmTitle={`¿Borrar a ${r.name}?`}
+                        // bookings.resource_id es ON DELETE CASCADE (db/001): borrar
+                        // aquí se lleva sus citas. Se dice antes, no después.
+                        confirmMessage={`Se borran también su horario y todas sus citas, las pasadas y las que vienen. No se puede deshacer. Si ${r.name} solo deja de atender un tiempo, mejor apaga el interruptor: se oculta de tu página y no pierdes nada.`}
+                        confirmLabel="Sí, borrar todo"
+                        dismissLabel="No, conservarlo"
+                        triggerVariant="ghost"
+                        triggerClassName={BOTON_ICONO}
+                      >
+                        <Trash2 className="h-[18px] w-[18px]" aria-hidden="true" />
+                        <span className="sr-only">Borrar a {r.name}</span>
+                      </ConfirmarConAviso>
                     </>
                   }
                 />
@@ -131,12 +159,13 @@ export default async function ResourcesPage({ params }: { params: Promise<{ slug
             </ItemList>
           </>
         ) : (
-          <div className="rounded-2xl border border-dashed border-border px-6 py-12 text-center">
-            <p className="text-sm font-medium text-ink">Todavía no hay nadie que atienda</p>
-            <p className="mx-auto mt-1 max-w-sm text-sm leading-relaxed text-muted">
-              Agrega a la primera persona o espacio arriba. Sin al menos uno, tu página no puede ofrecer horarios.
-            </p>
-          </div>
+          <EmptyState
+            icon={Users}
+            title="Todavía no hay nadie que atienda"
+            description="Agrega a cada persona que da servicios, o el lugar que se reserva (una silla, una cabina). Si atiendes tú sola, agrégate a ti."
+            why="Sin al menos uno, tu página no puede ofrecer horarios."
+            action={<IrAlCampo campo="resource-name">Agregar a quien atiende</IrAlCampo>}
+          />
         )}
       </div>
     </div>

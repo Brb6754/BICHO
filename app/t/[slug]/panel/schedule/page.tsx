@@ -31,14 +31,13 @@ export default async function HorarioDemoPage({ params }: { params: Promise<{ sl
   const datos = await cargarPanelDemo(slug);
   if (!datos) notFound();
 
-  const { resources, schedules, tenant } = datos;
-  const etiqueta = tenant.resourceLabel ?? 'quien atiende';
+  const { resources, schedules } = datos;
 
   return (
     <div>
       <PageHeader
         title="Horario"
-        description={`A qué hora abre cada ${etiqueta.toLowerCase()}. De aquí salen los huecos que el cliente ve al reservar.`}
+        description="A qué hora te pueden reservar. Tu página solo ofrece horas dentro de este horario."
       />
 
       <div className="mt-8 space-y-5">
@@ -51,7 +50,7 @@ export default async function HorarioDemoPage({ params }: { params: Promise<{ sl
                 {SEMANA.map(({ dia, nombre }) => {
                   const rangos = suyo.filter((s) => s.day_of_week === dia);
                   return (
-                    <div key={dia} className="flex items-baseline justify-between gap-6 px-5 py-2.5 text-[14px]">
+                    <div key={dia} className="flex items-baseline justify-between gap-6 px-4 py-3 text-[14px] sm:px-5">
                       <dt className="text-ink">{nombre}</dt>
                       <dd className={rangos.length ? 'tabular-nums font-medium text-ink' : 'text-muted'}>
                         {rangos.length

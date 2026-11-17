@@ -35,6 +35,7 @@ export function AgendaList({
   renderAction,
   emptyTitle,
   emptyHint,
+  emptyAction,
   hideDayHeader = false,
 }: {
   bookings: AgendaBooking[];
@@ -43,6 +44,8 @@ export function AgendaList({
   renderAction?: (booking: AgendaBooking) => React.ReactNode;
   emptyTitle: string;
   emptyHint: string;
+  /** Botones del estado vacío (agendar, compartir el link). */
+  emptyAction?: React.ReactNode;
   // For a list that is already under a "Hoy" heading (Resumen), where a
   // second "Hoy · 3 citas" right below it just repeats the page.
   hideDayHeader?: boolean;
@@ -55,6 +58,7 @@ export function AgendaList({
         </span>
         <p className="text-[15px] font-semibold text-ink">{emptyTitle}</p>
         <p className="mx-auto mt-1 max-w-sm text-sm leading-relaxed text-muted">{emptyHint}</p>
+        {emptyAction && <div className="mt-4 flex flex-wrap justify-center gap-2">{emptyAction}</div>}
       </div>
     );
   }
@@ -133,7 +137,7 @@ export function AgendaList({
                           {b.id === nextId && <span className="sr-only"> (siguiente)</span>}
                         </p>
                         <p className="truncate text-sm text-muted">
-                          {b.customers?.name ?? 'Cliente'}
+                          {b.customers?.name ?? 'Clienta'}
                           {b.resources?.name && <span className="text-muted/70"> &middot; {b.resources.name}</span>}
                         </p>
                       </div>
@@ -166,8 +170,13 @@ export function AgendaList({
                             <span className="sr-only sm:not-sr-only">No vino</span>
                           </span>
                         )}
-                        {!cancelled && !completed && !noShow && renderAction?.(b)}
                       </div>
+
+                      {!cancelled && !completed && !noShow && renderAction && (
+                        <div className="col-span-2 col-start-2 mt-2 sm:col-span-1 sm:col-start-3 sm:row-start-1 sm:mt-0 sm:justify-self-end">
+                          {renderAction(b)}
+                        </div>
+                      )}
                     </div>
                   </li>
                 );

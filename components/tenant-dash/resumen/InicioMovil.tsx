@@ -3,6 +3,9 @@ import type { LucideIcon } from 'lucide-react';
 import {
   Zap,
   CalendarDays,
+  CalendarOff,
+  CalendarPlus,
+  Search,
   ChevronRight,
   FileText,
   Handshake,
@@ -49,6 +52,49 @@ const ICONO: Record<ClaveColor, LucideIcon> = {
   whatsapp: MessageCircle,
   boost: Zap,
 };
+
+// La cuadrícula va por USO, no por el orden en que se construyeron los
+// módulos: lo que se abre todos los días arriba (agenda, caja, clientes
+// que regresan), lo de una vez al mes abajo (facturas, impuestos). Lo que
+// no está en la lista cae al final en su orden de siempre, y lo que el
+// plan no incluye siempre va después de lo que sí tiene.
+const POR_USO: ClaveColor[] = [
+  'agenda',
+  'caja',
+  'regresan',
+  'whatsapp',
+  'servicios',
+  'lealtad',
+  'comisiones',
+  'inventario',
+  'boost',
+  'posts',
+  'cotizaciones',
+  'reuniones',
+  'copiloto',
+  'facturacion',
+  'resico',
+];
+
+export function ordenarPorUso(modulos: TileModulo[]): TileModulo[] {
+  const rango = (t: TileModulo) => (t.bloqueado ? 100 : 0) + (POR_USO.indexOf(t.clave) + 1 || 50);
+  return [...modulos].sort((a, b) => rango(a) - rango(b));
+}
+
+// Las tres tareas de todos los días, a un toque desde el inicio: agendar a
+// quien llamó, bloquear un rato y encontrar a una clienta. Cada una abre
+// su pantalla ya lista (formulario abierto, buscador con el cursor).
+function Atajo({ href, icon: Icon, children }: { href: string; icon: LucideIcon; children: React.ReactNode }) {
+  return (
+    <Link
+      href={href}
+      className="flex min-h-[4.5rem] flex-col items-center justify-center gap-1.5 rounded-2xl border border-border bg-surface px-2 py-3 text-center text-[13px] font-semibold leading-tight text-ink shadow-xs transition-transform duration-150 active:scale-[0.97] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+    >
+      <Icon className="h-5 w-5 text-ink/75" aria-hidden="true" />
+      {children}
+    </Link>
+  );
+}
 
 function Tile({ t, ancho }: { t: TileModulo; ancho: boolean }) {
   const Icon = ICONO[t.clave];
@@ -98,6 +144,10 @@ function Tile({ t, ancho }: { t: TileModulo; ancho: boolean }) {
 export function InicioMovil({ p, d, modulos }: { p: ResumenProps; d: Dia; modulos: TileModulo[] }) {
   const { tz, active, done, next, inProgress } = d;
   const restantes = active.length - done;
+  const ordenados = ordenarPorUso(modulos);
+  // Sin citas hoy ni en la semana, lo que falta es que la gente reserve:
+  // el botón de compartir sube junto a la tarjeta que lo pide.
+  const sinCitas = !next && active.length === 0 && p.upcoming.length === 0;
   return (
     <div className="mx-auto max-w-2xl lg:hidden">
       <header>
@@ -131,7 +181,7 @@ export function InicioMovil({ p, d, modulos }: { p: ResumenProps; d: Dia; modulo
             <>
               <span className="block text-[15px] font-semibold text-ink">{active.length ? 'Sin más citas por hoy' : 'Nada agendado hoy'}</span>
               <span className="block text-[13px] text-muted">
-                {p.upcoming.length ? `${plural(p.upcoming.length, 'cita', 'citas')} en los próximos 7 días` : 'Comparte tu página para recibir citas'}
+                {p.upcoming.length ? `${plural(p.upcoming.length, 'cita', 'citas')} en los próximos 7 días` : 'Comparte tu link para recibir citas'}
               </span>
             </>
           )}
@@ -143,6 +193,20 @@ export function InicioMovil({ p, d, modulos }: { p: ResumenProps; d: Dia; modulo
         </span>
         <ChevronRight className="h-5 w-5 shrink-0 text-muted transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden="true" />
       </Link>
+
+      {sinCitas && p.action && <div className="mt-3 flex justify-center">{p.action}</div>}
+
+      <nav aria-label="Atajos" className="mt-3 grid grid-cols-3 gap-2">
+        <Atajo href={`${p.base}/calendar?nueva=1#agendar`} icon={CalendarPlus}>
+          Agendar cita
+        </Atajo>
+        <Atajo href={`${p.base}/schedule#bloquear`} icon={CalendarOff}>
+          Bloquear un rato
+        </Atajo>
+        <Atajo href={`${p.base}/customers#buscar`} icon={Search}>
+          Buscar cliente
+        </Atajo>
+      </nav>
 
       {p.alertas.length > 0 && (
         <div className="mt-3">
@@ -156,9 +220,9 @@ export function InicioMovil({ p, d, modulos }: { p: ResumenProps; d: Dia; modulo
             Tu negocio
           </h2>
           <ul className="mt-3 grid grid-cols-2 gap-3">
-            {modulos.map((t, i) => {
+            {ordenados.map((t, i) => {
               // Con número impar, el último ocupa el renglón entero en vez de dejar un hueco.
-              const ancho = modulos.length % 2 === 1 && i === modulos.length - 1;
+              const ancho = ordenados.length % 2 === 1 && i === ordenados.length - 1;
               return (
                 <li key={t.clave} className={ancho ? 'col-span-2' : ''}>
                   <Tile t={t} ancho={ancho} />
@@ -169,7 +233,7 @@ export function InicioMovil({ p, d, modulos }: { p: ResumenProps; d: Dia; modulo
         </section>
       )}
 
-      {p.action && <div className="mt-6 flex justify-center">{p.action}</div>}
+      {!sinCitas && p.action && <div className="mt-6 flex justify-center">{p.action}</div>}
     </div>
   );
 }

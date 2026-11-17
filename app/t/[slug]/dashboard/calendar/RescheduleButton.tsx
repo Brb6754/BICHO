@@ -7,6 +7,7 @@ import { Modal } from '@/components/ui/Modal';
 import { SlotPicker, type PickedSlot } from '@/components/tenant-dash/SlotPicker';
 import { appointmentWhen } from '@/lib/dates/tenantTime';
 import { rescheduleBookingFromDashboard } from './actions';
+import { toast } from '@/components/tenant-dash/ui/Toast';
 
 // "¿Me lo pasas a las 5?" — said on the phone, every day, in every one of
 // these businesses. The customer could already move their own appointment
@@ -50,6 +51,7 @@ export function RescheduleButton({
       setError(result.error);
       return;
     }
+    toast(`Cita movida al ${appointmentWhen(slot.slot_start, timezone)}`);
     setOpen(false);
     setSlot(null);
     router.refresh();
@@ -61,12 +63,12 @@ export function RescheduleButton({
         type="button"
         variant="outline"
         onClick={() => setOpen(true)}
-        className="px-3 py-1.5 text-xs"
+        className="min-h-[2.75rem] px-4 text-[13px]"
       >
-        Cambiar hora
+        Mover
       </Button>
 
-      <Modal open={open} onClose={() => setOpen(false)} title="Cambiar la hora de la cita">
+      <Modal open={open} onClose={() => setOpen(false)} title="Mover la cita a otra hora">
         <p className="mb-4 text-sm text-muted">
           {serviceName} · ahora está el{' '}
           <strong className="text-ink">{appointmentWhen(currentStart, timezone)}</strong>.
@@ -92,16 +94,16 @@ export function RescheduleButton({
         )}
 
         <div className="mt-5 flex flex-wrap gap-3">
-          <Button type="button" onClick={save} isLoading={saving} disabled={!slot}>
-            {saving ? 'Cambiando' : 'Mover la cita'}
+          <Button type="button" onClick={save} isLoading={saving} disabled={!slot} className="min-h-[2.75rem]">
+            {saving ? 'Moviendo…' : 'Mover la cita'}
           </Button>
-          <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-            Cancelar
+          <Button type="button" variant="outline" onClick={() => setOpen(false)} className="min-h-[2.75rem]">
+            Dejarla como está
           </Button>
         </div>
 
-        <p className="mt-4 text-xs leading-relaxed text-muted">
-          Si el cliente dejó su correo, le llega un aviso con la hora nueva.
+        <p className="mt-4 text-[13px] leading-relaxed text-muted">
+          Si tu clienta dejó su correo, le llega un aviso con la hora nueva.
         </p>
       </Modal>
     </>

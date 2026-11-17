@@ -161,7 +161,7 @@ export default async function ContactPage({
           ? `Folio fiscal ${f.uuid_fiscal ?? '—'}`
           : f.status === 'cancelled'
             ? 'Cancelada'
-            : 'Sin timbrar',
+            : 'Factura todavía sin hacer',
       href: '/dashboard/facturas',
       tono: f.status === 'stamped' ? 'normal' : 'atenuado',
     });
@@ -183,7 +183,7 @@ export default async function ContactPage({
 
       <PageHeader
         title={contacto.name}
-        description={`Cliente desde ${longDate(contacto.created_at, timezone)}`}
+        description={`En tu lista desde el ${longDate(contacto.created_at, timezone)}. Aquí ves todo lo que ha pasado con esta persona.`}
       />
 
       {/* Escribirle es lo que alguien viene a hacer a esta pantalla, así

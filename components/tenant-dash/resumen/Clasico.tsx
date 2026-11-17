@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowUpRight, CalendarDays } from 'lucide-react';
+import { ArrowUpRight, CalendarDays, CalendarPlus } from 'lucide-react';
 import { AgendaList } from '@/components/tenant-dash/AgendaList';
 import { SectionHeading } from '@/components/tenant-dash/PageHeader';
 import { formatTime } from '@/lib/dates/tenantTime';
@@ -49,9 +49,11 @@ export function ResumenClasico({ p, d }: { p: ResumenProps; d: Dia }) {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Pastilla href={`${p.base}/calendar`}>
-            <CalendarDays className="h-4 w-4" aria-hidden="true" />
-            Abrir agenda
+          {/* La tarea frecuente, a un clic: agendar a quien llamó. La agenda de
+              hoy ya está abajo en esta misma pantalla. */}
+          <Pastilla href={`${p.base}/calendar?nueva=1#agendar`}>
+            <CalendarPlus className="h-4 w-4" aria-hidden="true" />
+            Agendar cita
           </Pastilla>
           {p.action}
         </div>

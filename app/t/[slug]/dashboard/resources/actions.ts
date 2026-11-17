@@ -12,7 +12,8 @@ import { createClient } from '@/lib/supabase/server';
 // stray form submission and another tenant's row.
 
 export async function createResource(slug: string, formData: FormData) {
-  const name = formData.get('name') as string;
+  const name = String(formData.get('name') ?? '').trim();
+  if (!name) throw new Error('Escribe el nombre, por ejemplo Renata o Silla 2.');
   const supabase = await createClient();
 
   const { data: tenant } = await supabase.from('tenants').select('id').eq('slug', slug).single();
@@ -23,7 +24,10 @@ export async function createResource(slug: string, formData: FormData) {
   // silently doing nothing here is exactly the bug class this whole pass
   // is fixing: the business owner clicks "Agregar" and sees no error, no
   // new row, no explanation.
-  if (error) throw new Error(`No se pudo crear el recurso: ${error.message}`);
+  if (error) {
+    console.error('createResource', error);
+    throw new Error('No se pudo agregar. Revisa tu internet e inténtalo otra vez.');
+  }
 
   revalidatePath(`/t/${slug}/dashboard/resources`);
 }
@@ -38,7 +42,10 @@ export async function toggleResourceActive(resourceId: string, active: boolean, 
     .update({ active })
     .eq('id', resourceId)
     .eq('tenant_id', tenant.id);
-  if (error) throw new Error(`No se pudo actualizar el recurso: ${error.message}`);
+  if (error) {
+    console.error('toggleResourceActive', error);
+    throw new Error('No se pudo cambiar. Inténtalo otra vez.');
+  }
 
   revalidatePath(`/t/${slug}/dashboard/resources`);
 }
@@ -53,7 +60,10 @@ export async function deleteResource(resourceId: string, slug: string) {
     .delete()
     .eq('id', resourceId)
     .eq('tenant_id', tenant.id);
-  if (error) throw new Error(`No se pudo borrar el recurso: ${error.message}`);
+  if (error) {
+    console.error('deleteResource', error);
+    throw new Error('No se pudo borrar. Inténtalo otra vez.');
+  }
 
   revalidatePath(`/t/${slug}/dashboard/resources`);
 }
@@ -83,7 +93,7 @@ export async function setResourceServices(slug: string, resourceId: string, serv
     .eq('id', resourceId)
     .eq('tenant_id', tenant.id)
     .maybeSingle();
-  if (!recurso) throw new Error('Ese recurso no es de este negocio.');
+  if (!recurso) throw new Error('No encontramos a esa persona en tu negocio. Recarga la página.');
 
   const { data: servicios } = await supabase
     .from('service_types')
@@ -99,7 +109,10 @@ export async function setResourceServices(slug: string, resourceId: string, serv
     .delete()
     .eq('resource_id', resourceId)
     .eq('tenant_id', tenant.id);
-  if (eBorrar) throw new Error(`No se pudo guardar: ${eBorrar.message}`);
+  if (eBorrar) {
+    console.error('setResourceServices', eBorrar);
+    throw new Error('No se pudo guardar. Inténtalo otra vez.');
+  }
 
   if (elegidos.length > 0 && !todos) {
     const { error } = await supabase.from('resource_services').insert(
@@ -109,7 +122,10 @@ export async function setResourceServices(slug: string, resourceId: string, serv
         tenant_id: tenant.id,
       }))
     );
-    if (error) throw new Error(`No se pudo guardar: ${error.message}`);
+    if (error) {
+      console.error('setResourceServices', error);
+      throw new Error('No se pudo guardar. Inténtalo otra vez.');
+    }
   }
 
   revalidatePath(`/t/${slug}/dashboard/resources`);

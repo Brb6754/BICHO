@@ -92,7 +92,7 @@ export function SlotPicker({
           <select
             value={serviceId}
             onChange={(e) => onServiceChange(e.target.value)}
-            className="w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 text-base text-ink focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/15 sm:text-sm"
+            className="min-h-[2.75rem] w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 text-base text-ink focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/15 sm:text-sm"
           >
             {services.map((s) => (
               <option key={s.id} value={s.id}>
@@ -109,7 +109,7 @@ export function SlotPicker({
           <select
             value={resourceId}
             onChange={(e) => onResourceChange(e.target.value)}
-            className="w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 text-base text-ink focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/15 sm:text-sm"
+            className="min-h-[2.75rem] w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 text-base text-ink focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/15 sm:text-sm"
           >
             {resources.map((r) => (
               <option key={r.id} value={r.id}>
@@ -121,15 +121,15 @@ export function SlotPicker({
       )}
 
       <div>
-        <span className="mb-1.5 block text-sm font-medium text-ink">Día</span>
+        <span className="mb-1.5 block text-sm font-medium text-ink">¿Qué día?</span>
         {loading ? (
           <p className="py-2 text-sm text-muted">Buscando horarios libres…</p>
         ) : error ? (
           <p className="py-2 text-sm text-error">{error}</p>
         ) : daysWithSlots.length === 0 ? (
           <p className="rounded-xl bg-elevated px-3 py-2.5 text-sm text-muted">
-            No hay horarios libres en los próximos 60 días. Revisa el horario semanal o los
-            bloqueos de abajo.
+            No hay horas libres en los próximos 60 días con esta persona. Revisa su horario en
+            &quot;Horario&quot; o lo que tengas bloqueado.
           </p>
         ) : (
           <select
@@ -138,7 +138,7 @@ export function SlotPicker({
               setDay(e.target.value);
               onPick(null);
             }}
-            className="w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 text-base text-ink focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/15 sm:text-sm"
+            className="min-h-[2.75rem] w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 text-base text-ink focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/15 sm:text-sm"
           >
             {daysWithSlots.map((d) => (
               <option key={d} value={d}>
@@ -151,7 +151,7 @@ export function SlotPicker({
 
       {slotsForDay.length > 0 && (
         <div>
-          <span className="mb-1.5 block text-sm font-medium text-ink">Hora</span>
+          <span className="mb-1.5 block text-sm font-medium text-ink">Horas libres</span>
           <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
             {slotsForDay.map((s) => {
               const selected = picked?.slot_start === s.slot_start;

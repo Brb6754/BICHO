@@ -1,11 +1,14 @@
 import { productosDe } from '@/lib/products';
 import { redirect } from 'next/navigation';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Tag, Trash2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { createService, toggleServiceActive, deleteService } from './actions';
-import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { ConfirmForm } from '@/components/ui/ConfirmForm';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { ActionForm, SubmitButton } from '@/components/tenant-dash/ui/ActionForm';
+import { FormField } from '@/components/tenant-dash/ui/FormField';
+import { HelpTip } from '@/components/tenant-dash/ui/HelpTip';
+import { ConfirmarConAviso, IrAlCampo, BOTON_ICONO } from '@/components/tenant-dash/AccionesFila';
 import { PageHeader } from '@/components/tenant-dash/PageHeader';
 import { ItemList, ItemRow, ActiveSwitch, AddBar } from '@/components/tenant-dash/ItemList';
 import { esServicio } from '@/lib/meetings/kinds';
@@ -49,80 +52,97 @@ export default async function ServicesPage({ params }: { params: Promise<{ slug:
   // puede explicar.
   const services = (services_raw ?? []).filter(esServicio);
 
-  const activeCount = services?.filter((s) => s.active).length ?? 0;
+  const activeCount = services.filter((s) => s.active).length;
 
   return (
     <div>
       <PageHeader
         title="Servicios"
-        description="Lo que tus clientes pueden reservar, con su duración y precio. Solo los activos aparecen en tu página."
+        description="Lo que tus clientas pueden reservar en tu página, con cuánto dura y cuánto cuesta."
+        help={
+          <HelpTip title="¿Qué es un servicio?">
+            Cada cosa que se puede reservar: &quot;Corte de dama, 45 min, $250&quot;. La duración
+            decide cuánto tiempo se aparta en la agenda. Solo los que tengan el interruptor
+            prendido aparecen en tu página.
+          </HelpTip>
+        }
       />
 
       <div className="mt-8">
         <AddBar>
-          {/* Labelled fields in a grid instead of a wrapping flex row:
-              the old form reflowed unpredictably and the number inputs
-              had no visible unit. Units now sit in the label. */}
-          <form
-            action={createService.bind(null, slug)}
-            className="grid grid-cols-2 gap-3 sm:grid-cols-[minmax(0,1fr)_7rem_8rem_auto] sm:items-end"
-          >
-            <div className="col-span-2 sm:col-span-1">
-              <label htmlFor="svc-name" className="mb-1.5 block text-xs font-medium text-muted">
-                Servicio
-              </label>
-              <Input id="svc-name" type="text" name="name" placeholder="Corte de cabello" required className="w-full" />
+          {/* Lo indispensable a la vista: nombre, duración y precio. Las
+              dos casillas que casi nadie cambia van plegadas, con su
+              valor por defecto ya puesto. */}
+          <ActionForm action={createService.bind(null, slug)} success="Servicio agregado">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-[minmax(0,1fr)_8rem_8rem_auto] sm:items-end">
+              <FormField label="Nombre del servicio" className="col-span-2 sm:col-span-1">
+                <Input
+                  id="svc-name"
+                  type="text"
+                  name="name"
+                  placeholder="Ej. Corte de dama"
+                  required
+                  maxLength={120}
+                  className="min-h-[2.75rem] w-full"
+                />
+              </FormField>
+              <FormField label="Dura (minutos)">
+                <Input
+                  type="number"
+                  name="duration_minutes"
+                  inputMode="numeric"
+                  min={5}
+                  step={5}
+                  defaultValue={30}
+                  required
+                  className="min-h-[2.75rem] w-full"
+                />
+              </FormField>
+              <FormField label="Precio ($)">
+                <Input
+                  type="number"
+                  name="price_mxn"
+                  inputMode="decimal"
+                  min={0}
+                  step="0.01"
+                  placeholder="Ej. 250"
+                  required
+                  className="min-h-[2.75rem] w-full"
+                />
+              </FormField>
+              <SubmitButton className="col-span-2 min-h-[2.75rem] sm:col-span-1">
+                <Plus className="h-4 w-4" aria-hidden="true" />
+                Agregar servicio
+              </SubmitButton>
             </div>
-            <div>
-              <label htmlFor="svc-duration" className="mb-1.5 block text-xs font-medium text-muted">
-                Duración (min)
-              </label>
-              <Input
-                id="svc-duration"
-                type="number"
-                name="duration_minutes"
-                min={5}
-                step={5}
-                defaultValue={30}
-                required
-                className="w-full"
-              />
-            </div>
-            <div>
-              <label htmlFor="svc-price" className="mb-1.5 block text-xs font-medium text-muted">
-                Precio (MXN)
-              </label>
-              <Input
-                id="svc-price"
-                type="number"
-                name="price_mxn"
-                min={0}
-                step="0.01"
-                defaultValue={0}
-                className="w-full"
-              />
-            </div>
-            <Button type="submit" className="col-span-2 sm:col-span-1">
-              <Plus className="h-4 w-4" />
-              Agregar
-            </Button>
-            <label className="col-span-2 flex items-center gap-2 text-sm text-muted sm:col-span-4">
-              <input type="checkbox" name="requires_staff" defaultChecked className="h-4 w-4 accent-primary" />
-              Lo atiende una persona (desmárcalo para una pista o un espacio)
-            </label>
-            <label className="col-span-2 flex items-center gap-2 text-sm text-muted sm:col-span-4">
-              <input type="checkbox" name="show_price" defaultChecked className="h-4 w-4 accent-primary" />
-              Mostrar el precio en mi página (desmárcalo si prefieres cotizarlo aparte)
-            </label>
-          </form>
+
+            <details className="group mt-3">
+              <summary className="inline-flex min-h-[2.75rem] cursor-pointer list-none items-center gap-1.5 rounded-full px-1 text-sm font-medium text-muted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 [&::-webkit-details-marker]:hidden">
+                <Plus className="h-4 w-4 transition-transform group-open:rotate-45 motion-reduce:transition-none" aria-hidden="true" />
+                Más opciones
+              </summary>
+              <div className="mt-1 flex flex-col">
+                <label className="flex min-h-[2.75rem] items-center gap-3 text-sm text-ink">
+                  <input type="checkbox" name="show_price" defaultChecked className="h-5 w-5 shrink-0 accent-primary" />
+                  Mostrar el precio en mi página
+                  <span className="text-muted">(quítalo si lo cotizas aparte)</span>
+                </label>
+                <label className="flex min-h-[2.75rem] items-center gap-3 text-sm text-ink">
+                  <input type="checkbox" name="requires_staff" defaultChecked className="h-5 w-5 shrink-0 accent-primary" />
+                  Lo da una persona
+                  <span className="text-muted">(quítalo si es una cabina o un espacio)</span>
+                </label>
+              </div>
+            </details>
+          </ActionForm>
         </AddBar>
       </div>
 
       <div className="mt-8">
-        {services && services.length > 0 ? (
+        {services.length > 0 ? (
           <>
             <p className="mb-3 px-1 text-sm text-muted">
-              {activeCount} de {services.length} {services.length === 1 ? 'activo' : 'activos'}
+              {activeCount} de {services.length} se ofrecen en tu página
             </p>
             <ItemList>
               {services.map((s, i) => (
@@ -133,27 +153,31 @@ export default async function ServicesPage({ params }: { params: Promise<{ slug:
                   title={s.name}
                   meta={
                     <>
-                      {s.duration_minutes} min
-                      {!s.requires_staff && <span className="text-muted/70"> &middot; sin persona asignada</span>}
+                      {s.duration_minutes} min · {precioEnLista(s)}
+                      {!s.active && <span> · oculto de tu página</span>}
                     </>
                   }
                   trail={
                     <>
-                      <span className="mr-2 font-semibold tabular-nums text-ink">{precioEnLista(s)}</span>
-                      <form action={toggleServiceActive.bind(null, s.id, !s.active, slug)}>
-                        <ActiveSwitch active={s.active} label={s.name} />
-                      </form>
-                      <ConfirmForm
-                        action={deleteService.bind(null, s.id, slug)}
-                        confirmTitle="Borrar servicio"
-                        confirmMessage={`¿Borrar "${s.name}"? Esta acción no se puede deshacer. Si solo quieres dejar de ofrecerlo, apágalo con el interruptor.`}
-                        confirmLabel="Borrar"
-                        triggerVariant="ghost"
-                        triggerClassName="h-8 w-8 !border-0 !p-0 !text-muted hover:!bg-error-soft hover:!text-error"
+                      <ActionForm
+                        action={toggleServiceActive.bind(null, s.id, !s.active, slug)}
+                        success={s.active ? `${s.name}: oculto de tu página` : `${s.name}: ya se ofrece en tu página`}
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <ActiveSwitch active={s.active} label={s.name} />
+                      </ActionForm>
+                      <ConfirmarConAviso
+                        action={deleteService.bind(null, s.id, slug)}
+                        success="Servicio borrado"
+                        confirmTitle={`¿Borrar "${s.name}"?`}
+                        confirmMessage="Se quita de tu lista para siempre. Si solo quieres dejar de ofrecerlo un tiempo, mejor apaga el interruptor: se oculta de tu página y lo prendes cuando quieras."
+                        confirmLabel="Sí, borrar"
+                        dismissLabel="No, conservarlo"
+                        triggerVariant="ghost"
+                        triggerClassName={BOTON_ICONO}
+                      >
+                        <Trash2 className="h-[18px] w-[18px]" aria-hidden="true" />
                         <span className="sr-only">Borrar {s.name}</span>
-                      </ConfirmForm>
+                      </ConfirmarConAviso>
                     </>
                   }
                 />
@@ -161,12 +185,13 @@ export default async function ServicesPage({ params }: { params: Promise<{ slug:
             </ItemList>
           </>
         ) : (
-          <div className="rounded-2xl border border-dashed border-border px-6 py-12 text-center">
-            <p className="text-sm font-medium text-ink">Todavía no hay servicios</p>
-            <p className="mx-auto mt-1 max-w-sm text-sm leading-relaxed text-muted">
-              Agrega el primero arriba. Es lo que tus clientes van a elegir al reservar.
-            </p>
-          </div>
+          <EmptyState
+            icon={Tag}
+            title="Todavía no tienes servicios"
+            description="Un servicio es lo que tus clientas eligen al reservar, por ejemplo “Corte de dama, 45 min, $250”."
+            why="Sin al menos uno, tu página no puede ofrecer citas."
+            action={<IrAlCampo campo="svc-name">Agregar mi primer servicio</IrAlCampo>}
+          />
         )}
       </div>
     </div>

@@ -1,9 +1,9 @@
 import Link from 'next/link';
-import { ArrowUpRight } from 'lucide-react';
+import { ArrowUpRight, CalendarPlus } from 'lucide-react';
 import { AgendaList } from '@/components/tenant-dash/AgendaList';
 import { formatTime } from '@/lib/dates/tenantTime';
 import { CuentaArriba } from './CuentaArriba';
-import { enCuanto, plural, weekdayShort, type Dia, type ResumenProps } from './comun';
+import { Pastilla, enCuanto, plural, weekdayShort, type Dia, type ResumenProps } from './comun';
 
 // PÓSTER — innovador: siempre oscuro, un mosaico de piezas de tamaños
 // distintos y la hora de la siguiente cita impresa como cartel. La marca
@@ -37,7 +37,13 @@ export function ResumenPoster({ p, d }: { p: ResumenProps; d: Dia }) {
             {p.tenantName}, <span>{d.fecha}</span>
           </p>
         </div>
-        {p.action && <div className="shrink-0">{p.action}</div>}
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          <Pastilla href={`${p.base}/calendar?nueva=1#agendar`}>
+            <CalendarPlus className="h-4 w-4" aria-hidden="true" />
+            Agendar cita
+          </Pastilla>
+          {p.action}
+        </div>
       </header>
 
       {p.setup}

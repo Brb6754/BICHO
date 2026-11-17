@@ -26,12 +26,12 @@ export async function createScheduleSlot(slug: string, formData: FormData) {
   const startsAt = (formData.get('starts_at') as string)?.trim();
   const endsAt = (formData.get('ends_at') as string)?.trim();
 
-  if (days.length === 0) throw new Error('Elige al menos un día.');
-  if (!startsAt || !endsAt) throw new Error('Falta la hora de inicio o la de fin.');
+  if (days.length === 0) throw new Error('Marca al menos un día, por ejemplo L a V.');
+  if (!startsAt || !endsAt) throw new Error('Pon a qué hora abres y a qué hora cierras.');
   // Nadie abre a las 18:00 y cierra a las 9:00. Sin este chequeo la fila
   // entra igual y el día simplemente deja de ofrecer horarios, sin que
   // nada diga por qué.
-  if (startsAt >= endsAt) throw new Error('La hora de fin tiene que ser posterior a la de inicio.');
+  if (startsAt >= endsAt) throw new Error('La hora de cierre tiene que ser después de la de apertura, por ejemplo de 9:00 a 18:00.');
 
   const supabase = await createClient();
   const { data: tenant } = await supabase.from('tenants').select('id').eq('slug', slug).single();
@@ -55,7 +55,7 @@ export async function createScheduleSlot(slug: string, formData: FormData) {
       .eq('tenant_id', tenant.id)
       .eq('active', true);
     resourceIds = (todos ?? []).map((r) => r.id);
-    if (resourceIds.length === 0) throw new Error('No hay nadie activo a quien ponerle horario.');
+    if (resourceIds.length === 0) throw new Error('No hay nadie prendido en “Quién atiende”. Prende o agrega a alguien primero.');
   } else {
     const { data: resource } = await supabase
       .from('resources')
@@ -63,7 +63,7 @@ export async function createScheduleSlot(slug: string, formData: FormData) {
       .eq('id', resourceId)
       .eq('tenant_id', tenant.id)
       .maybeSingle();
-    if (!resource) throw new Error('Ese recurso no pertenece a este negocio.');
+    if (!resource) throw new Error('No encontramos a esa persona en tu negocio. Recarga la página.');
     resourceIds = [resource.id];
   }
 
@@ -94,7 +94,10 @@ export async function createScheduleSlot(slug: string, formData: FormData) {
           .delete()
           .eq('tenant_id', tenant.id)
           .in('id', ids);
-        if (error) throw new Error(`No se pudo actualizar el horario: ${error.message}`);
+        if (error) {
+    console.error('No se pudo actualizar el horario', error);
+    throw new Error('No se pudo guardar el horario. Inténtalo otra vez.');
+  }
       }
 
       const { error } = await supabase.from('resource_schedules').insert(
@@ -106,7 +109,10 @@ export async function createScheduleSlot(slug: string, formData: FormData) {
           ends_at: r.ends_at,
         }))
       );
-      if (error) throw new Error(`No se pudo crear el horario: ${error.message}`);
+      if (error) {
+    console.error('No se pudo crear el horario', error);
+    throw new Error('No se pudo guardar el horario. Inténtalo otra vez.');
+  }
     }
   }
 
@@ -123,7 +129,10 @@ export async function deleteScheduleSlot(scheduleId: string, slug: string) {
     .delete()
     .eq('id', scheduleId)
     .eq('tenant_id', tenant.id);
-  if (error) throw new Error(`No se pudo borrar el horario: ${error.message}`);
+  if (error) {
+    console.error('No se pudo borrar el horario', error);
+    throw new Error('No se pudo quitar ese horario. Inténtalo otra vez.');
+  }
 
   revalidatePath(`/t/${slug}/dashboard/schedule`);
 }
@@ -145,13 +154,13 @@ export async function createScheduleBlock(slug: string, formData: FormData) {
   const reason = String(formData.get('reason') ?? '').trim().slice(0, 200);
 
   if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate) || !/^\d{4}-\d{2}-\d{2}$/.test(endDate)) {
-    throw new Error('Elige una fecha válida.');
+    throw new Error('Elige el día que no vas a atender.');
   }
   if (endDate < startDate) {
-    throw new Error('La fecha final no puede ser antes de la inicial.');
+    throw new Error('El último día no puede ser antes del primero.');
   }
   if (!allDay && endTime <= startTime) {
-    throw new Error('La hora final tiene que ser después de la inicial.');
+    throw new Error('La hora final tiene que ser después de la inicial, por ejemplo de 14:00 a 16:00.');
   }
 
   const supabase = await createClient();
@@ -171,7 +180,7 @@ export async function createScheduleBlock(slug: string, formData: FormData) {
       .eq('id', resourceId)
       .eq('tenant_id', tenant.id)
       .maybeSingle();
-    if (!resource) throw new Error('Ese recurso no pertenece a este negocio.');
+    if (!resource) throw new Error('No encontramos a esa persona en tu negocio. Recarga la página.');
   }
 
   // The owner types wall-clock time in their own city; the column is
@@ -191,7 +200,10 @@ export async function createScheduleBlock(slug: string, formData: FormData) {
     ends_at: endsAt,
     reason: reason || null,
   });
-  if (error) throw new Error(`No se pudo guardar el bloqueo: ${error.message}`);
+  if (error) {
+    console.error('No se pudo guardar el bloqueo', error);
+    throw new Error('No se pudo bloquear. Inténtalo otra vez.');
+  }
 
   revalidatePath(`/t/${slug}/dashboard/schedule`);
 }
@@ -206,7 +218,10 @@ export async function deleteScheduleBlock(blockId: string, slug: string) {
     .delete()
     .eq('id', blockId)
     .eq('tenant_id', tenant.id);
-  if (error) throw new Error(`No se pudo quitar el bloqueo: ${error.message}`);
+  if (error) {
+    console.error('No se pudo quitar el bloqueo', error);
+    throw new Error('No se pudo quitar el bloqueo. Inténtalo otra vez.');
+  }
 
   revalidatePath(`/t/${slug}/dashboard/schedule`);
 }

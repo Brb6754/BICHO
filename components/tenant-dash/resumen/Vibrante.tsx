@@ -88,6 +88,8 @@ export function ResumenVibrante({ p, d }: { p: ResumenProps; d: Dia }) {
     { href: `${p.base}/calendar`, label: 'Agenda' },
     ...(dinero ? [{ href: `${p.base}/caja`, label: 'Caja' }] : []),
     { href: `${p.base}/customers`, label: 'Clientes' },
+    // La tarea frecuente, a un toque desde el inicio.
+    { href: `${p.base}/calendar?nueva=1#agendar`, label: '+ Agendar cita' },
   ];
   const historial = dinero
     ? { valores: dinero.dias.map((x) => x.cents), etiquetas: dinero.dias.map((x, i) => (i === 6 ? 'hoy' : weekdayShort(x.key).slice(0, 2))), formato: formatoPesos, titulo: 'Ventas, últimos 7 días' }

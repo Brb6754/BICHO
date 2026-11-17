@@ -1,9 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Plus, X } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import { X } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { FormField } from '@/components/tenant-dash/ui/FormField';
+import { toast } from '@/components/tenant-dash/ui/Toast';
 import { SlotPicker, type PickedSlot } from '@/components/tenant-dash/SlotPicker';
 import { appointmentWhen } from '@/lib/dates/tenantTime';
 import { createStaffBooking } from './actions';
@@ -12,6 +15,11 @@ import { createStaffBooking } from './actions';
 // couldn't do, and the reason an owner would keep a paper notebook beside
 // it — which is how the system ends up with half the day and books a
 // walk-in's slot out from under them.
+//
+// Se abre con ?nueva=1 en la URL: así el botón del encabezado de la
+// agenda, el del inicio y el del teléfono llegan todos al mismo
+// formulario ya abierto, en un solo toque. Cerrar o terminar quita el
+// parámetro.
 export function NewBookingForm({
   slug,
   services,
@@ -24,7 +32,7 @@ export function NewBookingForm({
   timezone: string | null;
 }) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const pathname = usePathname();
   const [serviceId, setServiceId] = useState(services[0]?.id ?? '');
   const [resourceId, setResourceId] = useState(resources[0]?.id ?? '');
   const [slot, setSlot] = useState<PickedSlot | null>(null);
@@ -34,11 +42,15 @@ export function NewBookingForm({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  if (services.length === 0 || resources.length === 0) return null;
+  function cerrar() {
+    // La ruta tal como la ve el navegador (con o sin /t/{slug}), sin el ?nueva=1.
+    router.replace(pathname, { scroll: false });
+  }
 
-  async function save() {
+  async function save(e: React.FormEvent) {
+    e.preventDefault();
     if (!slot) {
-      setError('Elige un horario.');
+      setError('Elige una hora libre de la lista.');
       return;
     }
     setSaving(true);
@@ -58,42 +70,28 @@ export function NewBookingForm({
       setError(result.error);
       return;
     }
-    setOpen(false);
-    setName('');
-    setPhone('');
-    setNotes('');
-    setSlot(null);
+    toast(`Cita agendada: ${appointmentWhen(slot.slot_start, timezone)}`);
+    cerrar();
     router.refresh();
   }
 
-  if (!open) {
-    return (
-      <Button type="button" onClick={() => setOpen(true)}>
-        <Plus className="h-4 w-4" />
-        Agendar una cita
-      </Button>
-    );
-  }
-
-  const field =
-    'w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 text-base text-ink focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/15 sm:text-sm';
-
   return (
-    <div className="rounded-2xl border border-border bg-surface p-5">
+    <form id="agendar" onSubmit={save} className="scroll-mt-24 rounded-2xl border border-border bg-surface p-4 sm:p-5">
       <div className="mb-4 flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-sm font-semibold text-ink">Agendar una cita</h2>
-          <p className="mt-0.5 text-[13px] text-muted">
-            Para quien llamó o llegó al local. Ocupa el horario igual que una reserva en línea.
+          <h2 className="text-[17px] font-semibold tracking-tight text-ink">Agendar una cita</h2>
+          <p className="mt-0.5 text-[13px] leading-relaxed text-muted">
+            Para quien te llamó o llegó al local. Aparta la hora igual que si hubiera reservado en
+            tu página.
           </p>
         </div>
         <button
           type="button"
-          onClick={() => setOpen(false)}
-          aria-label="Cerrar"
-          className="-mr-1 -mt-1 inline-flex h-8 w-8 items-center justify-center rounded-full text-muted hover:bg-ink/5 hover:text-ink"
+          onClick={cerrar}
+          aria-label="Cerrar sin agendar"
+          className="-mr-2 -mt-2 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted hover:bg-ink/5 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
         >
-          <X className="h-4 w-4" />
+          <X className="h-5 w-5" aria-hidden="true" />
         </button>
       </div>
 
@@ -107,45 +105,50 @@ export function NewBookingForm({
           onServiceChange={setServiceId}
           onResourceChange={setResourceId}
           picked={slot}
-          onPick={setSlot}
+          onPick={(s) => {
+            setSlot(s);
+            if (s) setError(null);
+          }}
         />
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <label className="block">
-            <span className="mb-1.5 block text-sm font-medium text-ink">Nombre del cliente</span>
-            <input
+          <FormField label="Nombre de la clienta">
+            <Input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="María Fernanda"
-              className={field}
+              placeholder="Ej. María Fernanda"
+              autoComplete="off"
+              required
+              maxLength={120}
+              className="min-h-[2.75rem] w-full"
             />
-          </label>
-          <label className="block">
-            <span className="mb-1.5 block text-sm font-medium text-ink">Teléfono</span>
-            <input
+          </FormField>
+          <FormField label="Teléfono" hint="Para llamarle o escribirle si algo cambia.">
+            <Input
               type="tel"
               inputMode="tel"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              placeholder="618 123 4567"
-              className={field}
+              placeholder="Ej. 618 123 4567"
+              autoComplete="off"
+              required
+              maxLength={30}
+              className="min-h-[2.75rem] w-full"
             />
-          </label>
+          </FormField>
         </div>
 
-        <label className="block">
-          <span className="mb-1.5 block text-sm font-medium text-ink">
-            Nota <span className="font-normal text-muted">(opcional)</span>
-          </span>
-          <input
+        <FormField label="Nota" optional>
+          <Input
             type="text"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder="Llega 10 min antes, paga en efectivo…"
-            className={field}
+            placeholder="Ej. Paga en efectivo"
+            maxLength={500}
+            className="min-h-[2.75rem] w-full"
           />
-        </label>
+        </FormField>
 
         {slot && (
           <p className="rounded-xl bg-elevated px-3 py-2.5 text-[13px] text-ink">
@@ -159,20 +162,20 @@ export function NewBookingForm({
           </p>
         )}
 
-        <div className="flex flex-wrap gap-3">
-          <Button type="button" onClick={save} isLoading={saving}>
-            {saving ? 'Agendando' : 'Agendar cita'}
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:flex-wrap sm:gap-3">
+          <Button type="button" variant="outline" onClick={cerrar} className="min-h-[2.75rem]">
+            Cerrar sin agendar
           </Button>
-          <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-            Cancelar
+          <Button type="submit" isLoading={saving} className="min-h-[2.75rem]">
+            {saving ? 'Agendando…' : 'Agendar cita'}
           </Button>
         </div>
 
-        <p className="text-xs leading-relaxed text-muted">
-          No le llega correo al cliente: aquí no pedimos su correo. Si quieres que reciba la
-          confirmación y el enlace para cambiarla, pásale tu página de reservas.
+        <p className="text-[13px] leading-relaxed text-muted">
+          A la clienta no le llega correo, porque aquí no pedimos el suyo. Si quieres que reciba la
+          confirmación, mándale tu link para que reserve ella.
         </p>
       </div>
-    </div>
+    </form>
   );
 }

@@ -39,8 +39,10 @@ export function ItemRow({
       <div className="flex items-center gap-4">
         {lead && <div className="w-24 shrink-0 text-sm font-medium text-muted">{lead}</div>}
         <div className={'min-w-0 flex-1 transition-opacity ' + (inactive ? 'opacity-50' : '')}>
-          <p className="truncate font-medium text-ink">{title}</p>
-          {meta && <p className="mt-0.5 truncate text-sm tabular-nums text-muted">{meta}</p>}
+          {/* Dos líneas antes que cortar: estas listas no tienen una ficha
+              donde leer el nombre completo (docs/UX-PANEL.md §2.6). */}
+          <p className="font-medium text-ink [overflow-wrap:anywhere]">{title}</p>
+          {meta && <p className="mt-0.5 text-sm tabular-nums text-muted">{meta}</p>}
         </div>
         {trail && <div className="flex shrink-0 items-center gap-1.5">{trail}</div>}
       </div>
@@ -54,26 +56,32 @@ export function ItemRow({
 // toggle actions are server actions bound with .bind() — this changes
 // only how the control reads, not what it sends.
 export function ActiveSwitch({ active, label }: { active: boolean; label: string }) {
+  // La pista mide 40×24, pero el botón ocupa 44×44: el dedo no tiene que
+  // atinarle a la pista. Sin `title`: un tooltip de hover no existe en el
+  // teléfono, y el nombre accesible ya dice qué pasa al tocarlo.
   return (
     <button
       type="submit"
       role="switch"
       aria-checked={active}
-      aria-label={(active ? 'Desactivar ' : 'Activar ') + label}
-      title={active ? 'Activo — clic para desactivar' : 'Inactivo — clic para activar'}
-      className={
-        'relative inline-flex h-6 w-10 shrink-0 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 ' +
-        (active ? 'bg-primary' : 'bg-ink/15')
-      }
+      aria-label={(active ? 'Ocultar de tu página: ' : 'Mostrar en tu página: ') + label}
+      className="group inline-flex h-11 w-12 shrink-0 items-center justify-center rounded-full focus-visible:outline-none"
     >
       <span
         aria-hidden="true"
         className={
-          'inline-block h-4.5 w-4.5 rounded-full bg-white shadow-sm transition-transform ' +
-          (active ? 'translate-x-5' : 'translate-x-1')
+          'relative inline-flex h-6 w-10 items-center rounded-full transition-colors group-focus-visible:ring-2 group-focus-visible:ring-primary/40 group-focus-visible:ring-offset-2 motion-reduce:transition-none ' +
+          (active ? 'bg-primary' : 'bg-ink/15')
         }
-        style={{ width: 18, height: 18 }}
-      />
+      >
+        <span
+          className={
+            'inline-block rounded-full bg-white shadow-sm transition-transform motion-reduce:transition-none ' +
+            (active ? 'translate-x-5' : 'translate-x-1')
+          }
+          style={{ width: 18, height: 18 }}
+        />
+      </span>
     </button>
   );
 }
@@ -81,5 +89,5 @@ export function ActiveSwitch({ active, label }: { active: boolean; label: string
 // A quiet surface for "add a new one", so the form reads as a tool
 // sitting above the list rather than as a second, competing card.
 export function AddBar({ children }: { children: React.ReactNode }) {
-  return <div className="rounded-2xl bg-ink/[0.03] p-4 sm:p-5">{children}</div>;
+  return <div className="rounded-2xl bg-ink/[0.03] p-3 sm:p-5">{children}</div>;
 }

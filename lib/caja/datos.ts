@@ -1,5 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/admin';
-import { dayKey, instantFromLocal } from '@/lib/dates/tenantTime';
+import { dayKey, formatTime, instantFromLocal } from '@/lib/dates/tenantTime';
 import {
   combinarMovimientos,
   rangoDe,
@@ -26,7 +26,7 @@ export async function cargarCaja(tenantId: string, timezone: string | null, now 
   const [filasRes, citasRes] = await Promise.all([
     db
       .from('caja_movimientos')
-      .select('id, tipo, concepto, monto_cents, metodo, categoria, dia, booking_id, anulada')
+      .select('id, tipo, concepto, monto_cents, metodo, categoria, dia, booking_id, anulada, created_at')
       .eq('tenant_id', tenantId)
       .gte('dia', desde)
       .lte('dia', hoy)
@@ -53,6 +53,7 @@ export async function cargarCaja(tenantId: string, timezone: string | null, now 
     dia: f.dia,
     bookingId: f.booking_id,
     anulada: f.anulada,
+    hora: f.created_at ? formatTime(f.created_at, timezone) : null,
   }));
 
   type Fila = {
@@ -69,6 +70,7 @@ export async function cargarCaja(tenantId: string, timezone: string | null, now 
       dia: dayKey(b.starts_at, timezone),
       servicio: b.service_types?.name ?? 'Cita',
       precioCents: b.service_types?.price_cents ?? 0,
+      hora: formatTime(b.starts_at, timezone),
     }))
     .filter((c) => c.dia <= hoy);
 

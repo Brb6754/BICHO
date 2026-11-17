@@ -5,7 +5,10 @@ import {
   corteDeCaja,
   pesosACentavos,
   rangoDe,
+  resultadoCorte,
   resumir,
+  totalContado,
+  ultimos7Dias,
   type FilaCaja,
   type Movimiento,
 } from './resumen';
@@ -153,5 +156,64 @@ describe('pesosACentavos', () => {
   });
   it('rechaza lo que no es un monto', () => {
     for (const t of ['', '0', '-5', 'abc', '1.234', '1e5', '20000000']) expect(pesosACentavos(t)).toBeNull();
+  });
+});
+
+describe('contador de billetes y monedas', () => {
+  it('suma cada denominación por su cantidad', () => {
+    // 2 de $500 + 3 de $20 + 1 moneda de 50¢ = $1,060.50
+    expect(totalContado({ 50000: 2, 2000: 3, 50: 1 })).toBe(106050);
+  });
+
+  it('vacío es cero', () => {
+    expect(totalContado({})).toBe(0);
+  });
+
+  it('ignora denominaciones que no existen y cantidades negativas o con decimales', () => {
+    expect(totalContado({ 30000: 4, 10000: -2, 1000: 2.9 })).toBe(2000);
+  });
+});
+
+describe('resultadoCorte', () => {
+  it('cuadra cuando lo contado es lo esperado', () => {
+    expect(resultadoCorte(125000, 125000)).toEqual({ estado: 'cuadra', cents: 0 });
+  });
+
+  it('sobran y faltan siempre en positivo', () => {
+    expect(resultadoCorte(130000, 125000)).toEqual({ estado: 'sobran', cents: 5000 });
+    expect(resultadoCorte(120050, 125000)).toEqual({ estado: 'faltan', cents: 4950 });
+  });
+
+  it('un cajón vacío contra uno que debía tener dinero falta todo', () => {
+    expect(resultadoCorte(0, 30000)).toEqual({ estado: 'faltan', cents: 30000 });
+  });
+});
+
+describe('ultimos7Dias', () => {
+  it('7 días terminando hoy, el más viejo primero, con cobros y gastos de cada uno', () => {
+    const movs = [
+      mov({ id: 'a', tipo: 'venta', montoCents: 30000, dia: '2026-11-10' }),
+      mov({ id: 'b', tipo: 'gasto', montoCents: 5000, dia: '2026-11-10' }),
+      mov({ id: 'c', tipo: 'venta', montoCents: 20000, dia: '2026-11-04' }),
+      mov({ id: 'd', tipo: 'venta', montoCents: 99900, dia: '2026-11-03' }), // fuera
+    ];
+    const semana = ultimos7Dias(movs, '2026-11-10');
+    expect(semana.map((d) => d.dia)).toEqual([
+      '2026-11-04', '2026-11-05', '2026-11-06', '2026-11-07', '2026-11-08', '2026-11-09', '2026-11-10',
+    ]);
+    expect(semana[0]).toEqual({ dia: '2026-11-04', cobradoCents: 20000, gastadoCents: 0 });
+    expect(semana[6]).toEqual({ dia: '2026-11-10', cobradoCents: 30000, gastadoCents: 5000 });
+  });
+});
+
+describe('combinarMovimientos marca lo que falta cobrar', () => {
+  it('una cita sin ajuste queda por cobrar; con ajuste ya no', () => {
+    const citas = [
+      { bookingId: 'b1', dia: '2026-11-10', servicio: 'Corte', precioCents: 25000, hora: '10:30' },
+      { bookingId: 'b2', dia: '2026-11-10', servicio: 'Tinte', precioCents: 80000 },
+    ];
+    const [sin, con] = combinarMovimientos(citas, [fila({ id: 'f', bookingId: 'b2', montoCents: 80000, metodo: 'tarjeta' })]);
+    expect(sin).toMatchObject({ porCobrar: true, hora: '10:30', metodo: 'efectivo' });
+    expect(con).toMatchObject({ porCobrar: false, metodo: 'tarjeta' });
   });
 });

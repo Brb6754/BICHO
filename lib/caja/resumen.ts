@@ -25,6 +25,13 @@ export type Movimiento = {
   bookingId: string | null;
   /** Nombre del servicio cuando la venta sale de una cita. */
   servicio: string | null;
+  /** "14:30" en la zona del negocio: la hora de la cita o de cuando se anotó. */
+  hora?: string | null;
+  /**
+   * Cita completada a la que nadie le ha dicho cómo se pagó. Cuenta como
+   * efectivo (ver combinarMovimientos) hasta que la dueña la cobra.
+   */
+  porCobrar?: boolean;
 };
 
 /** Una cita completada, tal como llega de la base. */
@@ -33,6 +40,7 @@ export type CitaCompletada = {
   dia: string;
   servicio: string;
   precioCents: number;
+  hora?: string | null;
 };
 
 /** Fila de caja_movimientos ya leída. */
@@ -61,6 +69,8 @@ export function combinarMovimientos(citas: CitaCompletada[], filas: FilaCaja[]):
       dia: c.dia,
       bookingId: c.bookingId,
       servicio: c.servicio,
+      hora: c.hora ?? null,
+      porCobrar: !ajuste,
     });
   }
   const manuales: Movimiento[] = filas
@@ -201,4 +211,51 @@ export function formatoPesos(cents: number): string {
     minimumFractionDigits: tieneCentavos ? 2 : 0,
     maximumFractionDigits: 2,
   }).format(cents / 100);
+}
+
+/** Los últimos 7 días hasta hoy (el más viejo primero): lo que se cobró y gastó en cada uno. */
+export function ultimos7Dias(movs: Movimiento[], hoy: string): { dia: string; cobradoCents: number; gastadoCents: number }[] {
+  return Array.from({ length: 7 }, (_, i) => {
+    const dia = addDaysKey(hoy, i - 6);
+    const r = resumir(movs, dia, dia);
+    return { dia, cobradoCents: r.vendidoCents, gastadoCents: r.gastadoCents };
+  });
+}
+
+// EL CONTADOR DEL CORTE — billetes y monedas que hoy circulan en México.
+// Se cuenta solo en el teléfono; lo que se guarda es el total.
+export const DENOMINACIONES: { cents: number; tipo: 'billete' | 'moneda' }[] = [
+  { cents: 100_000, tipo: 'billete' },
+  { cents: 50_000, tipo: 'billete' },
+  { cents: 20_000, tipo: 'billete' },
+  { cents: 10_000, tipo: 'billete' },
+  { cents: 5_000, tipo: 'billete' },
+  { cents: 2_000, tipo: 'billete' },
+  { cents: 1_000, tipo: 'moneda' },
+  { cents: 500, tipo: 'moneda' },
+  { cents: 200, tipo: 'moneda' },
+  { cents: 100, tipo: 'moneda' },
+  { cents: 50, tipo: 'moneda' },
+];
+
+/** Cuántas piezas hay de cada denominación (llave = centavos). */
+export type Conteo = Record<number, number>;
+
+/** Suma del contador. Ignora denominaciones que no existen y cantidades negativas o rotas. */
+export function totalContado(conteo: Conteo): number {
+  let total = 0;
+  for (const { cents } of DENOMINACIONES) {
+    const n = Math.floor(conteo[cents] ?? 0);
+    if (n > 0) total += n * cents;
+  }
+  return total;
+}
+
+export type ResultadoCorte = { estado: 'cuadra' | 'sobran' | 'faltan'; cents: number };
+
+/** Lo que contó contra lo que debía haber. `cents` siempre positivo (0 si cuadra). */
+export function resultadoCorte(contadoCents: number, esperadoCents: number): ResultadoCorte {
+  const d = contadoCents - esperadoCents;
+  if (d === 0) return { estado: 'cuadra', cents: 0 };
+  return d > 0 ? { estado: 'sobran', cents: d } : { estado: 'faltan', cents: -d };
 }

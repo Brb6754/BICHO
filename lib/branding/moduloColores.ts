@@ -60,12 +60,12 @@ const TILES: { clave: ClaveColor; modulo: Modulo; label: string; ruta: string }[
   { clave: 'cotizaciones', modulo: 'cotizaciones', label: 'Cotizaciones', ruta: '/cotizaciones' },
   { clave: 'reuniones', modulo: 'reuniones', label: 'Reuniones', ruta: '/reuniones' },
   { clave: 'facturacion', modulo: 'facturacion', label: 'Facturas', ruta: '/facturas' },
-  { clave: 'resico', modulo: 'resico', label: 'Guía RESICO', ruta: '/resico' },
+  { clave: 'resico', modulo: 'resico', label: 'Impuestos (RESICO)', ruta: '/resico' },
   { clave: 'posts', modulo: 'posts', label: 'Posts con IA', ruta: '/posts' },
   { clave: 'servicios', modulo: 'reservas', label: 'Servicios', ruta: '/services' },
   { clave: 'copiloto', modulo: 'copiloto', label: 'Copiloto', ruta: '/copiloto' },
   { clave: 'whatsapp', modulo: 'whatsapp', label: 'WhatsApp', ruta: '/whatsapp' },
-  { clave: 'boost', modulo: 'boost', label: 'Boost', ruta: '/boost' },
+  { clave: 'boost', modulo: 'boost', label: 'Llena tus huecos', ruta: '/boost' },
 ];
 
 /**

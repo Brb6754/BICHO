@@ -7,9 +7,6 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { formatFolio, formatMoney } from '@/lib/quotes/totals';
 import { ETIQUETA_FACTURA, estadoCotizaWA, type EstadoCotizaWA } from '@/lib/whatsapp/cotiza/estado';
 
-// Las etiquetas de la factura, sin jerga: "timbrar" no se dice en el panel.
-const FACTURA: Record<string, string> = { ...ETIQUETA_FACTURA, error: 'No se pudo hacer la factura' };
-
 // Las cotizaciones que armó el agente por WhatsApp, con su estado y, si
 // pidieron factura, los datos fiscales que se leyeron. La usan el panel
 // real y la demo (/panel/whatsapp, sin acciones).
@@ -98,7 +95,7 @@ export function CotizacionesWhatsapp({
     <ul className="space-y-3">
       {cotizaciones.map((q) => {
         const estado = ESTADO[estadoCotizaWA(q)];
-        const factura = q.factura_estado && q.factura_estado !== 'timbrada' ? FACTURA[q.factura_estado] : null;
+        const factura = q.factura_estado && q.factura_estado !== 'timbrada' ? ETIQUETA_FACTURA[q.factura_estado] : null;
         return (
           <li key={q.id}>
             <Card padded={false}>

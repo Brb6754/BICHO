@@ -68,14 +68,13 @@ const GROUP_LABELS: Record<NavGroup, string> = {
 };
 const GROUP_ORDER: (NavGroup | undefined)[] = [undefined, 'agenda', 'clientes', 'dinero', 'crecer', 'ajustes'];
 
-// La barra de abajo en el teléfono, como la de una app: Inicio / Citas /
+// La barra de abajo en el teléfono, como la de una app: Inicio / Agenda /
 // Clientes / Más. Si el negocio no tiene agenda, el hueco lo toma la
 // siguiente sección que sí tenga. "Más" abre el cajón con todo lo demás.
 const BOTTOM_PRIORITY = ['/dashboard', '/dashboard/calendar', '/dashboard/customers', '/dashboard/cotizaciones', '/dashboard/reuniones', '/dashboard/caja'];
 // En la barra se llaman como en una app; en el cajón, como el título de cada página.
 const BOTTOM_LABEL: Record<string, { label: string; icon?: typeof LayoutDashboard }> = {
   '/dashboard': { label: 'Inicio', icon: House },
-  '/dashboard/calendar': { label: 'Citas' },
 };
 
 const NAV_ITEMS: {
@@ -96,7 +95,7 @@ const NAV_ITEMS: {
   requiresComisiones?: boolean;
   requiresInventario?: boolean;
   requiresWhatsapp?: boolean;
-  /** Boost de clientes: add-on de Negocio/Pro (con candado en Esencial). */
+  /** Llena tus huecos (Boost de clientes): add-on de Negocio/Pro (con candado en Esencial). */
   requiresBoost?: boolean;
   /** Citas O reuniones: las dos agendan sobre las mismas personas y el mismo horario. */
   requiresAgenda?: boolean;
@@ -136,10 +135,10 @@ const NAV_ITEMS: {
   { href: '/dashboard/inventario', label: 'Inventario', icon: Package, requiresInventario: true, group: 'dinero' },
   { href: '/dashboard/cotizaciones', label: 'Cotizaciones', icon: FileText, requiresQuotes: true, group: 'dinero' },
   { href: '/dashboard/facturas', label: 'Facturas', icon: ReceiptText, requiresFacturacion: true, group: 'dinero' },
-  { href: '/dashboard/resico', label: 'Guía RESICO', icon: Landmark, requiresResico: true, group: 'dinero' },
+  { href: '/dashboard/resico', label: 'Impuestos (RESICO)', icon: Landmark, requiresResico: true, group: 'dinero' },
 
   // CRECER — traer clientas nuevas y llenar huecos.
-  { href: '/dashboard/boost', label: 'Boost de clientes', icon: Zap, requiresBoost: true, group: 'crecer' },
+  { href: '/dashboard/boost', label: 'Llena tus huecos', icon: Zap, requiresBoost: true, group: 'crecer' },
   { href: '/dashboard/posts', label: 'Posts con IA', icon: Megaphone, requiresPosts: true, group: 'crecer' },
 
   // AJUSTES — lo que se toca una vez. Solo el dueño de un negocio real.

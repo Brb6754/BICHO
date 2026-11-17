@@ -4,7 +4,7 @@ import { Select } from '@/components/ui/Select';
 import { ActionForm, SubmitButton } from './ui/ActionForm';
 import { FormField } from './ui/FormField';
 import { HelpTip } from './ui/HelpTip';
-import { ConfirmarConAviso } from './AccionesFila';
+import { ConfirmForm } from '@/components/ui/ConfirmForm';
 import { formatTime, longDate } from '@/lib/dates/tenantTime';
 
 export type ScheduleBlock = {
@@ -160,7 +160,7 @@ export function BlocksSection({
                     {block.reason ? ` · ${block.reason}` : ''}
                   </p>
                 </div>
-                <ConfirmarConAviso
+                <ConfirmForm
                   action={deleteAction.bind(null, block.id, slug)}
                   success="Bloqueo quitado"
                   confirmTitle="¿Quitar el bloqueo?"
@@ -172,7 +172,7 @@ export function BlocksSection({
                 >
                   <X className="h-[18px] w-[18px]" aria-hidden="true" />
                   <span className="sr-only">Quitar este bloqueo</span>
-                </ConfirmarConAviso>
+                </ConfirmForm>
               </li>
             ))}
           </ul>

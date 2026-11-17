@@ -39,7 +39,7 @@ export function FormField({
 
   return (
     <div className={className}>
-      <Label htmlFor={controlId} className="text-[13px]">
+      <Label htmlFor={controlId} tone="ink">
         {label}
         {optional && <span className="font-normal"> (opcional)</span>}
       </Label>

@@ -7,7 +7,7 @@ import { cancelBooking } from './actions';
 import { NewBookingForm } from './NewBookingForm';
 import { RescheduleButton } from './RescheduleButton';
 import { AttendanceButtons } from './AttendanceButtons';
-import { ConfirmarConAviso } from '@/components/tenant-dash/AccionesFila';
+import { ConfirmForm } from '@/components/ui/ConfirmForm';
 import { HelpTip } from '@/components/tenant-dash/ui/HelpTip';
 import { ShareLink } from '@/components/tenant-dash/ui/ShareLink';
 import { PageHeader } from '@/components/tenant-dash/PageHeader';
@@ -192,7 +192,7 @@ export default async function CalendarPage({
                     timezone={tz}
                   />
                 )}
-                <ConfirmarConAviso
+                <ConfirmForm
                   action={cancelBooking.bind(null, b.id, slug)}
                   success="Cita cancelada: la hora quedó libre"
                   confirmTitle={`¿Cancelar la cita de ${quien}?`}
@@ -202,7 +202,7 @@ export default async function CalendarPage({
                   triggerClassName="min-h-[2.75rem] px-4 text-[13px]"
                 >
                   Cancelar
-                </ConfirmarConAviso>
+                </ConfirmForm>
               </div>
             );
           }}

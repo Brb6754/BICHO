@@ -15,7 +15,8 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { ActionForm, SubmitButton } from '@/components/tenant-dash/ui/ActionForm';
 import { FormField } from '@/components/tenant-dash/ui/FormField';
 import { HelpTip } from '@/components/tenant-dash/ui/HelpTip';
-import { ConfirmarConAviso, IrAlCampo } from '@/components/tenant-dash/AccionesFila';
+import { ConfirmForm } from '@/components/ui/ConfirmForm';
+import { IrAlCampo } from '@/components/tenant-dash/AccionesFila';
 import { PageHeader } from '@/components/tenant-dash/PageHeader';
 import { AddBar } from '@/components/tenant-dash/ItemList';
 import { BlocksSection, type ScheduleBlock } from '@/components/tenant-dash/BlocksSection';
@@ -226,7 +227,7 @@ export default async function SchedulePage({ params }: { params: Promise<{ slug:
                             className="inline-flex items-center rounded-full border border-border pl-3.5 text-sm tabular-nums text-ink"
                           >
                             {hora(s.starts_at)} – {hora(s.ends_at)}
-                            <ConfirmarConAviso
+                            <ConfirmForm
                               action={deleteScheduleSlot.bind(null, s.id, slug)}
                               success="Horario quitado"
                               confirmTitle="¿Quitar este horario?"
@@ -240,7 +241,7 @@ export default async function SchedulePage({ params }: { params: Promise<{ slug:
                               <span className="sr-only">
                                 Quitar {hora(s.starts_at)} a {hora(s.ends_at)} del {d.label.toLowerCase()}
                               </span>
-                            </ConfirmarConAviso>
+                            </ConfirmForm>
                           </span>
                         ))}
                       </div>

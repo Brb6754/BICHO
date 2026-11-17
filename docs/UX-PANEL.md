@@ -43,7 +43,7 @@ Al final está el **inventario de cimientos** (fase 1, ya en `master`).
 | G4 | **P0** | En tablet (768–1023 px) salían a la vez las barras del teléfono y el tablero de escritorio: el inicio cambiaba en `md` y el menú en `lg`. | **Hecho**: el inicio también cambia en `lg`. |
 | G5 | P1 | Compartir el link, la acción #1 de valor, estaba al fondo del inicio en el teléfono, debajo de toda la cuadrícula. No había opción de WhatsApp. | **Hecho**: botón "Compartir mi link" en la barra de arriba del teléfono, bloque "Tu link de reservas" (Copiar / WhatsApp) en el menú de escritorio y botones en el inicio. |
 | G6 | P1 | Menú agrupado como "Dinero / Clientes / Tu negocio". Servicios, Horario y Quién atiende quedaban en "Tu negocio" y Reuniones sin grupo. "Mi plan" solo se alcanzaba en el estilo Suave. Boost salía con candado en medio de lo que sí tiene. | **Hecho**: Agenda / Clientes / Dinero / Crecer / Ajustes. "Mi plan" entra a Ajustes. Lo que el plan no incluye va al final, plegado, con candado. |
-| G7 | P1 | Botones de menos de 44 px en el teléfono: borrar servicio o quién atiende (`h-8`, 32 px), quitar un rango de horario (`h-6`, 24 px), algunas pastillas. | Fase 2, grupo A. |
+| G7 | P1 | Botones de menos de 44 px en el teléfono: borrar servicio o quién atiende (`h-8`, 32 px), quitar un rango de horario (`h-6`, 24 px), algunas pastillas. | Fase 2, grupo A. `Button` ya mide 44 px en teléfono desde la base. |
 | G8 | P1 | En "Cancelar cita" el modal muestra **"Cancelar"** junto a **"Cancelar cita"**: la salida segura y la destructiva dicen casi lo mismo. Falta `dismissLabel`. | Fase 2, grupo A. |
 | G9 | P1 | El placeholder hace de etiqueta: en Quién atiende la etiqueta es `sr-only` y solo se ve "Ej. Renata, Silla 2…". Las etiquetas visibles son de 12 px y gris tenue. | `FormField` ya existe. Aplicarlo es fase 2. |
 | G10 | P1 | Jerga a la vista: "Borrar recurso", "Timbrar", "CFDI", "Uso del CFDI", "Régimen fiscal", "ISR", "RESICO", "Boost", "Sin timbrar". | Glosario en §2.1. Cada grupo aplica el suyo. |
@@ -300,7 +300,7 @@ nunca difieren.
 | `EmptyState` (ampliado) | `components/ui/EmptyState.tsx` | Nuevos `why` y `example`. Compatible. |
 | `ShareLink`, `ShareLinkCompact` | `components/tenant-dash/ui/ShareLink.tsx` | Copiar link + mandar por WhatsApp (`wa.me` con mensaje listo). La versión compacta usa la hoja de compartir del sistema. Deja la seña "link compartido" para los primeros pasos. |
 | `PrimerosPasos` | `components/tenant-dash/ui/PrimerosPasos.tsx` | "Tu agenda en 5 minutos": servicios → quién atiende → horario → compartir link → primera cita. Estado real (lo cuenta `dashboard/page.tsx`). Se puede ocultar, pero si la página aún no recibe citas queda un aviso de una línea. |
-| `ConfirmForm` | `components/ui/ConfirmForm.tsx` | Sin cambios: el patrón de confirmación. Usar siempre `dismissLabel`. |
+| `ConfirmForm` | `components/ui/ConfirmForm.tsx` | El patrón de confirmación. Usar siempre `dismissLabel`, y `success` en el panel para el toast. |
 | Menú por intención | `app/t/[slug]/dashboard/Sidebar.tsx` | Agenda / Clientes / Dinero / Crecer / Ajustes. "Mi plan" en Ajustes. Lo que el plan no incluye va al final, plegado, con candado (`bloqueados`, misma cuenta que `tilesDe`). Link de reservas siempre a la mano. |
 | Tablet | `ResumenHoy.tsx`, `resumen/InicioMovil.tsx` | El inicio cambia de teléfono a escritorio en `lg`, igual que el menú. |
 | Error en español | `app/t/[slug]/dashboard/error.tsx` | Nunca enseña el genérico en inglés de producción. |
@@ -316,6 +316,8 @@ mandaba a una pantalla que dice "Primero agrega quién atiende".
 
 (Los grupos de la fase 2 anotan aquí lo que necesitan cambiar en archivos compartidos.)
 
+**Estado (17 nov 2026):** cimientos atendió todo. Solo quedan dos decisiones de Bruno: el texto de Esencial en `lib/billing/planes.ts` (grupo C, 2) y el número de `WHATSAPP_CONTACTO` (grupo C, 4).
+
 ### Grupo A (Agenda)
 
 1. **P0 — `ActionForm` borra lo escrito cuando la action falla** (`components/tenant-dash/ui/ActionForm.tsx`).
@@ -326,29 +328,37 @@ mandaba a una pantalla que dice "Primero agrega quién atiende".
    valores en `form.elements` (o usar `onSubmit` + `startTransition` en vez de
    `action`). Mientras tanto, los formularios del grupo A validan en el navegador
    (`required`, `min`) para que el caso común no llegue al servidor.
+   **Resuelto (cimientos):** `ActionForm` envía con `onSubmit` + `useTransition` en vez de `<form action>`, y solo pide `requestFormReset` cuando la action salió bien. `SubmitButton` sigue diciendo "Guardando…" (contexto propio, con `useFormStatus` de respaldo). Test en `ActionForm.test.ts`.
 2. **`ConfirmForm` con `success`** (`components/ui/ConfirmForm.tsx`): que avise con
    toast y atrape el error como `ActionForm`. Hoy lo hace
    `components/tenant-dash/AccionesFila.tsx` (`ConfirmarConAviso`, archivo nuevo del
    grupo A); con el cambio se borra.
+   **Resuelto:** `ConfirmForm` acepta `success` (toast + atrapa el error con `correrConAviso`). Sin `success` se porta igual que antes (fuera del panel no hay `<Toaster/>`). `ConfirmarConAviso` se borró y sus 5 usos pasan a `ConfirmForm success=…`.
 3. **`Button` mide 40 px de alto** (`py-2.5 text-sm`). Pedido: `min-h-[2.75rem]`
    en la base. El grupo A lo pone a mano en sus botones.
+   **Resuelto:** `Button` trae `min-h-11 lg:min-h-0`: 44 px en teléfono y tablet, 40 px en escritorio como antes.
 4. **`Modal`**: el botón de cerrar mide 24 px (`p-1`) y el diálogo no hace scroll.
    En el teléfono, "Mover la cita" (con la lista de horas) puede quedar más alto
    que la pantalla. Pedido: `max-h-[90dvh] overflow-y-auto`, hoja abajo en `< sm`
    y cerrar en `h-11 w-11`.
+   **Resuelto:** `Modal` con `max-h-[90dvh]`; el cuerpo hace scroll y el título con "cerrar" (`h-11 w-11`) quedan fijos. Debajo de `sm` es hoja abajo (esquinas solo arriba, respeta safe-area).
 5. **`FormField` / `Label`**: la etiqueta sale en `text-xs text-muted` y el
    `text-[13px]` que agrega FormField no gana de forma confiable (la trampa de
    className de CLAUDE.md). Pedido: prop o variante con 13 px y `text-ink`.
+   **Resuelto:** `Label` mide 13 px en todas partes y gana la prop `tone` (`muted` | `ink`). `FormField` usa `tone="ink"`.
 6. **Demo (`lib/demo/panelFixtures.ts`)**: el teléfono no va amarrado al nombre
    (`NOMBRES[(base+n*5)%…]` y `TELEFONOS[(base+n)%…]`), así que dos clientas
    distintas comparten número; además casi todas las citas caen con la misma
    estilista (G12). La demo de Clientes agrupa por nombre para no fusionarlas.
    Pedido: teléfono derivado del nombre y repartir las citas entre quienes atienden.
+   **Resuelto:** cada nombre tiene su propio teléfono (mismo índice) y las citas van de una en una entre quienes atienden (`n*3` con 3 personas caía siempre en la misma).
 7. **Menú del teléfono**: la barra de abajo dice "Citas" y la página se llama
    "Agenda" (§2.1: menú = título). Pedido: "Agenda" en `BOTTOM_LABEL` de `Sidebar.tsx`.
+   **Resuelto:** la barra de abajo usa el nombre del menú, "Agenda" (el alias "Citas" se quitó).
 8. Los atajos del inicio usan `?nueva=1#agendar` (abre "Agendar una cita"),
    `/schedule#bloquear` y `/customers#buscar` (pone el cursor en el buscador). Si
    cimientos agrega atajos al menú, que usen esas mismas URLs.
+   **Revisado:** el inicio (los 4 estilos + `InicioMovil`) ya usa esas URLs con `base` sin `/t/{slug}`, y los destinos existen (`#agendar`, `#bloquear`, `#buscar`). Cimientos no agregó atajos al menú, así que no hay nada más que alinear.
 
 ### Grupo C (Crecer)
 
@@ -356,18 +366,23 @@ mandaba a una pantalla que dice "Primero agrega quién atiende".
    (§2.1: menú = título). Pedido: cambiar 'Boost de clientes' en
    `app/t/[slug]/dashboard/Sidebar.tsx` y la etiqueta 'Boost' de `TILES` en
    `lib/branding/moduloColores.ts`.
+   **Resuelto:** "Llena tus huecos" en el menú y en `TILES`.
 2. **`lib/planes.ts`, plan Esencial**: el `resumen` promete "recordatorios por
    correo" y el plan no los incluye. Mi plan ya no lo dice; falta corregir el texto
    de origen (lo usan la landing y el checkout).
+   **Pendiente de Bruno** (decisión de negocio, no se tocó).
 3. **`lib/whatsapp/cotiza/estado.ts`**: `ETIQUETA_FACTURA.error` dice "Error al
    timbrar" (jerga). `CotizacionesWhatsapp.tsx` lo pisa con "No se pudo hacer la
    factura"; si se cambia en el origen, se borra el mapa local.
+   **Resuelto:** `ETIQUETA_FACTURA.error` = "No se pudo hacer la factura" y se borró el mapa local.
 4. **"Escríbenos" sin canal**: los avisos de módulo bloqueado o sin activar dicen
    "Escríbenos y te lo prendemos", pero `WHATSAPP_CONTACTO` (`lib/seo/sitio.ts`)
    es `null`. Pedido: un número de soporte y un botón compartido que lo abra.
+   **Pendiente de Bruno:** falta el número de soporte (no se tocó).
 5. Me afecta el P0 del grupo A (`ActionForm` borra lo escrito si falla): los
    formularios de Regresan, Lealtad, Llena tus huecos y WhatsApp usan `ActionForm`,
    así que se arreglan solos cuando se corrija el envoltorio.
+   **Resuelto** con el arreglo de `ActionForm` (pedido 1 del grupo A).
 
 ### Grupo B (Dinero)
 
@@ -375,9 +390,13 @@ mandaba a una pantalla que dice "Primero agrega quién atiende".
    (la dueña busca "impuestos", no "RESICO"). Pedido: cambiar `'Guía RESICO'` por
    `'Impuestos (RESICO)'` en `components/tenant-dash/Sidebar.tsx` (~línea 139) y en
    `TILES` de `lib/branding/moduloColores.ts` (~línea 63), para que menú = título (§2.1).
+   **Resuelto:** el archivo real es `app/t/[slug]/dashboard/Sidebar.tsx`; menú y `TILES` dicen "Impuestos (RESICO)".
 2. **`Button` a 44 px**: se suma al pedido 3 del grupo A. El grupo B también pone
    `min-h-11` a mano en todos sus botones.
+   **Resuelto** (ver pedido 3 del grupo A). El `min-h-11` a mano queda redundante en teléfono; en escritorio gana `lg:min-h-0` y miden 40 px como el resto.
 3. **`ConfirmForm` con toast de éxito**: se suma al pedido 2 del grupo A. Cotizaciones
    lo resuelve hoy con un `try/catch` + `toast` dentro de la action que le pasa.
+   **Resuelto:** `ConfirmForm success=…`. Lo de Cotizaciones sigue funcionando igual; puede pasarse a `success` cuando se toque.
 4. **Sin pedido de ActionForm**: los formularios del grupo B guardan con estado del
    cliente (`onClick` / `onSubmit`), así que el P0 del grupo A no les borra lo escrito.
+   **Sin acción.**

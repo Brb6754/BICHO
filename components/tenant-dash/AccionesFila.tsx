@@ -1,40 +1,9 @@
 'use client';
 
-import { ConfirmForm } from '@/components/ui/ConfirmForm';
 import { Button } from '@/components/ui/Button';
-import { toast } from './ui/Toast';
-import { mensajeDeError } from './ui/ActionForm';
 
-// Dos piezas chicas que usan las pantallas de la agenda (grupo A).
-//
-// ConfirmarConAviso: ConfirmForm tal cual, más el aviso. ConfirmForm
-// manda la server action directo, así que un error tiraba la página a
-// error.tsx y un acierto no decía nada. Aquí la action se envuelve del
-// lado del cliente: "Servicio borrado" o el error en español, sin salir.
-// (Pedido a cimientos: que ConfirmForm acepte `success` y esto se borra.)
-export function ConfirmarConAviso({
-  action,
-  success,
-  ...props
-}: Omit<React.ComponentProps<typeof ConfirmForm>, 'action'> & {
-  action: (formData: FormData) => unknown | Promise<unknown>;
-  /** En pasado y con el objeto: "Cita cancelada". */
-  success: string;
-}) {
-  return (
-    <ConfirmForm
-      {...props}
-      action={async (fd) => {
-        try {
-          await action(fd);
-          toast(success);
-        } catch (e) {
-          toast(mensajeDeError(e), 'error');
-        }
-      }}
-    />
-  );
-}
+// Piezas chicas que usan las pantallas de la agenda (grupo A).
+// (ConfirmarConAviso vivía aquí; ahora es ConfirmForm con `success`.)
 
 // IrAlCampo: el botón de un estado vacío o de un encabezado cuando el
 // formulario está en la misma página. Lo lleva hasta el campo y le pone

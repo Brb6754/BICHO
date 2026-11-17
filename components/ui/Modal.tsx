@@ -35,26 +35,37 @@ export function Modal({
 
   if (!open) return null;
 
+  // En el teléfono es una hoja que sube desde abajo (el pulgar llega);
+  // desde sm, un diálogo centrado. En los dos, si el contenido es más alto
+  // que la pantalla (ej. "Mover la cita" con la lista de horas), el cuerpo
+  // hace scroll y el título con su "cerrar" se quedan a la vista.
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4">
       <div
         className="absolute inset-0 animate-fade-in bg-black/30 backdrop-blur-sm"
         onClick={onClose}
         aria-hidden="true"
       />
-      <div role="dialog" aria-modal="true" className={`animate-pop-in glass-3 relative w-full ${ANCHO[size]} rounded-[28px] p-6`}>
-        <div className="flex items-start justify-between gap-4">
-          <Text variant="h3">{title}</Text>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        className={`animate-pop-in glass-3 relative flex max-h-[90dvh] w-full ${ANCHO[size]} flex-col rounded-t-[28px] pb-[env(safe-area-inset-bottom)] sm:rounded-[28px] sm:pb-0`}
+      >
+        <div className="flex shrink-0 items-start justify-between gap-4 px-6 pt-4 sm:pt-5">
+          <div className="pt-2.5">
+            <Text variant="h3">{title}</Text>
+          </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Cerrar"
-            className="shrink-0 rounded-full p-1 text-muted transition hover:bg-black/5 dark:hover:bg-white/10"
+            className="-mr-3 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted transition hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 dark:hover:bg-white/10"
           >
-            <X className="h-4 w-4" />
+            <X className="h-5 w-5" aria-hidden="true" />
           </button>
         </div>
-        <div className="mt-3">{children}</div>
+        <div className="min-h-0 overflow-y-auto overscroll-contain px-6 pb-6 pt-2">{children}</div>
       </div>
     </div>
   );

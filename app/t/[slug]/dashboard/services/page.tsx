@@ -8,7 +8,8 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { ActionForm, SubmitButton } from '@/components/tenant-dash/ui/ActionForm';
 import { FormField } from '@/components/tenant-dash/ui/FormField';
 import { HelpTip } from '@/components/tenant-dash/ui/HelpTip';
-import { ConfirmarConAviso, IrAlCampo, BOTON_ICONO } from '@/components/tenant-dash/AccionesFila';
+import { ConfirmForm } from '@/components/ui/ConfirmForm';
+import { IrAlCampo, BOTON_ICONO } from '@/components/tenant-dash/AccionesFila';
 import { PageHeader } from '@/components/tenant-dash/PageHeader';
 import { ItemList, ItemRow, ActiveSwitch, AddBar } from '@/components/tenant-dash/ItemList';
 import { esServicio } from '@/lib/meetings/kinds';
@@ -165,7 +166,7 @@ export default async function ServicesPage({ params }: { params: Promise<{ slug:
                       >
                         <ActiveSwitch active={s.active} label={s.name} />
                       </ActionForm>
-                      <ConfirmarConAviso
+                      <ConfirmForm
                         action={deleteService.bind(null, s.id, slug)}
                         success="Servicio borrado"
                         confirmTitle={`¿Borrar "${s.name}"?`}
@@ -177,7 +178,7 @@ export default async function ServicesPage({ params }: { params: Promise<{ slug:
                       >
                         <Trash2 className="h-[18px] w-[18px]" aria-hidden="true" />
                         <span className="sr-only">Borrar {s.name}</span>
-                      </ConfirmarConAviso>
+                      </ConfirmForm>
                     </>
                   }
                 />

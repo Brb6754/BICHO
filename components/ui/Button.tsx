@@ -24,6 +24,8 @@ const VARIANT_CLASSES: Record<Variant, string> = {
   success: 'bg-success text-white shadow-sm hover:bg-success/90',
 };
 
+// min-h-11: en el teléfono todo lo que se toca mide ≥ 44 px (UX-PANEL §2.6).
+// En escritorio (lg) vuelve a su alto natural de 40 px.
 export const Button = forwardRef<
   HTMLButtonElement,
   ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; isLoading?: boolean }
@@ -32,7 +34,7 @@ export const Button = forwardRef<
     ref={ref}
     disabled={disabled || isLoading}
     aria-busy={isLoading || undefined}
-    className={`ui-btn inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100 ${VARIANT_CLASSES[variant]} ${className}`}
+    className={`ui-btn inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-5 lg:min-h-0 py-2.5 text-sm font-medium transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100 ${VARIANT_CLASSES[variant]} ${className}`}
     {...props}
   >
     {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}

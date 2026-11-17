@@ -16,5 +16,5 @@ export const ETIQUETA_FACTURA: Record<string, string> = {
   esperando_datos: 'Esperando constancia',
   por_confirmar: 'Cliente revisando sus datos',
   por_aprobar: 'Por aprobar',
-  error: 'Error al timbrar',
+  error: 'No se pudo hacer la factura',
 };

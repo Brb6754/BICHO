@@ -8,7 +8,8 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { ActionForm, SubmitButton } from '@/components/tenant-dash/ui/ActionForm';
 import { FormField } from '@/components/tenant-dash/ui/FormField';
 import { HelpTip } from '@/components/tenant-dash/ui/HelpTip';
-import { ConfirmarConAviso, IrAlCampo, BOTON_ICONO } from '@/components/tenant-dash/AccionesFila';
+import { ConfirmForm } from '@/components/ui/ConfirmForm';
+import { IrAlCampo, BOTON_ICONO } from '@/components/tenant-dash/AccionesFila';
 import { PageHeader } from '@/components/tenant-dash/PageHeader';
 import { ItemList, ItemRow, ActiveSwitch, AddBar } from '@/components/tenant-dash/ItemList';
 import { ResourceServices } from './ResourceServices';
@@ -137,7 +138,7 @@ export default async function ResourcesPage({ params }: { params: Promise<{ slug
                       >
                         <ActiveSwitch active={r.active} label={r.name} />
                       </ActionForm>
-                      <ConfirmarConAviso
+                      <ConfirmForm
                         action={deleteResource.bind(null, r.id, slug)}
                         success={`${r.name} se borró`}
                         confirmTitle={`¿Borrar a ${r.name}?`}
@@ -151,7 +152,7 @@ export default async function ResourcesPage({ params }: { params: Promise<{ slug
                       >
                         <Trash2 className="h-[18px] w-[18px]" aria-hidden="true" />
                         <span className="sr-only">Borrar a {r.name}</span>
-                      </ConfirmarConAviso>
+                      </ConfirmForm>
                     </>
                   }
                 />

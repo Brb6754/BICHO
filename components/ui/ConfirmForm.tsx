@@ -3,22 +3,31 @@
 import { useRef, useState } from 'react';
 import { Button } from './Button';
 import { Modal } from './Modal';
+import { correrConAviso } from '@/components/tenant-dash/ui/ActionForm';
 
 // Wraps a server-action <form> so the destructive action requires a
 // confirm click before it fires. The <form action={...}> stays exactly
 // what a page already passes in — this only gates the submit behind a
 // modal via formRef.requestSubmit(), it never changes what gets sent.
+//
+// Con `success` ("Servicio borrado") avisa con toast y atrapa el error
+// como ActionForm, sin tirar la página. Sin `success` el error sigue
+// subiendo a error.tsx: fuera del panel (admin, página pública) no hay
+// <Toaster/> que lo enseñe.
 export function ConfirmForm({
   action,
   confirmTitle,
   confirmMessage,
+  success,
   confirmLabel = 'Confirmar',
   dismissLabel = 'Cancelar',
   triggerVariant = 'danger',
   triggerClassName = '',
   children,
 }: {
-  action: (formData: FormData) => void | Promise<void>;
+  action: (formData: FormData) => unknown | Promise<unknown>;
+  /** En pasado y con el objeto: "Cita cancelada". Prende el toast y atrapa el error. */
+  success?: string;
   confirmTitle: string;
   confirmMessage: string;
   confirmLabel?: string;
@@ -36,7 +45,13 @@ export function ConfirmForm({
 
   return (
     <>
-      <form ref={formRef} action={action}>
+      <form
+        ref={formRef}
+        action={async (fd) => {
+          if (success) await correrConAviso(action, fd, success);
+          else await action(fd);
+        }}
+      >
         <Button type="button" variant={triggerVariant} className={triggerClassName} onClick={() => setOpen(true)}>
           {children}
         </Button>

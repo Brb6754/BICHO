@@ -29,7 +29,12 @@ const NOMBRES = [
   'Alejandro Soto',
 ];
 
-const TELEFONOS = ['618 112 4590', '618 203 7781', '618 445 1120', '618 390 6634', '618 557 2048'];
+// Uno por nombre, en el mismo orden: cada clienta tiene SU teléfono (dos
+// personas con el mismo número se fusionaban en Clientes).
+const TELEFONOS = [
+  '618 112 4590', '618 203 7781', '618 445 1120', '618 390 6634', '618 557 2048', '618 268 9015',
+  '618 731 4402', '618 154 6237', '618 489 3370', '618 602 1859', '618 377 8124', '618 925 0463',
+];
 
 /** Hash estable: el mismo slug produce siempre la misma semana. */
 function semilla(slug: string): number {
@@ -78,7 +83,9 @@ export function demoAgendaDeNegocio({ slug, timezone, services, resources }: Cat
     const dia = addDaysKey(hoy, offset);
     for (const hora of horas) {
       const servicio = services[(base + n * 7) % services.length];
-      const recurso = resources[(base + n * 3) % resources.length];
+      // De una en una: con n*3 y tres personas, todas caían en la misma.
+      const recurso = resources[(base + n) % resources.length];
+      const quien = (base + n * 5) % NOMBRES.length;
       const startsAt = instantFromLocal(dia, hora, timezone);
       const endsAt = new Date(new Date(startsAt).getTime() + servicio.duration_minutes * 60_000).toISOString();
 
@@ -97,7 +104,7 @@ export function demoAgendaDeNegocio({ slug, timezone, services, resources }: Cat
         service_type_id: servicio.id,
         resources: { name: recurso.name },
         service_types: { name: servicio.name },
-        customers: { name: NOMBRES[(base + n * 5) % NOMBRES.length], phone: TELEFONOS[(base + n) % TELEFONOS.length] },
+        customers: { name: NOMBRES[quien], phone: TELEFONOS[quien] },
       });
       n++;
     }

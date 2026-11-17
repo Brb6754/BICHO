@@ -62,13 +62,11 @@ export const metadata: Metadata = {
 };
 
 // Applied before paint so switching themes never flashes the wrong one
-// on load — reads the stored preference, falls back to the OS setting.
+// on load — reads the stored preference; light is the default (ignores the OS setting).
 const THEME_INIT_SCRIPT = `
 (function () {
   try {
-    var stored = localStorage.getItem('theme');
-    var isDark = stored ? stored === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
-    if (isDark) document.documentElement.classList.add('dark');
+    if (localStorage.getItem('theme') === 'dark') document.documentElement.classList.add('dark');
   } catch (e) {}
 })();
 `;

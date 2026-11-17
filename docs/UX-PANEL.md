@@ -349,3 +349,35 @@ mandaba a una pantalla que dice "Primero agrega quién atiende".
 8. Los atajos del inicio usan `?nueva=1#agendar` (abre "Agendar una cita"),
    `/schedule#bloquear` y `/customers#buscar` (pone el cursor en el buscador). Si
    cimientos agrega atajos al menú, que usen esas mismas URLs.
+
+### Grupo C (Crecer)
+
+1. **Nombre de Boost en el menú**: la página ahora se llama "Llena tus huecos"
+   (§2.1: menú = título). Pedido: cambiar 'Boost de clientes' en
+   `app/t/[slug]/dashboard/Sidebar.tsx` y la etiqueta 'Boost' de `TILES` en
+   `lib/branding/moduloColores.ts`.
+2. **`lib/planes.ts`, plan Esencial**: el `resumen` promete "recordatorios por
+   correo" y el plan no los incluye. Mi plan ya no lo dice; falta corregir el texto
+   de origen (lo usan la landing y el checkout).
+3. **`lib/whatsapp/cotiza/estado.ts`**: `ETIQUETA_FACTURA.error` dice "Error al
+   timbrar" (jerga). `CotizacionesWhatsapp.tsx` lo pisa con "No se pudo hacer la
+   factura"; si se cambia en el origen, se borra el mapa local.
+4. **"Escríbenos" sin canal**: los avisos de módulo bloqueado o sin activar dicen
+   "Escríbenos y te lo prendemos", pero `WHATSAPP_CONTACTO` (`lib/seo/sitio.ts`)
+   es `null`. Pedido: un número de soporte y un botón compartido que lo abra.
+5. Me afecta el P0 del grupo A (`ActionForm` borra lo escrito si falla): los
+   formularios de Regresan, Lealtad, Llena tus huecos y WhatsApp usan `ActionForm`,
+   así que se arreglan solos cuando se corrija el envoltorio.
+
+### Grupo B (Dinero)
+
+1. **Nombre del menú de impuestos**: la página ahora se llama "Impuestos (RESICO)"
+   (la dueña busca "impuestos", no "RESICO"). Pedido: cambiar `'Guía RESICO'` por
+   `'Impuestos (RESICO)'` en `components/tenant-dash/Sidebar.tsx` (~línea 139) y en
+   `TILES` de `lib/branding/moduloColores.ts` (~línea 63), para que menú = título (§2.1).
+2. **`Button` a 44 px**: se suma al pedido 3 del grupo A. El grupo B también pone
+   `min-h-11` a mano en todos sus botones.
+3. **`ConfirmForm` con toast de éxito**: se suma al pedido 2 del grupo A. Cotizaciones
+   lo resuelve hoy con un `try/catch` + `toast` dentro de la action que le pasa.
+4. **Sin pedido de ActionForm**: los formularios del grupo B guardan con estado del
+   cliente (`onClick` / `onSubmit`), así que el P0 del grupo A no les borra lo escrito.

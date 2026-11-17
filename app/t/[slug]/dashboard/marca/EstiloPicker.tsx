@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { Check } from 'lucide-react';
 import { ESTILOS, type Estilo } from '@/lib/branding/dashEstilo';
+import { toast } from '@/components/tenant-dash/ui/Toast';
 
 // "Estilo del panel": cuatro miniaturas dibujadas con los colores del
 // propio negocio (los tokens ya están puestos por el layout), una vista
@@ -133,9 +134,14 @@ export function EstiloPicker({ inicial, onSave }: { inicial: Estilo; onSave: (es
               disabled={pending || elegido === guardado}
               onClick={() =>
                 start(async () => {
-                  const r = await onSave(elegido);
-                  if (r.ok) setGuardado(elegido);
-                  else setError(r.error);
+                  const r = await onSave(elegido).catch(() => ({ ok: false as const, error: 'No se pudo guardar. Revisa tu internet e inténtalo otra vez.' }));
+                  if (r.ok) {
+                    setGuardado(elegido);
+                    toast(`Listo: tu panel ahora usa el estilo ${info.nombre}`);
+                  } else {
+                    setError(r.error);
+                    toast(r.error, 'error');
+                  }
                 })
               }
               className="ui-btn inline-flex min-h-[2.75rem] items-center justify-center rounded-full bg-primary px-5 text-sm font-semibold text-[rgb(var(--color-cta-fg))] transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"

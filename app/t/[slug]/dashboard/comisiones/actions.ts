@@ -8,6 +8,12 @@ import { dayKey } from '@/lib/dates/tenantTime';
 import { bpATexto, pctABp, periodoDe } from '@/lib/comisiones/calculo';
 import { cargarComisiones } from '@/lib/comisiones/datos';
 
+/** El detalle técnico va al log del servidor; a la dueña, qué pasó y qué hacer. */
+function aviso(que: string, e: { message: string }): string {
+  console.error(`${que}:`, e.message);
+  return `${que}. Revisa tu internet e inténtalo otra vez.`;
+}
+
 // Escritura de Comisiones. Mismo patrón que caja/actions.ts: una Server
 // Action es un endpoint POST real, así que primero `requireTenantStaff`
 // (sesión + membresía en ESTE negocio), luego service_role con
@@ -33,7 +39,7 @@ async function recursoDelNegocio(tenantId: string, resourceId: string) {
     .eq('id', resourceId)
     .eq('tenant_id', tenantId)
     .maybeSingle();
-  if (error) throw new Error(`No se pudo leer la persona: ${error.message}`);
+  if (error) throw new Error(aviso('No se pudo leer la persona', error));
   return data;
 }
 
@@ -51,7 +57,7 @@ export async function guardarPorcentaje(slug: string, resourceId: string, pct: s
         { resource_id: resourceId, tenant_id: tenantId, pct_bp: pctBp, updated_at: new Date().toISOString() },
         { onConflict: 'resource_id' }
       );
-    if (error) throw new Error(`No se pudo guardar: ${error.message}`);
+    if (error) throw new Error(aviso('No se pudo guardar', error));
     revalidatePath(`/t/${slug}/dashboard/comisiones`);
     return { ok: true };
   } catch (e) {
@@ -95,7 +101,7 @@ export async function marcarPagado(
     if (error) {
       // 23505 = índice único (persona, desde, hasta): ya se pagó.
       if (error.code === '23505') return { ok: false, error: `Ya está pagado el periodo de ${fila.nombre}.` };
-      throw new Error(`No se pudo guardar el pago: ${error.message}`);
+      throw new Error(aviso('No se pudo guardar el pago', error));
     }
 
     if (input.registrarEnCaja && cajaActiva) {
@@ -115,14 +121,14 @@ export async function marcarPagado(
       if (errCaja) {
         // Sin el gasto, el pago tampoco: que la dueña lo reintente entero.
         await db.from('comision_pagos').delete().eq('id', pago.id).eq('tenant_id', tenantId);
-        throw new Error(`No se pudo registrar en Caja: ${errCaja.message}`);
+        throw new Error(aviso('No se pudo registrar en Caja', errCaja));
       }
       const { error: errLiga } = await db
         .from('comision_pagos')
         .update({ caja_movimiento_id: mov.id })
         .eq('id', pago.id)
         .eq('tenant_id', tenantId);
-      if (errLiga) throw new Error(`El pago y el gasto se guardaron, pero no se ligaron: ${errLiga.message}`);
+      if (errLiga) throw new Error(aviso('El pago y el gasto se guardaron, pero no se ligaron', errLiga));
       revalidatePath(`/t/${slug}/dashboard/caja`);
     }
 

@@ -2,17 +2,22 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Check, Copy, Download, Send, Trash2 } from 'lucide-react';
+import { Check, Copy, Download, Mail, MessageCircle, Trash2 } from 'lucide-react';
 import { ConfirmForm } from '@/components/ui/ConfirmForm';
+import { toast } from '@/components/tenant-dash/ui/Toast';
+import { mensajeDeError } from '@/components/tenant-dash/ui/ActionForm';
 import { sendQuote, deleteQuote } from './actions';
 
-// Lo que un vendedor hace con una cotización ya hecha: mandarla por
-// correo, copiar su enlace para WhatsApp, bajarla en PDF, o borrarla.
+// Lo que se hace con una cotización ya hecha: mandarla por WhatsApp,
+// copiar su link, bajarla en PDF, mandarla por correo, o borrarla.
 //
-// Copiar el enlace está al mismo nivel que enviar por correo, no
-// escondido: en México la mitad de las cotizaciones se mandan por
-// WhatsApp, y obligar a pasar por el correo sería diseñar para el flujo
+// WhatsApp va primero: en México la mitad de las cotizaciones se mandan
+// por ahí, y obligar a pasar por el correo sería diseñar para el flujo
 // que no ocurre.
+
+const BOTON =
+  'inline-flex min-h-11 items-center gap-1.5 rounded-full border border-border px-4 text-[13px] font-medium text-ink transition-colors hover:bg-ink/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:opacity-60';
+
 export function QuoteRowActions({
   slug,
   quoteId,
@@ -27,85 +32,86 @@ export function QuoteRowActions({
   const router = useRouter();
   const [enviando, setEnviando] = useState(false);
   const [copiado, setCopiado] = useState(false);
-  const [aviso, setAviso] = useState<string | null>(null);
 
-  const enlace =
-    typeof window === 'undefined' ? '' : `${window.location.origin}/cotizacion/${quoteId}`;
+  // El link se arma al tocar, no al pintar: en el servidor no hay
+  // window.location y un href distinto entre servidor y cliente es un
+  // error de hidratación.
+  const enlace = () => `${window.location.origin}/cotizacion/${quoteId}`;
+  const porWhatsApp = () =>
+    window.open(
+      `https://wa.me/?text=${encodeURIComponent(`Hola ${customerName}, aquí está tu cotización: ${enlace()}`)}`,
+      '_blank',
+      'noopener'
+    );
 
-  async function enviar() {
+  async function porCorreo() {
     if (enviando) return;
     setEnviando(true);
-    setAviso(null);
     const res = await sendQuote(slug, quoteId);
     setEnviando(false);
-    if (!res.ok) {
-      setAviso(res.error);
-      return;
-    }
-    // Si no había correo del cliente, decirlo: el vendedor creería que
-    // salió y en realidad solo cambió de estado.
-    setAviso(res.emailed ? 'Enviada por correo.' : 'Marcada como enviada. Comparte el enlace.');
+    if (!res.ok) return toast(res.error, 'error');
+    // Si no había correo del cliente, decirlo: creería que salió y en
+    // realidad solo cambió de estado.
+    toast(res.emailed ? 'Cotización enviada por correo' : 'No tiene correo: mándale el link por WhatsApp');
     router.refresh();
   }
 
   async function copiar() {
     try {
-      await navigator.clipboard.writeText(enlace);
+      await navigator.clipboard.writeText(enlace());
       setCopiado(true);
+      toast('Link copiado');
       setTimeout(() => setCopiado(false), 2000);
     } catch {
-      setAviso('No se pudo copiar. Abre la cotización y copia la dirección.');
+      toast('No se pudo copiar. Abre la cotización y copia la dirección.', 'error');
     }
   }
 
   return (
-    <div className="flex w-full items-center gap-2 sm:w-auto">
-      <button
-        type="button"
-        onClick={enviar}
-        disabled={enviando}
-        className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-border px-4 text-[13px] font-medium text-ink transition-colors hover:bg-ink/[0.04] disabled:opacity-60"
-      >
-        <Send className="h-3.5 w-3.5" aria-hidden="true" />
-        {enviando ? 'Enviando…' : 'Enviar'}
+    <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+      <button type="button" onClick={porWhatsApp} className={BOTON}>
+        <MessageCircle className="h-3.5 w-3.5" aria-hidden="true" />
+        WhatsApp
       </button>
 
-      <button
-        type="button"
-        onClick={copiar}
-        className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-border px-4 text-[13px] font-medium text-ink transition-colors hover:bg-ink/[0.04]"
-      >
+      <button type="button" onClick={copiar} className={BOTON}>
         {copiado ? <Check className="h-3.5 w-3.5" aria-hidden="true" /> : <Copy className="h-3.5 w-3.5" aria-hidden="true" />}
-        {copiado ? 'Copiado' : 'Enlace'}
+        {copiado ? 'Copiado' : 'Copiar link'}
       </button>
 
-      <a
-        href={`/api/cotizacion/${quoteId}/pdf`}
-        className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-border px-4 text-[13px] font-medium text-ink transition-colors hover:bg-ink/[0.04]"
-      >
+      <a href={`/api/cotizacion/${quoteId}/pdf`} className={BOTON}>
         <Download className="h-3.5 w-3.5" aria-hidden="true" />
         PDF
       </a>
 
-      {/* Borrar va al final y separado del resto con `ml-auto`: las otras
-          tres acciones se usan a diario y esta una vez. Pasa por el mismo
-          ConfirmForm que el resto del panel porque no hay papelera —
-          borrar una cotización se lleva también sus conceptos, por la
-          cascada de la llave foránea. */}
+      <button type="button" onClick={porCorreo} disabled={enviando} className={BOTON}>
+        <Mail className="h-3.5 w-3.5" aria-hidden="true" />
+        {enviando ? 'Enviando…' : 'Correo'}
+      </button>
+
+      {/* Borrar va al final y separado con `ml-auto`: las otras acciones
+          se usan a diario y esta una vez. Pasa por ConfirmForm porque no
+          hay papelera — borrar una cotización se lleva también sus
+          conceptos, por la cascada de la llave foránea. */}
       <ConfirmForm
-        action={deleteQuote.bind(null, slug, quoteId)}
+        action={async () => {
+          try {
+            await deleteQuote(slug, quoteId);
+            toast('Cotización borrada');
+          } catch (e) {
+            toast(mensajeDeError(e), 'error');
+          }
+        }}
         confirmTitle="Borrar cotización"
-        confirmMessage={`¿Borrar la #${folio} de ${customerName}? Se va con todos sus conceptos y no se puede deshacer. Si ya se la mandaste al cliente, su enlace deja de abrir.`}
-        confirmLabel="Borrar"
+        confirmMessage={`¿Borrar la cotización de ${customerName} (#${folio})? Se va con todo lo que incluye y no se puede deshacer. Si ya se la mandaste, su link deja de abrir.`}
+        confirmLabel="Sí, borrarla"
         dismissLabel="No, conservarla"
         triggerVariant="ghost"
         triggerClassName="ml-auto h-11 w-11 !border-0 !p-0 !text-muted hover:!bg-error-soft hover:!text-error sm:ml-2"
       >
         <Trash2 className="h-4 w-4" aria-hidden="true" />
-        <span className="sr-only">Borrar cotización</span>
+        <span className="sr-only">Borrar cotización de {customerName}</span>
       </ConfirmForm>
-
-      {aviso && <span className="text-[12px] text-muted">{aviso}</span>}
     </div>
   );
 }

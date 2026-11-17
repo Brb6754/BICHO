@@ -29,7 +29,7 @@ export function TrialBanner({ access }: { access: TenantAccess }) {
       <p>{text}</p>
       <Link
         href="/dashboard/plan"
-        className="shrink-0 rounded-full bg-primary px-4 py-1.5 font-medium text-[rgb(var(--color-cta-fg))] hover:brightness-110"
+        className="inline-flex min-h-[2.75rem] shrink-0 items-center rounded-full bg-primary px-4 font-semibold text-[rgb(var(--color-cta-fg))] hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 max-sm:w-full max-sm:justify-center"
       >
         Activar plan
       </Link>

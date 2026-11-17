@@ -4,15 +4,23 @@ import { DemoNote } from '@/components/demo/DemoNote';
 import { cargarPanelDemo } from '@/lib/demo/panelData';
 import { Conversaciones, type ConversacionVista } from '@/app/t/[slug]/dashboard/whatsapp/Conversaciones';
 import { CotizacionesWhatsapp, type CotizacionWA } from '@/app/t/[slug]/dashboard/whatsapp/CotizacionesWhatsapp';
-import { ADDON_COTIZA_WHATSAPP } from '@/lib/billing/planes';
+import { Intro, Pestanas, vistaDe } from '@/app/t/[slug]/dashboard/whatsapp/Secciones';
+import { SectionHeading } from '@/components/tenant-dash/PageHeader';
 
 export const dynamic = 'force-dynamic';
 
 // La recepcionista de WhatsApp en la demo pública: el MISMO componente
 // del panel real, con pláticas inventadas (teléfonos 618 000 …) y sin
 // acciones. Los servicios salen del catálogo real del negocio demo.
-export default async function WhatsappDemoPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function WhatsappDemoPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ vista?: string }>;
+}) {
   const { slug } = await params;
+  const vista = vistaDe((await searchParams).vista);
   const datos = await cargarPanelDemo(slug);
   if (!datos) notFound();
 
@@ -27,7 +35,7 @@ export default async function WhatsappDemoPage({ params }: { params: Promise<{ s
       estado: 'ia',
       last_message_at: hace(12),
       historial: [
-        { role: 'user', content: `Hola ${slug}` },
+        { role: 'user', content: 'Hola, ¿tienen lugar mañana?' },
         { role: 'assistant', content: `¡Hola! Soy la recepcionista de ${tenant.name}. ¿Qué te gustaría agendar?` },
         { role: 'user', content: `Un ${servicio.toLowerCase()} mañana en la tarde` },
         { role: 'assistant', content: 'Mañana tengo libre a las 4:00, 5:30 y 6:00. ¿Cuál te acomoda y a nombre de quién?' },
@@ -73,25 +81,22 @@ export default async function WhatsappDemoPage({ params }: { params: Promise<{ s
 
   return (
     <div>
-      <PageHeader
-        title="Recepcionista de WhatsApp"
-        description="Contesta a tus clientes por WhatsApp y agenda directo en tu agenda. Si una plática se complica, la tomas tú."
-      />
-      <div className="mt-6">
-        <Conversaciones conversaciones={ejemplo} timezone={tenant.timezone} />
-      </div>
-      <DemoNote>Conversaciones de ejemplo: los teléfonos y mensajes son inventados y los botones no envían nada.</DemoNote>
-
-      <section className="mt-12">
-        <h2 className="text-lg font-semibold text-ink">{ADDON_COTIZA_WHATSAPP.nombre}</h2>
-        <p className="mt-1 max-w-xl text-sm text-muted">
-          Add-on premium para negocios que cotizan: el cliente pide precio por WhatsApp, recibe la cotización en PDF con el catálogo del negocio, la acepta y pide su factura ahí mismo.
-        </p>
-        <div className="mt-6">
+      <PageHeader title="WhatsApp" description="Que tus clientas agenden y pidan precio por WhatsApp aunque tú estés ocupada." />
+      <Pestanas actual={vista} />
+      <Intro vista={vista} />
+      {vista === 'recepcionista' ? (
+        <section className="mt-10">
+          <SectionHeading title="Pláticas" />
+          <Conversaciones conversaciones={ejemplo} timezone={tenant.timezone} />
+          <DemoNote>Pláticas de ejemplo: los teléfonos y mensajes son inventados y los botones no envían nada.</DemoNote>
+        </section>
+      ) : (
+        <section className="mt-10">
+          <SectionHeading title="Cotizaciones por WhatsApp" />
           <CotizacionesWhatsapp cotizaciones={cotizaciones} timezone={tenant.timezone} />
-        </div>
-        <DemoNote>Cotizaciones de ejemplo: clientes, montos y datos fiscales inventados. No se timbra nada.</DemoNote>
-      </section>
+          <DemoNote>Cotizaciones de ejemplo: clientes, montos y datos para la factura inventados. No se hace ninguna factura.</DemoNote>
+        </section>
+      )}
     </div>
   );
 }

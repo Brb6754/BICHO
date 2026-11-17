@@ -17,16 +17,19 @@ export default async function CajaPage({ params }: { params: Promise<{ slug: str
 
   return (
     <div>
-      <PageHeader title="Caja" description="Cuánto vendiste, cuánto gastaste y cuánto te quedó." />
       {'faltaMigracion' in datos ? (
-        <div className="mt-8 rounded-2xl bg-surface p-6 ring-1 ring-border">
-          <p className="text-[15px] font-medium text-ink">Falta correr una migración</p>
-          <p className="mt-2 text-sm leading-relaxed text-muted">
-            Corre <code className="rounded bg-ink/[0.06] px-1.5 py-0.5">db/045_caja.sql</code> en el SQL Editor de
-            Supabase y recarga esta página.
-          </p>
-        </div>
+        <>
+          <PageHeader title="Caja" description="Cuánto vendiste, cuánto gastaste y cuánto debe haber en el cajón." />
+          <div className="mt-8 rounded-2xl bg-surface p-6 ring-1 ring-border">
+            <p className="text-[15px] font-medium text-ink">Falta correr una migración</p>
+            <p className="mt-2 text-sm leading-relaxed text-muted">
+              Corre <code className="rounded bg-ink/[0.06] px-1.5 py-0.5">db/045_caja.sql</code> en el SQL Editor de
+              Supabase y recarga esta página.
+            </p>
+          </div>
+        </>
       ) : (
+        // El encabezado vive dentro de CajaBoard: sus botones abren el formulario.
         <CajaBoard slug={slug} hoy={datos.hoy} movimientos={datos.movimientos} />
       )}
     </div>

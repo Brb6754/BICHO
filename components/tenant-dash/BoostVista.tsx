@@ -1,17 +1,23 @@
-import { CalendarHeart, Zap } from 'lucide-react';
+import { BellRing, CalendarHeart, Clock3, ExternalLink } from 'lucide-react';
 import { SectionHeading } from '@/components/tenant-dash/PageHeader';
+import { ActionForm, SubmitButton } from '@/components/tenant-dash/ui/ActionForm';
+import { FormField } from '@/components/tenant-dash/ui/FormField';
+import { HelpTip } from '@/components/tenant-dash/ui/HelpTip';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Input } from '@/components/ui/Input';
-import { Label } from '@/components/ui/Label';
 import { Select } from '@/components/ui/Select';
 import { COLOR_MODULO } from '@/lib/branding/moduloColores';
-import { COSTO_ESTIMADO_MXN, DIAS, FRANJAS, formatoPesos, type ResultadosBoost } from '@/lib/boost/reglas';
+import { DIAS, FRANJAS, formatoPesos, type ResultadosBoost } from '@/lib/boost/reglas';
 
-// La vista de Boost de clientes. La usan el panel real (/dashboard/boost,
-// con acciones) y la demo pública (/panel/boost, sin acciones: los
-// controles se ven igual pero no mandan nada). Server component.
+// "Llena tus huecos" (Boost de clientes). La usan el panel real
+// (/dashboard/boost, con acciones) y la demo pública (/panel/boost, sin
+// acciones: los controles se ven igual pero no mandan nada). Server component.
+//
+// Orden: primero QUÉ hace cada herramienta y si está prendida (lo que se
+// vende), luego quién está en la lista, luego las reglas de las horas
+// flojas, y hasta el final las cifras del mes.
 
 export type ContactoVista = {
   id: string;
@@ -43,21 +49,75 @@ function cuandoPuede(c: ContactoVista): string {
   return `${dias}, ${franjas}`;
 }
 
-function Interruptor({ prendido, etiqueta, accion }: { prendido: boolean; etiqueta: string; accion?: Accion }) {
-  const boton = (
-    <Button type={accion ? 'submit' : 'button'} variant={prendido ? 'outline' : 'primary'}>
-      {prendido ? `Apagar ${etiqueta}` : `Prender ${etiqueta}`}
-    </Button>
+/** El "¿qué es esto?" del encabezado, compartido por el panel y la demo. */
+export function AyudaBoost() {
+  return (
+    <HelpTip title="¿Qué es Boost?">
+      Es el nombre de este extra. Usa a las clientas que ya te conocen para llenar los horarios que se quedan vacíos:
+      les escribimos por WhatsApp desde bicho, con su permiso, y ellas apartan desde tu página de reservas.
+    </HelpTip>
   );
-  return accion ? <form action={accion}>{boton}</form> : boton;
+}
+
+function Interruptor({ prendido, que, accion }: { prendido: boolean; que: string; accion?: Accion }) {
+  const texto = prendido ? 'Apagar' : 'Prender';
+  if (!accion) {
+    return (
+      <Button type="button" variant={prendido ? 'outline' : 'primary'} className="max-sm:w-full">
+        {texto}
+      </Button>
+    );
+  }
+  return (
+    <ActionForm action={accion} success={prendido ? `${que}: apagado` : `${que}: prendido`} className="max-sm:w-full">
+      <SubmitButton variant={prendido ? 'outline' : 'primary'} className="max-sm:w-full" pending={prendido ? 'Apagando…' : 'Prendiendo…'}>
+        {texto}
+      </SubmitButton>
+    </ActionForm>
+  );
 }
 
 function Estado({ prendido }: { prendido: boolean }) {
   return (
     <span className="inline-flex items-center gap-1.5 text-sm font-medium text-ink">
       <span className={`h-2 w-2 rounded-full ${prendido ? '' : 'bg-ink/25'}`} style={prendido ? { background: VIOLETA } : undefined} aria-hidden="true" />
-      {prendido ? 'Prendida' : 'Apagada'}
+      {prendido ? 'Prendido' : 'Apagado'}
     </span>
+  );
+}
+
+function Herramienta({
+  icono: Icono,
+  titulo,
+  valor,
+  como,
+  prendido,
+  accion,
+}: {
+  icono: typeof BellRing;
+  titulo: string;
+  valor: string;
+  como: string;
+  prendido: boolean;
+  accion?: Accion;
+}) {
+  return (
+    <Card className="flex h-full flex-col gap-4">
+      <div className="flex items-start gap-3">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-ink/[0.06] text-ink" aria-hidden="true">
+          <Icono className="h-5 w-5" />
+        </span>
+        <div className="min-w-0">
+          <h2 className="text-[17px] font-semibold leading-snug tracking-tight text-ink">{titulo}</h2>
+          <p className="mt-1 text-[15px] leading-relaxed text-ink">{valor}</p>
+        </div>
+      </div>
+      <p className="text-sm leading-relaxed text-muted">{como}</p>
+      <div className="mt-auto flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
+        <Estado prendido={prendido} />
+        <Interruptor prendido={prendido} que={titulo} accion={accion} />
+      </div>
+    </Card>
   );
 }
 
@@ -81,98 +141,82 @@ export function BoostVista({
   config: ConfigFlojas;
   contactos: ContactoVista[];
   linkPublico: string;
-  /** Algo que el dueño tiene que saber antes de todo (migración, WhatsApp sin conectar). */
+  /** Algo que el dueño tiene que saber antes de todo (falta activar, WhatsApp sin conectar). */
   aviso?: string | null;
-  /** Sin acciones = demo: los controles se ven, no envían. */
+  /** Sin acciones = demo o alguien del equipo sin permiso: los controles se ven, no envían. */
   acciones?: { vip: Accion; flojas: Accion; guardar: Accion };
 }) {
   const pct = Math.min(100, Math.round((usados / tope) * 100));
   const activas = contactos.filter((c) => !c.baja).length;
   const cifras = [
-    { dt: 'Huecos ofrecidos', dd: String(resultados.huecosOfrecidos) },
-    { dt: 'Huecos llenados', dd: String(resultados.huecosLlenados) },
-    { dt: 'Recuperado', dd: formatoPesos(resultados.recuperadoCents) },
-    {
-      dt: 'Costo de mensajes',
-      dd: `≈ ${new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(resultados.costoEstimadoMxn)}`,
-    },
+    { dt: 'Horarios ofrecidos', dd: String(resultados.huecosOfrecidos) },
+    { dt: 'Citas que se llenaron', dd: String(resultados.huecosLlenados) },
+    { dt: 'Dinero recuperado', dd: formatoPesos(resultados.recuperadoCents) },
   ];
 
   return (
-    <div className="mt-6 space-y-12">
-      {aviso && <p className="rounded-2xl bg-warning-soft px-4 py-3 text-sm text-ink">{aviso}</p>}
+    <div className="mt-8 space-y-12">
+      {aviso && <p className="rounded-2xl bg-warning-soft px-4 py-3 text-sm leading-relaxed text-ink">{aviso}</p>}
 
-      <section aria-labelledby="boost-mes">
-        <Card>
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 id="boost-mes" className="text-[15px] font-semibold text-ink">
-              Mensajes usados este mes
-            </h2>
-            <p className="text-[15px] font-semibold tabular-nums text-ink">
-              {usados} <span className="font-normal text-muted">/ {tope}</span>
-            </p>
-          </div>
-          <div
-            className="mt-3 h-1.5 overflow-hidden rounded-full bg-ink/[0.07]"
-            role="meter"
-            aria-valuemin={0}
-            aria-valuemax={tope}
-            aria-valuenow={usados}
-            aria-label="Mensajes usados este mes"
-          >
-            <div className="h-full rounded-full transition-[width] duration-500 ease-out" style={{ width: `${pct}%`, background: VIOLETA }} />
-          </div>
-          <p className="mt-2 text-xs text-muted">Se renuevan el día 1. Al llegar al tope, Boost deja de mandar hasta el mes siguiente.</p>
-
-          <dl className="mt-6 grid grid-cols-2 gap-x-6 gap-y-5 border-t border-border pt-5 sm:grid-cols-4">
-            {cifras.map((c) => (
-              <div key={c.dt} className="min-w-0">
-                <dt className="text-xs font-medium text-muted">{c.dt}</dt>
-                <dd className="mt-1 truncate text-xl font-semibold tabular-nums tracking-tight text-ink">{c.dd}</dd>
-              </div>
-            ))}
-          </dl>
-          <p className="mt-4 text-xs leading-relaxed text-muted">
-            Recuperado = suma del precio de las citas que salieron de Boost este mes y no se cancelaron. El costo es una estimación
-            (≈ MX${COSTO_ESTIMADO_MXN.vip.toFixed(2)} por aviso y ≈ MX${COSTO_ESTIMADO_MXN.flojas.toFixed(2)} por promoción, tarifa de Meta), no tu factura.
-          </p>
-        </Card>
+      <section aria-label="Las dos herramientas" className="grid gap-4 lg:grid-cols-2">
+        <Herramienta
+          icono={BellRing}
+          titulo="Aviso de cancelación"
+          valor="Cuando alguien cancela, le avisamos a las clientas que querían ese horario. La primera que lo aparta se lo queda."
+          como="Ellas se apuntan en tu página de reservas con su teléfono. El aviso va sin descuento: solo les dice que se liberó un lugar."
+          prendido={vipPrendido}
+          accion={acciones?.vip}
+        />
+        <Herramienta
+          icono={Clock3}
+          titulo="Promo en horas flojas"
+          valor="Si en las próximas horas tienes horarios vacíos, se los ofrecemos con descuento a clientas que suelen venir a esa hora."
+          como="Solo a quien aceptó recibir promociones, máximo una por semana. El descuento dura 20 minutos; después el link sigue, a precio normal."
+          prendido={flojasPrendido}
+          accion={acciones?.flojas}
+        />
       </section>
 
-      <section aria-label="Lista VIP de cancelaciones">
-        <SectionHeading title="Lista VIP de cancelaciones" meta={activas} action={<Interruptor prendido={vipPrendido} etiqueta="lista VIP" accion={acciones?.vip} />} />
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-          <Estado prendido={vipPrendido} />
-          <a href={linkPublico} target="_blank" rel="noreferrer" className="text-sm font-medium text-ink underline decoration-ink/30 underline-offset-4 hover:decoration-ink">
+      <section aria-label="Clientas apuntadas">
+        <SectionHeading title="Clientas apuntadas" meta={activas || undefined} />
+        <p className="-mt-1 mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-[15px] text-muted">
+          Se apuntan solas en tu página, debajo del calendario: «Avísame si se libera algo».
+          <a
+            href={linkPublico}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex min-h-[2.75rem] items-center gap-1.5 font-medium text-ink underline decoration-ink/30 underline-offset-4 hover:decoration-ink"
+          >
+            <ExternalLink className="h-4 w-4" aria-hidden="true" />
             Ver dónde se apuntan
           </a>
-        </div>
-        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">
-          Tus clientas se apuntan en tu página de reservas con su teléfono y el permiso para escribirles. Cuando se cancela una cita, le
-          avisamos por WhatsApp a quien le acomoda ese horario, sin descuento. La primera que lo aparta se lo queda; a las demás les decimos
-          que ya lo ganaron.
         </p>
 
         {contactos.length === 0 ? (
-          <Card className="mt-5" padded={false}>
+          <Card padded={false}>
             <EmptyState
               icon={CalendarHeart}
               title="Nadie se ha apuntado todavía"
-              description={vipPrendido ? 'Comparte tu página de reservas: abajo del calendario aparece "Avísame si se libera algo".' : 'Prende la lista VIP para que aparezca en tu página de reservas.'}
+              description={
+                vipPrendido
+                  ? 'Comparte tu página de reservas: tus clientas verán la opción para que les avises.'
+                  : 'Prende el aviso de cancelación y la opción aparece en tu página de reservas.'
+              }
+              why="Cada clienta apuntada es una cita que no se pierde cuando alguien cancela."
             />
           </Card>
         ) : (
-          <Card className="mt-5" padded={false}>
+          <Card padded={false}>
             <ul className="divide-y divide-border">
               {contactos.map((c) => (
-                <li key={c.id} className={`grid gap-1 px-5 py-3.5 sm:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1.4fr)_auto] sm:items-center sm:gap-4 ${c.baja ? 'opacity-60' : ''}`}>
+                <li key={c.id} className={`grid gap-1 px-4 py-3.5 sm:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1.4fr)_auto] sm:items-center sm:gap-4 sm:px-5 ${c.baja ? 'opacity-60' : ''}`}>
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-ink">{c.nombre}</p>
-                    <p className="text-xs tabular-nums text-muted">{telefonoVisible(c.telefono)}</p>
+                    <p className="truncate text-[15px] font-medium text-ink">{c.nombre}</p>
+                    <p className="text-[13px] tabular-nums text-muted">{telefonoVisible(c.telefono)}</p>
                   </div>
-                  <p className="truncate text-sm text-ink">{c.servicio ?? 'Cualquier servicio'}</p>
+                  <p className="text-sm text-ink">{c.servicio ?? 'Cualquier servicio'}</p>
                   <p className="text-sm text-muted">{cuandoPuede(c)}</p>
-                  <p className="text-xs font-medium text-muted sm:text-right">{c.baja ? 'Se dio de baja' : c.promos ? 'Acepta promociones' : 'Solo avisos'}</p>
+                  <p className="text-[13px] font-medium text-muted sm:text-right">{c.baja ? 'Ya no quiere avisos' : c.promos ? 'Acepta promociones' : 'Solo avisos'}</p>
                 </li>
               ))}
             </ul>
@@ -180,40 +224,31 @@ export function BoostVista({
         )}
       </section>
 
-      <section aria-label="Horas flojas">
-        <SectionHeading title="Horas flojas" action={<Interruptor prendido={flojasPrendido} etiqueta="horas flojas" accion={acciones?.flojas} />} />
-        <Estado prendido={flojasPrendido} />
-        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">
-          Una vez al día revisamos los huecos libres de las próximas horas y se los ofrecemos con descuento a clientas que suelen venir a esa
-          hora y aceptaron promociones. El descuento solo vale 20 minutos y cada clienta recibe como mucho una promoción por semana. Pasada la
-          ventana, el link sigue sirviendo, pero a precio normal.
-        </p>
+      <section aria-labelledby="boost-reglas">
+        <h2 id="boost-reglas" className="mb-1 flex items-center gap-1 text-[17px] font-semibold tracking-tight text-ink">
+          Reglas de las horas flojas
+          <HelpTip title="¿Qué es una hora floja?">
+            Un horario de tu agenda que sigue libre pocas horas antes. Por ejemplo: son las 11 y a las 3 no tienes a nadie.
+            Aquí decides qué días y horas se pueden ofrecer y cuánto descuento como máximo.
+          </HelpTip>
+        </h2>
+        <p className="mb-4 text-[15px] text-muted">Tú pones el límite: nunca damos más descuento que el que elijas.</p>
 
-        <Card className="mt-5">
-          <form action={acciones?.guardar} className="grid gap-5 sm:grid-cols-2">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="boost-descuento">Descuento máximo</Label>
-              <div className="flex items-center gap-2">
-                <Input id="boost-descuento" name="descuento" type="number" min={5} max={50} step={1} defaultValue={config.descuento} className="w-24 tabular-nums" />
-                <span className="text-sm text-muted">%</span>
-              </div>
-              <p className="text-xs text-muted">Tu precio piso: nunca damos más descuento que este.</p>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="boost-aviso">Avisar con</Label>
-              <div className="flex items-center gap-2">
-                <Input id="boost-aviso" name="aviso" type="number" min={1} max={12} step={1} defaultValue={config.aviso} className="w-24 tabular-nums" />
-                <span className="text-sm text-muted">horas de anticipación</span>
-              </div>
-              <p className="text-xs text-muted">Solo se ofrecen huecos que empiezan dentro de ese margen.</p>
-            </div>
+        <Card>
+          <FormBoost accion={acciones?.guardar}>
+            <FormField label="Descuento máximo, en %" hint="De 5 a 50. Ejemplo: 15. Es tu precio piso.">
+              <Input name="descuento" type="number" inputMode="numeric" min={5} max={50} step={1} required defaultValue={config.descuento} className="w-28 tabular-nums" />
+            </FormField>
+            <FormField label="¿Cuántas horas antes avisar?" hint="De 1 a 12. Solo se ofrecen horarios que empiezan dentro de ese margen.">
+              <Input name="aviso" type="number" inputMode="numeric" min={1} max={12} step={1} required defaultValue={config.aviso} className="w-28 tabular-nums" />
+            </FormField>
             <fieldset className="flex flex-col gap-2 sm:col-span-2">
-              <legend className="mb-2 text-sm font-medium text-ink">Días permitidos</legend>
+              <legend className="mb-2 text-[13px] font-medium text-ink">Días en que sí se ofrecen</legend>
               <div className="flex flex-wrap gap-2">
                 {[1, 2, 3, 4, 5, 6, 0].map((d) => (
                   <label
                     key={d}
-                    className="cursor-pointer select-none rounded-full border border-border px-3.5 py-1.5 text-sm text-ink transition-colors has-[:checked]:border-transparent has-[:checked]:bg-primary has-[:checked]:text-[rgb(var(--color-cta-fg))] has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary/40"
+                    className="flex min-h-[2.75rem] min-w-[2.75rem] cursor-pointer select-none items-center justify-center rounded-full border border-border px-4 text-sm text-ink transition-colors has-[:checked]:border-transparent has-[:checked]:bg-primary has-[:checked]:text-[rgb(var(--color-cta-fg))] has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary/40"
                   >
                     <input type="checkbox" name="dias" value={d} defaultChecked={config.dias.includes(d)} className="sr-only" />
                     {DIAS[d]}
@@ -221,34 +256,89 @@ export function BoostVista({
                 ))}
               </div>
             </fieldset>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="boost-desde">Desde</Label>
-              <Select id="boost-desde" name="desde" defaultValue={config.desde} className="w-full">
+            <FormField label="Desde">
+              <Select name="desde" defaultValue={config.desde} className="w-full">
                 {HORAS.slice(0, 24).map((h) => (
                   <option key={h} value={h}>
                     {etiquetaHora(h)}
                   </option>
                 ))}
               </Select>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="boost-hasta">Hasta</Label>
-              <Select id="boost-hasta" name="hasta" defaultValue={config.hasta} className="w-full">
+            </FormField>
+            <FormField label="Hasta">
+              <Select name="hasta" defaultValue={config.hasta} className="w-full">
                 {HORAS.slice(1).map((h) => (
                   <option key={h} value={h}>
                     {etiquetaHora(h)}
                   </option>
                 ))}
               </Select>
+            </FormField>
+          </FormBoost>
+        </Card>
+      </section>
+
+      <section aria-labelledby="boost-mes">
+        <h2 id="boost-mes" className="mb-4 text-[17px] font-semibold tracking-tight text-ink">
+          Lo que llevas este mes
+        </h2>
+        <Card>
+          <dl className="grid grid-cols-1 gap-x-6 gap-y-5 min-[420px]:grid-cols-3">
+            {cifras.map((c) => (
+              <div key={c.dt} className="min-w-0">
+                <dt className="text-[13px] font-medium text-muted">{c.dt}</dt>
+                <dd className="mt-1 truncate text-2xl font-semibold tabular-nums tracking-tight text-ink">{c.dd}</dd>
+              </div>
+            ))}
+          </dl>
+          <p className="mt-3 text-[13px] leading-relaxed text-muted">
+            Dinero recuperado = lo que valen las citas que salieron de estos avisos y no se cancelaron.
+          </p>
+
+          <div className="mt-6 border-t border-border pt-5">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <p className="text-[15px] font-medium text-ink">Mensajes de WhatsApp</p>
+              <p className="text-[15px] font-semibold tabular-nums text-ink">
+                {usados} <span className="font-normal text-muted">de {tope}</span>
+              </p>
             </div>
-            <div className="sm:col-span-2">
-              <Button type={acciones ? 'submit' : 'button'} variant="secondary">
-                <Zap className="h-4 w-4" aria-hidden="true" /> Guardar horas flojas
-              </Button>
+            <div
+              className="mt-3 h-2 overflow-hidden rounded-full bg-ink/[0.07]"
+              role="meter"
+              aria-valuemin={0}
+              aria-valuemax={tope}
+              aria-valuenow={usados}
+              aria-label="Mensajes de WhatsApp usados este mes"
+            >
+              <div className="h-full rounded-full transition-[width] duration-500 ease-out motion-reduce:transition-none" style={{ width: `${pct}%`, background: VIOLETA }} />
             </div>
-          </form>
+            <p className="mt-2 text-[13px] text-muted">Vienen {tope} incluidos al mes y se renuevan el día 1. Si se acaban, los avisos esperan al mes siguiente.</p>
+          </div>
         </Card>
       </section>
     </div>
+  );
+}
+
+function FormBoost({ accion, children }: { accion?: Accion; children: React.ReactNode }) {
+  const clase = 'grid gap-5 sm:grid-cols-2';
+  const pie = (boton: React.ReactNode) => <div className="sm:col-span-2">{boton}</div>;
+  if (!accion) {
+    return (
+      <form className={clase}>
+        {children}
+        {pie(
+          <Button type="button" className="max-sm:w-full">
+            Guardar reglas
+          </Button>
+        )}
+      </form>
+    );
+  }
+  return (
+    <ActionForm action={accion} success="Reglas guardadas" className={clase}>
+      {children}
+      {pie(<SubmitButton className="max-sm:w-full">Guardar reglas</SubmitButton>)}
+    </ActionForm>
   );
 }

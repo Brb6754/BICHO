@@ -41,8 +41,8 @@ export default async function TiposPage({ params }: { params: Promise<{ slug: st
         <div className="mt-8 rounded-2xl bg-surface p-6 ring-1 ring-border">
           <p className="text-[15px] font-medium text-ink">Falta correr una migración</p>
           <p className="mt-2 text-sm leading-relaxed text-muted">
-            Corre <code className="rounded bg-ink/[0.06] px-1.5 py-0.5">db/039_reuniones.sql</code>{' '}
-            en el SQL Editor de Supabase y recarga esta página.
+            Corre <code className="rounded bg-ink/[0.06] px-1.5 py-0.5">db/039_reuniones.sql</code> en el SQL Editor de
+            Supabase y recarga esta página.
           </p>
         </div>
       </div>
@@ -63,7 +63,7 @@ export default async function TiposPage({ params }: { params: Promise<{ slug: st
 
       <PageHeader
         title="Tipos de reunión"
-        description="Lo que alguien elige al agendar contigo. Solo los activos se ofrecen en tu página."
+        description="Las opciones que alguien ve al agendar contigo, por ejemplo una videollamada de 30 minutos o una visita a domicilio."
       />
 
       <div className="mt-6">
@@ -75,13 +75,15 @@ export default async function TiposPage({ params }: { params: Promise<{ slug: st
           <EmptyState
             icon={CalendarClock}
             title="Todavía no hay tipos de reunión"
-            description="Crea el primero —una videollamada de 30 minutos suele ser el que más se usa— y tu página empieza a aceptar reuniones."
+            description="Escribe arriba un nombre, cuánto dura y cómo ocurre, y toca Agregar."
+            why="Sin al menos uno, tu página no puede aceptar reuniones: es lo que el prospecto elige primero."
+            example="Diagnóstico por videollamada · 30 min"
           />
         </div>
       ) : (
         <>
           <p className="mt-8 text-xs text-muted">
-            {activos} {activos === 1 ? 'activo' : 'activos'} de {(tipos ?? []).length}
+            {activos} de {(tipos ?? []).length} se {activos === 1 ? 'ofrece' : 'ofrecen'} en tu página
           </p>
           <ul className="mt-2 overflow-hidden rounded-2xl border border-border bg-surface">
             {(tipos ?? []).map((t, i) => {
@@ -93,7 +95,7 @@ export default async function TiposPage({ params }: { params: Promise<{ slug: st
                       <p className="font-medium text-ink">{t.name}</p>
                       <p className="mt-0.5 text-sm text-muted">
                         {t.duration_minutes} min · {m?.label ?? 'Sin modalidad'}
-                        {!t.active && ' · No se ofrece'}
+                        {!t.active && ' · Oculto de tu página'}
                       </p>
                       {m && <p className="mt-0.5 text-xs text-muted">{m.ayuda}</p>}
                     </div>
@@ -104,19 +106,19 @@ export default async function TiposPage({ params }: { params: Promise<{ slug: st
                       <form action={setMeetingTypeActive.bind(null, slug, t.id, !t.active)}>
                         <button
                           type="submit"
-                          className="rounded-full border border-border px-3 py-1.5 text-xs font-medium text-ink transition-colors hover:bg-ink/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                          className="inline-flex min-h-11 items-center rounded-full border border-border px-4 text-sm font-medium text-ink transition-colors hover:bg-ink/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                         >
-                          {t.active ? 'Desactivar' : 'Activar'}
+                          {t.active ? 'Ocultar de tu página' : 'Ofrecer en tu página'}
                         </button>
                       </form>
 
                       <ConfirmForm
                         action={deleteMeetingType.bind(null, t.id, slug)}
                         confirmTitle="Borrar tipo de reunión"
-                        confirmMessage={`¿Borrar "${t.name}"? Si ya hay reuniones agendadas con este tipo, mejor desactívalo: así deja de ofrecerse y las que ya existen conservan su nombre.`}
+                        confirmMessage={`¿Borrar "${t.name}"? Si ya hay reuniones agendadas con este tipo, mejor ocúltalo de tu página: así deja de ofrecerse y las que ya existen conservan su nombre.`}
                         confirmLabel="Sí, borrarlo"
                         dismissLabel="No, conservarlo"
-                        triggerClassName="px-3 py-1.5 text-xs"
+                        triggerClassName="min-h-11 px-4 text-sm"
                       >
                         Borrar
                       </ConfirmForm>

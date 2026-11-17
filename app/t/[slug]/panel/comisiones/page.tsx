@@ -1,5 +1,4 @@
 import { notFound } from 'next/navigation';
-import { PageHeader } from '@/components/tenant-dash/PageHeader';
 import { ComisionesBoard } from '@/components/tenant-dash/ComisionesBoard';
 import { cargarPanelDemo } from '@/lib/demo/panelData';
 import { dayKey } from '@/lib/dates/tenantTime';
@@ -32,7 +31,6 @@ export default async function ComisionesDemoPage({
 
   return (
     <div>
-      <PageHeader title="Comisiones" description="Cuánto vendió cada quien y cuánto le toca." />
       <ComisionesBoard
         slug={slug}
         basePath="/panel/comisiones"

@@ -12,8 +12,14 @@ import { ArrowUp, Database, FileSearch, FileText, Loader2 } from 'lucide-react';
 type Herramienta = { name: 'consultar_sql' | 'buscar_en_notas' | 'buscar_en_documentos'; input: string; ok: boolean; filas?: number };
 type Mensaje = { pregunta: string; respuesta: string; herramientas: Herramienta[]; estado: 'pensando' | 'listo' | 'error' };
 
+// Preguntas de ejemplo que se tocan: la primera vez nadie sabe qué
+// preguntarle a un chat. Mezcla de agenda (lo de todos los días) y lo
+// del plan Pro (cotizaciones, reuniones), todo lo que el copiloto lee.
 const SUGERENCIAS = [
-  '¿Qué cotizaciones están enviadas y vencen esta semana?',
+  '¿Cuántas citas tuve esta semana?',
+  '¿Qué servicio me piden más este mes?',
+  '¿Qué clientas no han vuelto en dos meses?',
+  '¿Qué cotizaciones vencen esta semana?',
   '¿Qué reuniones tengo mañana y con quién?',
   '¿Quién se quejó del precio?',
 ];
@@ -70,28 +76,35 @@ export function CopilotoChat() {
       }
       actualizar((m) => ({ ...m, estado: 'listo' }));
     } catch (e) {
-      actualizar((m) => ({ ...m, estado: 'error', respuesta: e instanceof Error ? e.message : 'Algo falló.' }));
+      actualizar((m) => ({
+        ...m,
+        estado: 'error',
+        respuesta: e instanceof Error && e.message && !/fetch|JSON|network/i.test(e.message) ? e.message : 'No se pudo contestar. Revisa tu internet e inténtalo otra vez.',
+      }));
     }
   }
 
   return (
     <div className="mt-8 flex flex-col gap-8">
       {mensajes.length === 0 && (
-        <div>
-          <p className="text-sm text-muted">Prueba con una de estas:</p>
-          <div className="mt-3 flex flex-wrap gap-2">
+        <section aria-labelledby="copiloto-ejemplos">
+          <h2 id="copiloto-ejemplos" className="text-[17px] font-semibold tracking-tight text-ink">
+            Toca una pregunta para empezar
+          </h2>
+          <p className="mt-1 text-[15px] text-muted">O escribe la tuya abajo, como se la dirías a una persona.</p>
+          <div className="mt-4 grid gap-2 sm:grid-cols-2">
             {SUGERENCIAS.map((s) => (
               <button
                 key={s}
                 type="button"
                 onClick={() => preguntar(s)}
-                className="rounded-full border border-border bg-surface px-4 py-2 text-left text-sm text-ink transition-colors hover:border-primary hover:text-primary"
+                className="flex min-h-[3rem] items-center rounded-2xl border border-border bg-surface px-4 py-2.5 text-left text-[15px] text-ink transition-[transform,background-color] duration-150 hover:bg-ink/[0.04] active:scale-[0.98] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
               >
                 {s}
               </button>
             ))}
           </div>
-        </div>
+        </section>
       )}
 
       {mensajes.map((m, i) => (
@@ -109,8 +122,8 @@ export function CopilotoChat() {
           </div>
           {m.herramientas.length > 0 && (
             <details className="mt-4 rounded-xl border border-border bg-surface">
-              <summary className="cursor-pointer px-4 py-2.5 text-xs font-medium text-muted hover:text-ink">
-                Cómo lo averiguó · {m.herramientas.length} {m.herramientas.length === 1 ? 'paso' : 'pasos'}
+              <summary className="flex min-h-[2.75rem] cursor-pointer items-center px-4 text-[13px] font-medium text-muted hover:text-ink">
+                Qué revisó para contestarte · {m.herramientas.length} {m.herramientas.length === 1 ? 'paso' : 'pasos'}
               </summary>
               <ol className="flex flex-col gap-3 border-t border-border px-4 py-3">
                 {m.herramientas.map((h, j) => (
@@ -123,9 +136,9 @@ export function CopilotoChat() {
                       ) : (
                         <FileSearch className="h-3.5 w-3.5" aria-hidden />
                       )}
-                      {{ consultar_sql: 'Consultó', buscar_en_notas: 'Buscó en notas', buscar_en_documentos: 'Buscó en documentos' }[h.name]}
+                      {{ consultar_sql: 'Revisó tus datos', buscar_en_notas: 'Buscó en tus notas', buscar_en_documentos: 'Buscó en tus documentos' }[h.name]}
                       <span className={h.ok ? '' : 'text-error'}>
-                        · {h.ok ? `${h.filas ?? 0} resultados` : 'falló'}
+                        · {h.ok ? `${h.filas ?? 0} ${h.filas === 1 ? 'resultado' : 'resultados'}` : 'no se pudo'}
                       </span>
                     </p>
                     <pre className="mt-1 overflow-x-auto whitespace-pre-wrap rounded-lg bg-ink/[0.04] p-2 font-mono text-[11px] text-ink">
@@ -145,7 +158,7 @@ export function CopilotoChat() {
           e.preventDefault();
           preguntar(texto);
         }}
-        className="sticky bottom-4 flex items-end gap-2 rounded-2xl border border-border bg-surface p-2 shadow-sm"
+        className="sticky bottom-[calc(5.25rem+env(safe-area-inset-bottom))] flex items-end gap-2 rounded-2xl border border-border bg-surface p-2 shadow-sm lg:bottom-4"
       >
         <label htmlFor="copiloto-pregunta" className="sr-only">
           Tu pregunta
@@ -161,16 +174,16 @@ export function CopilotoChat() {
               preguntar(texto);
             }
           }}
-          placeholder="¿Cuánto llevo cotizado este mes?"
+          placeholder="Escribe tu pregunta…"
           className="max-h-40 min-h-[44px] flex-1 resize-none bg-transparent px-3 py-2.5 text-base text-ink placeholder:text-muted focus:outline-none sm:text-sm"
         />
         <button
           type="submit"
           disabled={ocupado || !texto.trim()}
           aria-label="Preguntar"
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-r from-primary to-secondary text-[rgb(var(--color-cta-fg))] disabled:opacity-40"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary text-[rgb(var(--color-cta-fg))] transition active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:opacity-40"
         >
-          {ocupado ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-4 w-4" />}
+          {ocupado ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <ArrowUp className="h-4 w-4" aria-hidden="true" />}
         </button>
       </form>
     </div>

@@ -26,7 +26,7 @@ export default async function PostsDemoPage({ params }: { params: Promise<{ slug
     <div>
       <PageHeader
         title="Posts con IA"
-        description="Textos para tus redes con tus precios y horarios reales, y una imagen con tu marca lista para subir."
+        description="Textos e imágenes para tus redes, con tus precios y horarios reales."
       />
       <PostsVista slug={slug} catalogo={catalogoDemo(datos)} usadas={0} historial={historialDemo(datos, slug)} generar={generar} demo />
     </div>

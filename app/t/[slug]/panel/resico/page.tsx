@@ -23,7 +23,10 @@ export default async function ResicoDemoPage({ params }: { params: Promise<{ slu
 
   return (
     <div>
-      <PageHeader title="Guía RESICO" description="¿Cómo me formalizo? Los trámites, lo que te toca y cuánto ISR pagarías." />
+      <PageHeader
+        title="Impuestos (RESICO)"
+        description="Cuánto pagarías de impuestos y qué trámites te faltan, sin enredos."
+      />
       <ResicoGuia slug={slug} hechos={['rfc', 'efirma']} ventasCajaCents={ventasCajaCents} soloLectura />
     </div>
   );

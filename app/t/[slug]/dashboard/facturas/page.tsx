@@ -1,10 +1,12 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { ReceiptText } from 'lucide-react';
+import { Plus, ReceiptText } from 'lucide-react';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireTenantStaff } from '@/lib/auth/tenantStaff';
 import { productosDe } from '@/lib/products';
 import { PageHeader } from '@/components/tenant-dash/PageHeader';
+import { HelpTip } from '@/components/tenant-dash/ui/HelpTip';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { formatMoney } from '@/lib/quotes/totals';
 import { longDate } from '@/lib/dates/tenantTime';
 
@@ -53,46 +55,78 @@ export default async function FacturasPage({ params }: { params: Promise<{ slug:
     .eq('tenant_id', tenantId)
     .maybeSingle();
 
-  const timbradas = (facturas ?? []).filter((f) => f.status === 'stamped').length;
+  const hechas = (facturas ?? []).filter((f) => f.status === 'stamped').length;
+  const conectado = Boolean(enlace?.organization_id);
+  const botonNueva = (texto: string) => (
+    <Link
+      href="/dashboard/facturas/nueva"
+      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-[rgb(var(--color-cta-fg))] shadow-sm transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
+    >
+      <Plus className="h-4 w-4" aria-hidden="true" />
+      {texto}
+    </Link>
+  );
 
   return (
     <div>
       <PageHeader
         title="Facturas"
-        description="Los CFDI emitidos desde bicho. El SAT es la copia buena; esto es tu rastro."
-        action={
-          enlace?.organization_id ? (
-            <Link
-              href="/dashboard/facturas/nueva"
-              className="inline-flex min-h-11 items-center gap-2 rounded-full bg-gradient-to-r from-primary to-secondary px-5 text-sm font-semibold text-[rgb(var(--color-cta-fg))]"
-            >
-              Nueva factura
-            </Link>
-          ) : undefined
+        description="Las facturas del SAT que le haces a tus clientes, sin entrar al portal del SAT."
+        help={
+          <HelpTip title="¿Qué es una factura del SAT?">
+            Es el comprobante oficial de una venta (también le dicen CFDI). Tu cliente la pide para deducir el gasto.
+            Aquí la haces con sus datos y el SAT la registra al momento; tú no tienes que entrar a su portal.
+          </HelpTip>
         }
+        action={conectado ? botonNueva('Hacer una factura') : undefined}
       />
 
       {/* Antes que la lista: si el negocio no está conectado, no hay nada
-          que listar y lo único útil es decirle qué le falta. */}
-      {!enlace?.organization_id ? (
-        <div className="mt-8 rounded-2xl bg-surface p-6 ring-1 ring-border">
-          <p className="text-[15px] font-medium text-ink">Todavía no puedes emitir</p>
-          <p className="mt-2 max-w-prose text-sm leading-relaxed text-muted">
-            Para facturar hace falta tu RFC, tu Certificado de Sello Digital y firmar la Carta
-            Manifiesto. Es un trámite que se hace una vez.
+          que listar y lo único útil es decirle, paso a paso, qué le falta. */}
+      {!conectado ? (
+        <section className="mt-8 rounded-3xl bg-surface p-5 ring-1 ring-border sm:p-7" aria-labelledby="conectar-titulo">
+          <h2 id="conectar-titulo" className="text-[17px] font-semibold tracking-tight text-ink">
+            Para hacer facturas te faltan 3 cosas (se hace una sola vez)
+          </h2>
+          <ol className="mt-4 flex flex-col gap-4">
+            {[
+              ['Tu RFC', 'La clave con la que el SAT te tiene registrada. Viene en tu constancia de situación fiscal.'],
+              [
+                'Tu sello digital (CSD)',
+                'Es lo que te deja hacer facturas. Se pide gratis en el portal del SAT con tu e.firma. Si no sabes cómo, en Impuestos (RESICO) está el paso a paso.',
+              ],
+              ['Firmar la carta manifiesto', 'Un permiso para que bicho le mande tus facturas al SAT. Se firma en línea.'],
+            ].map(([titulo, texto], i) => (
+              <li key={titulo} className="flex gap-3">
+                <span
+                  aria-hidden="true"
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-ink/[0.07] text-[13px] font-semibold tabular-nums text-ink"
+                >
+                  {i + 1}
+                </span>
+                <div>
+                  <p className="text-[15px] font-medium text-ink">{titulo}</p>
+                  <p className="mt-0.5 text-sm leading-relaxed text-muted">{texto}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+          <p className="mt-5 rounded-2xl bg-paper px-4 py-3 text-sm leading-relaxed text-ink ring-1 ring-border">
+            Tú no configuras nada: cuando tengas tu sello digital, mándanoslo y nosotros conectamos tu negocio.
           </p>
-        </div>
-      ) : !enlace.live ? (
-        <div className="mt-8 rounded-2xl bg-warning-soft p-4 text-sm text-ink ring-1 ring-border">
-          <strong className="font-semibold">Modo de pruebas.</strong> Lo que emitas aquí no tiene
-          efectos fiscales: sirve para probar, no para entregarle a un cliente.
-        </div>
+        </section>
+      ) : !enlace?.live ? (
+        <p className="mt-8 rounded-2xl bg-warning-soft p-4 text-sm leading-relaxed text-ink ring-1 ring-border">
+          <strong className="font-semibold">Estás en modo de prueba.</strong> Las facturas que hagas aquí no valen ante el
+          SAT: sirven para practicar, no para dárselas a un cliente.
+        </p>
       ) : null}
 
       {facturas && facturas.length > 0 ? (
         <>
-          <p className="mt-8 mb-3 px-1 text-sm text-muted">
-            {timbradas} {timbradas === 1 ? 'timbrada' : 'timbradas'} de {facturas.length}
+          <p className="mb-3 mt-8 px-1 text-sm text-muted">
+            {hechas} {hechas === 1 ? 'factura hecha' : 'facturas hechas'}
+            {hechas !== facturas.length && ` de ${facturas.length}`}
           </p>
           <ul className="flex flex-col gap-2">
             {facturas.map((f) => (
@@ -100,43 +134,36 @@ export default async function FacturasPage({ params }: { params: Promise<{ slug:
                 key={f.id}
                 className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-2xl bg-surface px-5 py-4 ring-1 ring-border"
               >
-                <span className="tabular-nums text-[13px] text-muted">
-                  {f.serie ?? ''}
-                  {f.folio ?? ''}
-                </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[15px] text-ink">
-                    {f.receptor_nombre ?? 'Sin receptor'}
-                  </span>
+                  <span className="block truncate text-[15px] text-ink">{f.receptor_nombre ?? 'Sin cliente'}</span>
                   <span className="block truncate text-[13px] text-muted">
-                    {f.receptor_rfc ?? ''}
-                    {f.stamped_at ? ` · ${longDate(f.stamped_at, timezone)}` : ''}
+                    {[
+                      f.serie || f.folio ? `Folio ${f.serie ?? ''}${f.folio ?? ''}` : null,
+                      f.receptor_rfc,
+                      f.stamped_at ? longDate(f.stamped_at, timezone) : null,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
                   </span>
                 </span>
-                <span className="tabular-nums text-[15px] font-semibold text-ink">
-                  {formatMoney(f.total_cents)}
-                </span>
+                <span className="tabular-nums text-[15px] font-semibold text-ink">{formatMoney(f.total_cents)}</span>
                 <EstadoFactura status={f.status} />
               </li>
             ))}
           </ul>
         </>
       ) : (
-        <div className="mt-8 rounded-2xl border border-dashed border-border px-6 py-12 text-center">
-          <ReceiptText className="mx-auto h-6 w-6 text-muted" aria-hidden="true" />
-          <p className="mt-3 text-sm font-medium text-ink">Todavía no has emitido ninguna factura</p>
-          <p className="mx-auto mt-1 max-w-sm text-sm leading-relaxed text-muted">
-            Se factura una cotización que el cliente ya aceptó.
-          </p>
-          {enlace?.organization_id && (
-            <Link
-              href="/dashboard/facturas/nueva"
-              className="mt-4 inline-flex min-h-11 items-center rounded-full bg-gradient-to-r from-primary to-secondary px-5 text-sm font-semibold text-[rgb(var(--color-cta-fg))]"
-            >
-              Hacer la primera
-            </Link>
-          )}
-        </div>
+        conectado && (
+          <div className="mt-8 rounded-3xl bg-surface ring-1 ring-border">
+            <EmptyState
+              icon={ReceiptText}
+              title="Todavía no has hecho ninguna factura"
+              description="Se factura una cotización que tu cliente ya aceptó: eliges cuál, pones sus datos del SAT y listo."
+              why="Tu cliente la recibe al momento y tú no tienes que entrar al portal del SAT."
+              action={botonNueva('Hacer mi primera factura')}
+            />
+          </div>
+        )
       )}
     </div>
   );
@@ -153,11 +180,11 @@ function EstadoFactura({ status }: { status: string }) {
           : 'bg-ink/[0.06] text-muted';
   const texto =
     status === 'stamped'
-      ? 'Timbrada'
+      ? 'Hecha'
       : status === 'cancelled'
         ? 'Cancelada'
         : status === 'error'
-          ? 'Falló'
-          : 'Borrador';
-  return <span className={`rounded-full px-2.5 py-1 text-[12px] font-medium ${tono}`}>{texto}</span>;
+          ? 'No se pudo hacer'
+          : 'Pendiente';
+  return <span className={`rounded-full px-2.5 py-1 text-[13px] font-medium ${tono}`}>{texto}</span>;
 }

@@ -1,54 +1,128 @@
 'use client';
 
-import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { PLANES, PLAN_IDS, PRECIO_FUNDADOR_MXN, type PlanId } from '@/lib/billing/planes';
+import { Check } from 'lucide-react';
+import { ConfirmForm } from '@/components/ui/ConfirmForm';
+import { toast } from '@/components/tenant-dash/ui/Toast';
+import type { PlanId } from '@/lib/billing/planes';
 import { changeMyPlan } from './actions';
 
-// Elegir Esencial / Negocio / Pro. Cambiar de plan prende lo incluido y
-// apaga lo demás; si ya pagas, el monto nuevo sale en tu siguiente cobro.
-export function PlanPicker({ slug, current, founderNegocio }: { slug: string; current: PlanId | null; founderNegocio: boolean }) {
-  const router = useRouter();
-  const [saving, setSaving] = useState<PlanId | null>(null);
-  const [error, setError] = useState<string | null>(null);
+// La comparación de Esencial / Negocio / Pro, lado a lado (una debajo de
+// otra en el teléfono). Cambiar de plan prende lo incluido y apaga lo
+// demás, así que nunca pasa con un solo toque: primero se dice qué se
+// prende, qué se apaga y cuánto vas a pagar, y luego se confirma.
 
-  async function pick(plan: PlanId) {
-    setSaving(plan);
-    setError(null);
-    const res = await changeMyPlan(slug, plan);
-    if (res.ok) router.refresh();
-    else setError(res.error);
-    setSaving(null);
+export type PlanVista = {
+  id: PlanId;
+  nombre: string;
+  precio: number;
+  /** Precio de lista cuando `precio` es el de fundador. */
+  precioNormal?: number;
+  para: string;
+  /** Lo que suma sobre el plan anterior. */
+  suma: string[];
+  /** Nombre del plan anterior ("Todo lo de Esencial, más:"). */
+  base?: string;
+  /** Todo lo que incluye, para calcular qué se prende y qué se apaga. */
+  todo: string[];
+};
+
+export function PlanPicker({
+  slug,
+  planes,
+  current,
+  pagando,
+  puedeCambiar,
+}: {
+  slug: string;
+  planes: PlanVista[];
+  current: PlanId | null;
+  /** Ya paga: el monto nuevo sale en su siguiente cobro. */
+  pagando: boolean;
+  puedeCambiar: boolean;
+}) {
+  const router = useRouter();
+  const actual = planes.find((p) => p.id === current) ?? null;
+
+  async function cambiar(p: PlanVista) {
+    const res = await changeMyPlan(slug, p.id).catch(() => ({ ok: false as const, error: 'No se pudo cambiar el plan. Revisa tu internet e inténtalo otra vez.' }));
+    if (res.ok) {
+      toast(`Listo: ahora tienes el plan ${p.nombre}`);
+      router.refresh();
+    } else toast(res.error, 'error');
+  }
+
+  function mensaje(p: PlanVista): string {
+    const cobro = pagando ? `Desde tu siguiente cobro pagarás $${p.precio} al mes.` : `Tu plan pasa a costar $${p.precio} al mes.`;
+    if (!actual) return `${cobro} Se prende lo que incluye ${p.nombre} y se apaga lo que no. Tus datos se quedan guardados.`;
+    const prende = p.todo.filter((x) => !actual.todo.includes(x));
+    const apaga = actual.todo.filter((x) => !p.todo.includes(x));
+    return [
+      cobro,
+      prende.length ? `Se prende: ${prende.join(', ')}.` : '',
+      apaga.length ? `Se apaga: ${apaga.join(', ')}. Tus datos se quedan guardados por si vuelves.` : '',
+    ]
+      .filter(Boolean)
+      .join(' ');
   }
 
   return (
-    <div className="mt-6 flex flex-col gap-3">
-      {PLAN_IDS.map((id) => {
-        const p = PLANES[id];
-        const precio = id === 'negocio' && founderNegocio ? PRECIO_FUNDADOR_MXN : p.precio;
-        const activo = id === current;
+    <div className="grid gap-4 lg:grid-cols-3">
+      {planes.map((p) => {
+        const activo = p.id === current;
         return (
-          <button
-            key={id}
-            type="button"
-            aria-pressed={activo}
-            disabled={activo || saving !== null}
-            onClick={() => pick(id)}
-            className={`rounded-2xl bg-paper p-4 text-left ring-1 disabled:opacity-60 ${activo ? 'ring-primary' : 'ring-border'}`}
+          <article
+            key={p.id}
+            aria-current={activo ? 'true' : undefined}
+            className={`flex flex-col rounded-3xl bg-surface p-5 sm:p-6 ${activo ? 'ring-2 ring-ink' : 'ring-1 ring-border'}`}
           >
-            <p className="text-[15px] font-medium text-ink">
-              {p.nombre} · ${precio} MXN/mes{activo ? ' · tu plan' : ''}
-              {id === 'negocio' && founderNegocio && precio !== p.precio ? ' (precio fundador)' : ''}
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="text-[19px] font-semibold tracking-tight text-ink">{p.nombre}</h3>
+              {activo && <span className="rounded-full bg-ink px-2.5 py-1 text-xs font-semibold text-paper">Tu plan</span>}
+            </div>
+            <p className="mt-3 text-[2rem] font-semibold leading-none tracking-tight tabular-nums text-ink">
+              ${p.precio}
+              <span className="ml-1 text-sm font-normal tracking-normal text-muted">al mes</span>
             </p>
-            <p className="mt-0.5 text-[13px] leading-relaxed text-muted">{saving === id ? 'Cambiando…' : p.resumen}</p>
-          </button>
+            {p.precioNormal && (
+              <p className="mt-1.5 text-[13px] text-muted">
+                Precio de fundador. Normal: <span className="line-through">${p.precioNormal}</span>
+              </p>
+            )}
+            <p className="mt-3 text-[15px] leading-relaxed text-muted">{p.para}</p>
+            <div className="mt-4 border-t border-border pt-4">
+              {p.base && <p className="mb-2.5 text-[13px] font-semibold text-ink">Todo lo de {p.base}, más:</p>}
+              <ul className="flex flex-col gap-2">
+                {p.suma.map((s) => (
+                  <li key={s} className="flex items-start gap-2 text-[15px] leading-snug text-ink">
+                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" strokeWidth={2.5} aria-hidden="true" />
+                    {s}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="mt-auto pt-6">
+              {activo ? (
+                <p className="flex min-h-[2.75rem] items-center justify-center rounded-full bg-ink/[0.06] text-sm font-semibold text-ink">
+                  Es tu plan actual
+                </p>
+              ) : puedeCambiar ? (
+                <ConfirmForm
+                  action={async () => cambiar(p)}
+                  confirmTitle={`¿Cambiar al plan ${p.nombre}?`}
+                  confirmMessage={mensaje(p)}
+                  confirmLabel={`Sí, cambiar a ${p.nombre}`}
+                  dismissLabel={actual ? `No, seguir en ${actual.nombre}` : 'No, dejarlo como está'}
+                  triggerVariant="outline"
+                  triggerClassName="w-full"
+                >
+                  Cambiar a {p.nombre}
+                </ConfirmForm>
+              ) : null}
+            </div>
+          </article>
         );
       })}
-      {error && (
-        <p className="text-sm text-error" role="alert">
-          {error}
-        </p>
-      )}
     </div>
   );
 }

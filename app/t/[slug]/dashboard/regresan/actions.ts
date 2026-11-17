@@ -19,9 +19,9 @@ export async function guardarAjustesRegresan(
     }
 
     const semanas = limpiarSemanas(input.semanas);
-    if (semanas === null) return { ok: false, error: 'Las semanas van de 1 a 52.' };
+    if (semanas === null) return { ok: false, error: 'Pon cuántas semanas, de 1 a 52. Por ejemplo, 6.' };
     const link = limpiarLinkResena(input.linkResena);
-    if (!link.ok) return { ok: false, error: 'El link de reseñas debe empezar con https://' };
+    if (!link.ok) return { ok: false, error: 'Pega el link completo de Google: empieza con https://' };
 
     const { data, error } = await createAdminClient()
       .from('tenants')
@@ -31,9 +31,11 @@ export async function guardarAjustesRegresan(
 
     if (error) {
       if (error.code === '42703' || error.code === 'PGRST204') {
-        return { ok: false, error: 'Falta correr db/046_clientes_regresan.sql en Supabase.' };
+        // Falta db/046_clientes_regresan.sql.
+        return { ok: false, error: 'Esto todavía no está activo en tu cuenta. Escríbenos y lo activamos.' };
       }
-      return { ok: false, error: `No se pudo guardar: ${error.message}` };
+      console.error('guardarAjustesRegresan', slug, error);
+      return { ok: false, error: 'No se pudo guardar. Inténtalo otra vez en un momento.' };
     }
     if (!data?.length) return { ok: false, error: 'Ese negocio ya no existe.' };
 

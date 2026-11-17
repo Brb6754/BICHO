@@ -3,6 +3,8 @@
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FileText, Loader2, Trash2, Upload } from 'lucide-react';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { toast } from '@/components/tenant-dash/ui/Toast';
 
 export type DocumentoFila = { id: string; nombre: string; tipo: string; fragmentos: number; created_at: string };
 
@@ -18,6 +20,7 @@ export function DocumentosCopiloto({ documentos }: { documentos: DocumentoFila[]
   async function subir(archivos: FileList | null) {
     if (!archivos?.length) return;
     setError(null);
+    let subidos = 0;
     for (const archivo of Array.from(archivos)) {
       setSubiendo(archivo.name);
       const form = new FormData();
@@ -27,9 +30,12 @@ export function DocumentosCopiloto({ documentos }: { documentos: DocumentoFila[]
       const j = await res.json().catch(() => ({}));
       if (!res.ok) {
         setError(`${archivo.name}: ${j.error ?? 'no se pudo subir.'}`);
+        toast(`No se pudo subir ${archivo.name}`, 'error');
         break;
       }
+      subidos++;
     }
+    if (subidos) toast(subidos === 1 ? 'Documento listo: ya lo puede consultar' : `${subidos} documentos listos`);
     setSubiendo(null);
     if (input.current) input.current.value = '';
     router.refresh();
@@ -40,7 +46,10 @@ export function DocumentosCopiloto({ documentos }: { documentos: DocumentoFila[]
     setBorrando(d.id);
     const res = await fetch(`/dashboard/copiloto/documentos/api?id=${encodeURIComponent(d.id)}`, { method: 'DELETE' });
     setBorrando(null);
-    if (!res.ok) setError('No se pudo quitar el documento.');
+    if (!res.ok) {
+      setError('No se pudo quitar el documento. Inténtalo otra vez.');
+      toast('No se pudo quitar el documento', 'error');
+    } else toast('Documento quitado');
     router.refresh();
   }
 
@@ -52,7 +61,7 @@ export function DocumentosCopiloto({ documentos }: { documentos: DocumentoFila[]
           e.preventDefault();
           subir(e.dataTransfer.files);
         }}
-        className="flex cursor-pointer flex-col items-center gap-2 rounded-2xl border border-dashed border-border bg-surface px-6 py-10 text-center transition-colors hover:border-primary"
+        className="flex cursor-pointer flex-col items-center gap-2 rounded-2xl border border-dashed border-border bg-surface px-6 py-10 text-center transition-colors focus-within:ring-2 focus-within:ring-primary/40 hover:border-primary"
       >
         {subiendo ? (
           <Loader2 className="h-6 w-6 animate-spin text-primary" aria-hidden />
@@ -60,7 +69,7 @@ export function DocumentosCopiloto({ documentos }: { documentos: DocumentoFila[]
           <Upload className="h-6 w-6 text-primary" aria-hidden />
         )}
         <span className="text-sm font-medium text-ink">
-          {subiendo ? `Leyendo ${subiendo}…` : 'Arrastra un archivo o haz clic para elegirlo'}
+          {subiendo ? `Leyendo ${subiendo}…` : 'Toca para elegir un archivo (o arrástralo aquí)'}
         </span>
         <span className="text-xs text-muted">PDF, Word (.docx) o texto · hasta 4 MB</span>
         <input
@@ -74,10 +83,19 @@ export function DocumentosCopiloto({ documentos }: { documentos: DocumentoFila[]
         />
       </label>
 
-      {error && <p className="text-sm text-error">{error}</p>}
+      {error && (
+        <p role="alert" className="rounded-2xl bg-error-soft px-4 py-3 text-sm text-error">
+          {error}
+        </p>
+      )}
 
       {documentos.length === 0 ? (
-        <p className="text-sm text-muted">Todavía no hay documentos. El copiloto responde solo con tus datos del panel.</p>
+        <EmptyState
+          icon={FileText}
+          title="Todavía no hay documentos"
+          description="Por ahora el copiloto contesta solo con lo que hay en tu panel."
+          why="Sube tu lista de precios o tus políticas y podrá contestar «¿cuánto cuesta…?» o «¿qué pasa si cancelo?»."
+        />
       ) : (
         <ul className="divide-y divide-border rounded-2xl border border-border bg-surface">
           {documentos.map((d) => (
@@ -86,7 +104,7 @@ export function DocumentosCopiloto({ documentos }: { documentos: DocumentoFila[]
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-ink">{d.nombre}</p>
                 <p className="text-xs text-muted">
-                  {fecha.format(new Date(d.created_at))} · {d.fragmentos} {d.fragmentos === 1 ? 'fragmento' : 'fragmentos'}
+                  Subido el {fecha.format(new Date(d.created_at))}
                 </p>
               </div>
               <button
@@ -94,7 +112,7 @@ export function DocumentosCopiloto({ documentos }: { documentos: DocumentoFila[]
                 onClick={() => borrar(d)}
                 disabled={borrando === d.id}
                 aria-label={`Quitar ${d.nombre}`}
-                className="flex h-9 w-9 items-center justify-center rounded-lg text-muted hover:bg-error-soft hover:text-error disabled:opacity-40"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted hover:bg-error-soft hover:text-error focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:opacity-40"
               >
                 {borrando === d.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
               </button>

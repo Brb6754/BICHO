@@ -14,12 +14,13 @@ import { REGLA_DEFAULT } from '@/lib/lealtad/datos';
 
 type Resp = { ok: true } | { ok: false; error: string };
 
-const FALTA = 'Falta correr db/047_lealtad.sql en Supabase.';
+// Sin db/047_lealtad.sql corrida.
+const FALTA = 'Lealtad todavía no está activa en tu cuenta. Escríbenos y la activamos.';
 
 async function acceso(slug: string) {
   const staff = await requireTenantStaff(slug);
   const productos = await productosDe(slug);
-  if (!productos.lealtad) throw new Error('Este negocio no tiene el módulo de Lealtad.');
+  if (!productos.lealtad) throw new Error('Lealtad no viene en tu plan. Revisa «Mi plan».');
   return staff;
 }
 
@@ -30,7 +31,8 @@ function fallo(e: unknown): Resp {
 function err(error: { code?: string; message: string }): Resp {
   // 42P01 tabla no existe / PGRST205 PostgREST no la ve.
   if (error.code === '42P01' || error.code === 'PGRST205') return { ok: false, error: FALTA };
-  return { ok: false, error: `No se pudo guardar: ${error.message}` };
+  console.error('lealtad', error);
+  return { ok: false, error: 'No se pudo guardar. Inténtalo otra vez en un momento.' };
 }
 
 function listo(slug: string): Resp {
@@ -43,8 +45,8 @@ export async function guardarRegla(slug: string, requeridos: number, premio: str
     const { tenantId } = await acceso(slug);
     const n = Math.floor(Number(requeridos));
     const p = premio.trim().slice(0, 120);
-    if (!Number.isFinite(n) || n < 2 || n > 30) return { ok: false, error: 'Pon entre 2 y 30 sellos.' };
-    if (!p) return { ok: false, error: 'Escribe el premio.' };
+    if (!Number.isFinite(n) || n < 2 || n > 30) return { ok: false, error: 'Pon cuántos sellos, de 2 a 30. Por ejemplo, 6.' };
+    if (!p) return { ok: false, error: 'Escribe el premio. Por ejemplo: tu siguiente visita gratis.' };
 
     const { error } = await createAdminClient()
       .from('loyalty_programs')
@@ -113,7 +115,7 @@ export async function canjear(slug: string, cardId: string): Promise<Resp> {
     const requeridos = programa?.stamps_required ?? REGLA_DEFAULT.requeridos;
     const usados = (canjes ?? []).reduce((s, c) => s + c.stamps_used, 0);
     if (!estadoTarjeta(sellos ?? 0, usados, requeridos).completa) {
-      return { ok: false, error: 'Esta tarjeta todavía no está completa.' };
+      return { ok: false, error: 'A esta clienta todavía le faltan sellos para el premio.' };
     }
     // shortcut: dos canjes simultáneos de la misma tarjeta podrían pasar los
     // dos; el historial lo deja ver. Pasar a una función SQL con lock si pasa.
@@ -142,9 +144,9 @@ export async function guardarPromo(
     const details = promo.details.trim().slice(0, 240) || null;
     const code = promo.code.trim().toUpperCase().replace(/\s+/g, '') || null;
     if (!title) return { ok: false, error: 'Escribe el nombre de la promoción.' };
-    if (!FECHA.test(promo.starts_on) || !FECHA.test(promo.ends_on)) return { ok: false, error: 'Elige las fechas.' };
-    if (promo.ends_on < promo.starts_on) return { ok: false, error: 'La fecha final va después de la inicial.' };
-    if (code && !/^[A-Z0-9_-]{2,30}$/.test(code)) return { ok: false, error: 'El código: letras, números o guiones, 2 a 30.' };
+    if (!FECHA.test(promo.starts_on) || !FECHA.test(promo.ends_on)) return { ok: false, error: 'Elige cuándo empieza y cuándo termina.' };
+    if (promo.ends_on < promo.starts_on) return { ok: false, error: 'La fecha en que termina tiene que ser después de la de inicio.' };
+    if (code && !/^[A-Z0-9_-]{2,30}$/.test(code)) return { ok: false, error: 'El código lleva solo letras y números, sin espacios. Ej. MARTES20.' };
 
     const { error } = await createAdminClient().from('promotions').insert({
       tenant_id: tenantId,

@@ -36,7 +36,7 @@ export default async function MarcaPage({ params }: { params: Promise<{ slug: st
 
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader title="Mi marca" description="Tu logo y tus colores salen en tu página de reservas y en este panel. Aquí también escoges cómo se ve el panel." />
+      <PageHeader title="Mi marca" description="Tu logo y tus colores, en tu página de reservas y en este panel." />
       <BrandForm
         name={tenant?.name ?? ''}
         initialLogo={tenant?.logo_url ?? null}

@@ -1,9 +1,9 @@
 import { notFound } from 'next/navigation';
 import { PageHeader } from '@/components/tenant-dash/PageHeader';
 import { DemoNote } from '@/components/demo/DemoNote';
-import { BoostVista, type ContactoVista } from '@/components/tenant-dash/BoostVista';
+import { AyudaBoost, BoostVista, type ContactoVista } from '@/components/tenant-dash/BoostVista';
 import { cargarPanelDemo } from '@/lib/demo/panelData';
-import { ADDON_BOOST, TOPE_BOOST_MENSAJES_MES } from '@/lib/billing/planes';
+import { TOPE_BOOST_MENSAJES_MES } from '@/lib/billing/planes';
 import { resumirResultados } from '@/lib/boost/reglas';
 import { tenantBookingPageUrl } from '@/lib/urls';
 
@@ -48,8 +48,9 @@ export default async function BoostDemoPage({ params }: { params: Promise<{ slug
   return (
     <div>
       <PageHeader
-        title={ADDON_BOOST.nombre}
-        description="Llena los huecos de tu agenda con clientas que ya te conocen: avisos cuando se cancela una cita y promociones en tus horas flojas."
+        title="Llena tus huecos"
+        description="Avisa a tus clientas cuando se libera un horario o te quedan horas vacías."
+        help={<AyudaBoost />}
       />
       <BoostVista
         usados={5}
@@ -60,9 +61,8 @@ export default async function BoostDemoPage({ params }: { params: Promise<{ slug
         config={{ descuento: 15, aviso: 4, dias: [1, 2, 3, 4], desde: 11, hasta: 17 }}
         contactos={contactos}
         linkPublico={tenantBookingPageUrl(slug)}
-        aviso="Ejemplo: lista, mensajes y resultados inventados para la demo. Los botones no envían nada."
       />
-      <DemoNote>Datos de ejemplo: nombres, teléfonos (618 000 …) y cifras inventados. Ningún mensaje sale de esta demo.</DemoNote>
+      <DemoNote>Ejemplo: nombres, teléfonos (618 000 …) y cifras inventados. En la demo los botones no mandan nada.</DemoNote>
     </div>
   );
 }

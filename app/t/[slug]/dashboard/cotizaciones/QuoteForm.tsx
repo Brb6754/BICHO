@@ -2,10 +2,12 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Trash2 } from 'lucide-react';
+import { ChevronDown, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Label } from '@/components/ui/Label';
+import { FormField } from '@/components/tenant-dash/ui/FormField';
+import { HelpTip } from '@/components/tenant-dash/ui/HelpTip';
+import { toast } from '@/components/tenant-dash/ui/Toast';
 import { computeTotals, formatMoney, lineTotalCents } from '@/lib/quotes/totals';
 import { createQuote, type NuevaCotizacion } from './actions';
 
@@ -15,16 +17,19 @@ const PARTIDA_VACIA: Partida = { description: '', quantity: '1', unitPriceMxn: '
 
 // El formulario de cotización.
 //
-// Dos decisiones que lo hacen rápido, que es lo único que importa aquí:
+// Tres decisiones que lo hacen rápido, que es lo único que importa aquí:
 // una cotización que tarda cinco minutos se sigue haciendo en Word.
 //
-//  1. Solo el NOMBRE es obligatorio. Correo y teléfono son opcionales
-//     porque la mitad de las cotizaciones se mandan por WhatsApp con el
-//     enlace, y pedir un correo que no se va a usar es un campo más
-//     entre el vendedor y el cliente.
+//  1. Solo el NOMBRE y lo que incluye son obligatorios. Correo y teléfono
+//     son opcionales porque la mitad de las cotizaciones se mandan por
+//     WhatsApp con el link.
 //  2. El total se calcula EN VIVO, con la misma función que usa el
-//     servidor. El vendedor ve el número final antes de guardar, que es
-//     cuando puede corregirlo.
+//     servidor. Ve el número final antes de guardar, que es cuando puede
+//     corregirlo.
+//  3. Descuento, vigencia, % de IVA y notas casi nunca se tocan: van
+//     plegados en "Más opciones". La casilla "mis precios incluyen IVA"
+//     sí va a la vista y ANTES de los precios, porque cambia lo que
+//     significan (db/059: se recuerda para la próxima).
 export function QuoteForm({
   slug,
   taxRateDefault,
@@ -47,6 +52,7 @@ export function QuoteForm({
   const [notas, setNotas] = useState('');
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorNombre, setErrorNombre] = useState<string | null>(null);
 
   const totales = useMemo(
     () =>
@@ -67,6 +73,18 @@ export function QuoteForm({
   async function guardar(e: React.FormEvent) {
     e.preventDefault();
     if (guardando) return;
+    // Lo que se puede revisar aquí se dice junto al campo, sin ir al servidor.
+    if (!cliente.name.trim()) {
+      setErrorNombre('Escribe para quién es: su nombre o el de su negocio.');
+      document.getElementById('q-name')?.focus();
+      return;
+    }
+    setErrorNombre(null);
+    if (!partidas.some((p) => p.description.trim())) {
+      setError('Escribe al menos una cosa que incluye, con su precio.');
+      document.getElementById('d-0')?.focus();
+      return;
+    }
     setGuardando(true);
     setError(null);
 
@@ -95,90 +113,104 @@ export function QuoteForm({
       setGuardando(false);
       return;
     }
+    toast('Cotización guardada: ya puedes mandarla');
     router.push('/dashboard/cotizaciones');
     router.refresh();
   }
 
+  const precioLabel = `Precio c/u (${conIva ? 'con' : 'sin'} ${taxLabel})`;
+
   return (
-    <form onSubmit={guardar} className="mt-8 flex flex-col gap-10">
+    <form onSubmit={guardar} noValidate className="mt-8 flex flex-col gap-10">
       <section>
-        <h2 className="text-[15px] font-semibold text-ink">Para quién</h2>
+        <h2 className="text-[17px] font-semibold tracking-tight text-ink">1. ¿Para quién es?</h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-3">
-          <div>
-            <Label htmlFor="q-name">Nombre</Label>
+          <FormField label="Nombre" error={errorNombre}>
             <Input
               id="q-name"
-              className="mt-1.5 w-full"
+              className="w-full"
               value={cliente.name}
               onChange={(e) => setCliente({ ...cliente, name: e.target.value })}
-              placeholder="Nombre o empresa"
-              required
+              placeholder="Ej. Ana López o Hotel Real"
+              autoComplete="off"
+              error={Boolean(errorNombre)}
             />
-          </div>
-          <div>
-            <Label htmlFor="q-email">Correo (opcional)</Label>
+          </FormField>
+          <FormField label="WhatsApp" optional>
             <Input
-              id="q-email"
-              type="email"
-              className="mt-1.5 w-full"
-              value={cliente.email}
-              onChange={(e) => setCliente({ ...cliente, email: e.target.value })}
-              placeholder="para enviársela"
-            />
-          </div>
-          <div>
-            <Label htmlFor="q-phone">WhatsApp (opcional)</Label>
-            <Input
-              id="q-phone"
               type="tel"
-              className="mt-1.5 w-full"
+              className="w-full"
               value={cliente.phone}
               onChange={(e) => setCliente({ ...cliente, phone: e.target.value })}
-              placeholder="618 123 4567"
+              placeholder="Ej. 618 123 4567"
             />
-          </div>
+          </FormField>
+          <FormField label="Correo" optional hint="Solo si se la quieres mandar por correo.">
+            <Input
+              type="email"
+              className="w-full"
+              value={cliente.email}
+              onChange={(e) => setCliente({ ...cliente, email: e.target.value })}
+              placeholder="Ej. ana@correo.com"
+            />
+          </FormField>
         </div>
       </section>
 
       <section>
-        <h2 className="text-[15px] font-semibold text-ink">Conceptos</h2>
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+          <h2 className="text-[17px] font-semibold tracking-tight text-ink">2. ¿Qué incluye?</h2>
+          <div className="flex items-center">
+            <label className="flex min-h-11 items-center gap-2.5 text-[15px] text-ink">
+              <input
+                type="checkbox"
+                checked={conIva}
+                onChange={(e) => setConIva(e.target.checked)}
+                className="h-5 w-5 shrink-0 accent-[rgb(var(--color-primary))]"
+              />
+              Mis precios ya incluyen {taxLabel}
+            </label>
+            <HelpTip title={`¿Mis precios incluyen ${taxLabel}?`}>
+              Si a tus clientas les dices «el paquete cuesta $1,160» y eso es lo que pagan, márcalo: el {taxLabel} se
+              separa por dentro y el total no cambia. Si dices «$1,000 más {taxLabel}», déjalo sin marcar. Se recuerda
+              para tus próximas cotizaciones.
+            </HelpTip>
+          </div>
+        </div>
 
         <div className="mt-4 flex flex-col gap-3">
           {partidas.map((p, i) => (
             <div key={i} className="rounded-2xl bg-surface p-4 ring-1 ring-border">
-              <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_5rem_7rem_auto] sm:items-end">
-                <div>
-                  <Label htmlFor={`d-${i}`}>Descripción</Label>
+              <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_5.5rem_9.5rem_auto] sm:items-end">
+                <FormField label="Qué es">
                   <Input
                     id={`d-${i}`}
-                    className="mt-1.5 w-full"
+                    className="w-full"
                     value={p.description}
                     onChange={(e) => cambiar(i, 'description', e.target.value)}
-                    placeholder="Instalación de 6 paneles"
+                    placeholder="Ej. Peinado y maquillaje de novia"
                   />
+                </FormField>
+                <div className="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-3 sm:contents">
+                  <FormField label="Cantidad">
+                    <Input
+                      className="w-full tabular-nums"
+                      inputMode="decimal"
+                      value={p.quantity}
+                      onChange={(e) => cambiar(i, 'quantity', e.target.value)}
+                    />
+                  </FormField>
+                  <FormField label={precioLabel}>
+                    <Input
+                      className="w-full tabular-nums"
+                      inputMode="decimal"
+                      value={p.unitPriceMxn}
+                      onChange={(e) => cambiar(i, 'unitPriceMxn', e.target.value)}
+                      placeholder="$0"
+                    />
+                  </FormField>
                 </div>
-                <div>
-                  <Label htmlFor={`c-${i}`}>Cantidad</Label>
-                  <Input
-                    id={`c-${i}`}
-                    className="mt-1.5 w-full"
-                    inputMode="decimal"
-                    value={p.quantity}
-                    onChange={(e) => cambiar(i, 'quantity', e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor={`p-${i}`}>Precio unitario</Label>
-                  <Input
-                    id={`p-${i}`}
-                    className="mt-1.5 w-full"
-                    inputMode="decimal"
-                    value={p.unitPriceMxn}
-                    onChange={(e) => cambiar(i, 'unitPriceMxn', e.target.value)}
-                    placeholder="0.00"
-                  />
-                </div>
-                <div className="flex items-center justify-between gap-3 sm:flex-col sm:items-end">
+                <div className="flex min-h-11 items-center justify-between gap-3 sm:flex-col sm:items-end">
                   <span className="text-sm font-semibold tabular-nums text-ink">
                     {formatMoney(
                       lineTotalCents({
@@ -192,10 +224,10 @@ export function QuoteForm({
                     <button
                       type="button"
                       onClick={() => setPartidas((prev) => prev.filter((_, j) => j !== i))}
-                      className="inline-flex h-11 w-11 items-center justify-center rounded-full text-muted transition-colors hover:bg-ink/[0.06] hover:text-ink"
-                      aria-label={`Quitar concepto ${i + 1}`}
+                      className="inline-flex h-11 w-11 items-center justify-center rounded-full text-muted transition-colors hover:bg-ink/[0.06] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                      aria-label={`Quitar ${p.description.trim() || `renglón ${i + 1}`}`}
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-4 w-4" aria-hidden="true" />
                     </button>
                   )}
                 </div>
@@ -207,71 +239,58 @@ export function QuoteForm({
         <button
           type="button"
           onClick={() => setPartidas((prev) => [...prev, { ...PARTIDA_VACIA }])}
-          className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-full border border-border px-4 text-sm font-medium text-ink transition-colors hover:bg-ink/[0.04]"
+          className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-full border border-border px-4 text-sm font-medium text-ink transition-colors hover:bg-ink/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
         >
           <Plus className="h-4 w-4" aria-hidden="true" />
-          Agregar concepto
+          Agregar otra cosa
         </button>
       </section>
 
       <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
-        <div className="grid gap-4 sm:grid-cols-3">
-          <div>
-            <Label htmlFor="q-desc">Descuento</Label>
-            <Input
-              id="q-desc"
-              className="mt-1.5 w-full"
-              inputMode="decimal"
-              value={descuento}
-              onChange={(e) => setDescuento(e.target.value)}
-              placeholder="0.00"
+        {/* Lo que casi nunca se toca, plegado. */}
+        <details className="group h-fit rounded-2xl ring-1 ring-border" open={Boolean(descuento || vigencia || notas)}>
+          <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 px-4 text-[15px] font-medium text-ink">
+            Más opciones: descuento, vigencia y notas
+            <ChevronDown
+              className="h-4 w-4 shrink-0 text-muted transition-transform group-open:rotate-180 motion-reduce:transition-none"
+              aria-hidden="true"
             />
+          </summary>
+          <div className="grid gap-4 px-4 pb-4 sm:grid-cols-3">
+            <FormField label="Descuento" hint="En pesos.">
+              <Input
+                className="w-full tabular-nums"
+                inputMode="decimal"
+                value={descuento}
+                onChange={(e) => setDescuento(e.target.value)}
+                placeholder="$0"
+              />
+            </FormField>
+            <FormField label="Válida hasta" optional>
+              <Input type="date" className="w-full" value={vigencia} onChange={(e) => setVigencia(e.target.value)} />
+            </FormField>
+            <FormField label={`${taxLabel} (%)`} hint="Casi siempre 16.">
+              <Input
+                className="w-full tabular-nums"
+                inputMode="decimal"
+                value={taxRate}
+                onChange={(e) => setTaxRate(e.target.value)}
+              />
+            </FormField>
+            <FormField label="Notas" optional className="sm:col-span-3">
+              <textarea
+                value={notas}
+                onChange={(e) => setNotas(e.target.value)}
+                rows={3}
+                className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-base text-ink outline-none transition focus:border-primary focus-visible:ring-4 focus-visible:ring-primary/15 sm:text-sm"
+                placeholder="Ej. incluye prueba un día antes; anticipo del 50% para apartar la fecha."
+              />
+            </FormField>
           </div>
-          <div>
-            <Label htmlFor="q-tax">{taxLabel} (%)</Label>
-            <Input
-              id="q-tax"
-              className="mt-1.5 w-full"
-              inputMode="decimal"
-              value={taxRate}
-              onChange={(e) => setTaxRate(e.target.value)}
-            />
-          </div>
-          <label className="flex min-h-11 items-center gap-2 text-sm text-ink sm:col-span-3">
-            <input
-              type="checkbox"
-              checked={conIva}
-              onChange={(e) => setConIva(e.target.checked)}
-              className="h-4 w-4 accent-[rgb(var(--color-primary))]"
-            />
-            Mis precios ya incluyen {taxLabel}
-            <span className="text-muted">· se recuerda para tus próximas cotizaciones</span>
-          </label>
-          <div>
-            <Label htmlFor="q-valid">Válida hasta</Label>
-            <Input
-              id="q-valid"
-              type="date"
-              className="mt-1.5 w-full"
-              value={vigencia}
-              onChange={(e) => setVigencia(e.target.value)}
-            />
-          </div>
-          <div className="sm:col-span-3">
-            <Label htmlFor="q-notes">Notas (opcional)</Label>
-            <textarea
-              id="q-notes"
-              value={notas}
-              onChange={(e) => setNotas(e.target.value)}
-              rows={3}
-              className="mt-1.5 w-full rounded-xl border border-border bg-surface px-4 py-3 text-base text-ink outline-none transition focus:border-primary sm:text-sm"
-              placeholder="Tiempo de entrega, condiciones, lo que se incluye y lo que no."
-            />
-          </div>
-        </div>
+        </details>
 
-        {/* El total, siempre a la vista. Es el número que el vendedor va
-            a decir en voz alta por teléfono mientras llena esto. */}
+        {/* El total, siempre a la vista. Es el número que va a decir en
+            voz alta por teléfono mientras llena esto. */}
         <aside className="h-fit rounded-2xl bg-surface p-5 ring-1 ring-border">
           <dl className="flex flex-col gap-2 text-sm">
             {(!conIva || totales.discountCents > 0) && (
@@ -304,13 +323,17 @@ export function QuoteForm({
             </div>
           </dl>
 
-          {error && <p className="mt-4 text-sm text-error">{error}</p>}
+          {error && (
+            <p role="alert" className="mt-4 rounded-xl bg-error-soft px-3.5 py-2.5 text-sm text-error">
+              {error}
+            </p>
+          )}
 
-          <Button type="submit" className="mt-5 w-full" isLoading={guardando}>
-            Guardar cotización
+          <Button type="submit" className="mt-5 min-h-11 w-full" isLoading={guardando}>
+            {guardando ? 'Guardando…' : 'Guardar cotización'}
           </Button>
-          <p className="mt-2 text-[12px] leading-snug text-muted">
-            Se guarda como borrador. Desde la lista la envías por correo o copias su enlace.
+          <p className="mt-2 text-[13px] leading-snug text-muted">
+            Después, desde la lista se la mandas por WhatsApp o por correo.
           </p>
         </aside>
       </section>

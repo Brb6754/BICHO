@@ -8,6 +8,8 @@ import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { Select } from '@/components/ui/Select';
 import { SectionHeading } from '@/components/tenant-dash/PageHeader';
+import { HelpTip } from '@/components/tenant-dash/ui/HelpTip';
+import { toast } from '@/components/tenant-dash/ui/Toast';
 import {
   FECHAS,
   LIMITE_MENSUAL,
@@ -38,12 +40,12 @@ const PLANTILLA_LABEL: Record<Plantilla, string> = {
   precio: 'Precio grande',
   horarios: 'Horarios libres',
   temporada: 'Temporada',
-  servicio: 'Servicio destacado',
+  servicio: 'Un servicio en grande',
   lealtad: 'Tarjeta de lealtad',
 };
 
 const chip = (activo: boolean) =>
-  `rounded-full px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
+  `min-h-[2.75rem] rounded-full px-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
     activo ? 'bg-primary text-[rgb(var(--color-cta-fg))]' : 'bg-ink/[0.05] text-ink hover:bg-ink/[0.09]'
   }`;
 const area =
@@ -99,7 +101,11 @@ export function PostsVista({
     setError(null);
     const r = await generar({ tipo, formato, servicioId, promoId, fechaId, tema });
     setCargando(false);
-    if (!r.ok) return setError(r.error);
+    if (!r.ok) {
+      toast(r.error, 'error');
+      return setError(r.error);
+    }
+    toast('Listo: escoge la opción que más te guste');
     setQuedan(r.restantes);
     setHistorial((h) => [r.generacion, ...h.filter((x) => x.id !== r.generacion.id)].slice(0, 20));
     abrir(r.generacion);
@@ -116,10 +122,11 @@ export function PostsVista({
   async function copiar() {
     try {
       await navigator.clipboard.writeText(texto);
+      toast('Texto copiado. Pégalo en tu publicación.');
       setCopiado(true);
       setTimeout(() => setCopiado(false), 1800);
     } catch {
-      setError('No se pudo copiar. Selecciona el texto y cópialo a mano.');
+      toast('No se pudo copiar. Mantén el dedo sobre el texto para copiarlo.', 'error');
     }
   }
 
@@ -130,7 +137,13 @@ export function PostsVista({
     <div className="mt-8 flex flex-col gap-8">
       <Card>
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="text-[15px] font-semibold text-ink">¿Qué quieres anunciar?</h2>
+          <h2 className="flex items-center gap-1 text-[17px] font-semibold tracking-tight text-ink">
+            ¿Qué quieres anunciar?
+            <HelpTip title="¿De dónde saca los datos?">
+              De tu panel: tus servicios con su precio, tus horarios libres de verdad y tus promociones. Te da 3 textos
+              distintos, escoges uno y lo cambias a tu gusto antes de copiarlo. Nada se publica solo.
+            </HelpTip>
+          </h2>
           <p className="text-sm text-muted">
             {demo ? 'Demo: opciones de ejemplo' : `Te quedan ${quedan} de ${LIMITE_MENSUAL} este mes`}
           </p>
@@ -149,7 +162,7 @@ export function PostsVista({
         <div className="mt-4">
           {(tipo === 'servicio' || tipo === 'horarios') &&
             (sinServicios ? (
-              <p className="text-sm text-muted">Primero da de alta tus servicios.</p>
+              <p className="text-[15px] text-muted">Primero agrega tus servicios en la sección «Servicios»: de ahí salen nombres y precios.</p>
             ) : (
               <>
                 <Label htmlFor="post-servicio">{tipo === 'horarios' ? 'Para qué servicio buscar huecos' : 'Servicio'}</Label>
@@ -203,7 +216,7 @@ export function PostsVista({
           )}
         </div>
 
-        <h2 className="mt-6 text-[15px] font-semibold text-ink">Formato</h2>
+        <h2 className="mt-6 text-[15px] font-semibold text-ink">¿Dónde lo vas a publicar?</h2>
         <div className="mt-3 flex flex-wrap gap-2">
           {(Object.keys(FORMATO_LABEL) as Formato[]).map((f) => (
             <button key={f} type="button" className={chip(formato === f)} onClick={() => setFormato(f)} aria-pressed={formato === f}>
@@ -286,7 +299,7 @@ export function PostsVista({
                     </div>
                   </div>
                   <div>
-                    <Label htmlFor="post-detalle">Texto chico</Label>
+                    <Label htmlFor="post-detalle">Texto pequeño de la imagen</Label>
                     <Input id="post-detalle" className="w-full" maxLength={TOPE.detalle} value={base.detalle} onChange={(e) => editarBase({ detalle: e.target.value })} />
                   </div>
                   {(base.plantilla === 'precio' || base.plantilla === 'servicio') && (
@@ -333,7 +346,7 @@ export function PostsVista({
                   <a
                     href={url}
                     download="post.png"
-                    className="inline-flex items-center gap-2 rounded-full border border-border px-5 py-2.5 text-sm font-medium text-ink transition hover:bg-glass/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                    className="inline-flex min-h-[2.75rem] items-center gap-2 rounded-full border border-border px-5 text-sm font-medium text-ink transition hover:bg-ink/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                   >
                     <Download className="h-4 w-4" aria-hidden="true" />
                     Descargar imagen
@@ -343,7 +356,7 @@ export function PostsVista({
                   href={waShareHref(texto)}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-[rgb(var(--color-cta-fg))] shadow-sm hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                  className="inline-flex min-h-[2.75rem] items-center gap-2 rounded-full bg-primary px-5 text-sm font-medium text-[rgb(var(--color-cta-fg))] shadow-sm hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                 >
                   <MessageCircle className="h-4 w-4" aria-hidden="true" />
                   Compartir en WhatsApp
@@ -369,7 +382,9 @@ export function PostsVista({
       <section>
         <SectionHeading title="Lo que has generado" />
         {historial.length === 0 ? (
-          <p className="text-sm text-muted">Todavía nada. Tus posts aparecerán aquí.</p>
+          <p className="rounded-2xl border border-dashed border-border px-5 py-8 text-center text-[15px] leading-relaxed text-muted">
+            Aquí se guardan los posts que generes, para que puedas volver a copiarlos o cambiarlos otro día.
+          </p>
         ) : (
           <ul className="flex flex-col divide-y divide-border rounded-2xl bg-surface ring-1 ring-border">
             {historial.map((g) => (
@@ -377,7 +392,7 @@ export function PostsVista({
                 <button
                   type="button"
                   onClick={() => abrir(g)}
-                  className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm hover:bg-ink/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                  className="flex min-h-[3rem] w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm hover:bg-ink/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                 >
                   <span className="min-w-0 truncate font-medium text-ink">{g.resumen}</span>
                   <span className="shrink-0 text-muted">

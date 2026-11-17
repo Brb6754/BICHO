@@ -1,5 +1,4 @@
 import { notFound } from 'next/navigation';
-import { PageHeader } from '@/components/tenant-dash/PageHeader';
 import { CajaBoard } from '@/components/tenant-dash/CajaBoard';
 import { cargarPanelDemo } from '@/lib/demo/panelData';
 import { demoCaja } from '@/lib/caja/demo';
@@ -18,7 +17,6 @@ export default async function CajaDemoPage({ params }: { params: Promise<{ slug:
   const { timezone } = datos.tenant;
   return (
     <div>
-      <PageHeader title="Caja" description="Cuánto vendiste, cuánto gastaste y cuánto te quedó." />
       <CajaBoard
         slug={slug}
         hoy={dayKey(datos.now, timezone)}

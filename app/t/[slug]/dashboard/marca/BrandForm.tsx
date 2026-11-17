@@ -5,14 +5,17 @@ import { useRouter } from 'next/navigation';
 import { ImageUp } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Label } from '@/components/ui/Label';
+import { toast } from '@/components/tenant-dash/ui/Toast';
 import { contrastRatio, readableFgRgb } from '@/lib/branding/colors';
 import { LOGO_TYPES, logoFileError } from '@/lib/branding/logoUpload';
 import type { BrandResult } from './actions';
 
-function ColorField({ id, label, value, onChange }: { id: string; label: string; value: string; onChange: (v: string) => void }) {
+function ColorField({ id, label, hint, value, onChange }: { id: string; label: string; hint: string; value: string; onChange: (v: string) => void }) {
   return (
     <div>
-      <Label htmlFor={id}>{label}</Label>
+      <Label htmlFor={id} className="text-[13px]">
+        {label}
+      </Label>
       <div className="flex items-center gap-3">
         <input
           id={id}
@@ -21,8 +24,9 @@ function ColorField({ id, label, value, onChange }: { id: string; label: string;
           onChange={(e) => onChange(e.target.value)}
           className="h-11 w-16 shrink-0 cursor-pointer rounded-lg border border-border bg-surface"
         />
-        <span className="font-mono text-sm uppercase text-muted">{value}</span>
+        <span className="text-sm uppercase tabular-nums text-muted">{value}</span>
       </div>
+      <p className="mt-1 text-xs leading-snug text-muted">{hint}</p>
     </div>
   );
 }
@@ -48,7 +52,6 @@ export function BrandForm({
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
 
   // Vista previa local del archivo elegido; el blob anterior se libera.
   function pickFile(f: File | null) {
@@ -70,7 +73,6 @@ export function BrandForm({
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
-    setSaved(false);
     if (file) {
       const err = logoFileError(file);
       if (err) return setError(err);
@@ -82,13 +84,17 @@ export function BrandForm({
     setSaving(true);
     try {
       const r = await onSave(fd);
-      if (!r.ok) return setError(r.error);
+      if (!r.ok) {
+        toast(r.error, 'error');
+        return setError(r.error);
+      }
       pickFile(null);
       setSavedLogo(r.logoUrl);
-      setSaved(true);
+      toast('Marca guardada. Ya se ve en tu página y en tu panel.');
       router.refresh();
     } catch {
-      setError('No se pudo guardar. Revisa tu conexión e intenta de nuevo.');
+      setError('No se pudo guardar. Revisa tu internet e inténtalo otra vez.');
+      toast('No se pudo guardar tu marca', 'error');
     } finally {
       setSaving(false);
     }
@@ -98,13 +104,15 @@ export function BrandForm({
     <form onSubmit={submit} className="grid gap-8 lg:grid-cols-[1fr_320px]">
       <div className="flex min-w-0 flex-col gap-6">
         <div>
-          <Label htmlFor="brand-logo">Logo</Label>
+          <Label htmlFor="brand-logo" className="text-[13px]">
+            Logo
+          </Label>
           <label
             htmlFor="brand-logo"
-            className="flex cursor-pointer items-center gap-3 rounded-2xl border border-dashed border-border bg-surface px-4 py-4 text-sm text-muted transition-colors focus-within:ring-2 focus-within:ring-primary/40 hover:text-ink"
+            className="flex min-h-[3.25rem] cursor-pointer items-center gap-3 rounded-2xl border border-dashed border-border bg-surface px-4 py-4 text-sm text-muted transition-colors focus-within:ring-2 focus-within:ring-primary/40 hover:text-ink"
           >
             <ImageUp className="h-5 w-5 shrink-0" aria-hidden="true" />
-            <span className="min-w-0 truncate">{file ? file.name : 'Elegir imagen (JPG, PNG o WebP, máx. 2 MB)'}</span>
+            <span className="min-w-0 truncate">{file ? file.name : savedLogo ? 'Cambiar logo (JPG, PNG o WebP, hasta 2 MB)' : 'Subir tu logo (JPG, PNG o WebP, hasta 2 MB)'}</span>
             <input
               id="brand-logo"
               type="file"
@@ -120,17 +128,17 @@ export function BrandForm({
           </label>
         </div>
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-          <ColorField id="brand-primary" label="Color principal" value={primary} onChange={setPrimary} />
-          <ColorField id="brand-accent" label="Color de acento" value={accent} onChange={setAccent} />
+          <ColorField id="brand-primary" label="Color principal" hint="Botones y encabezado de tu página." value={primary} onChange={setPrimary} />
+          <ColorField id="brand-accent" label="Color de detalle" hint="Pequeños resaltados: líneas, íconos, marcas." value={accent} onChange={setAccent} />
         </div>
         {ratio < 4.5 && (
           <p className="text-sm text-warning">
-            El texto sobre tu color principal tiene poco contraste ({ratio.toFixed(1)}:1). Prueba un tono más claro o más oscuro.
+            Con este color principal, el texto de los botones casi no se lee. Prueba un tono más claro o más oscuro.
           </p>
         )}
         {accentOnWhite < 3 && (
           <p className="text-sm text-warning">
-            Tu color de acento casi no se ve sobre fondo blanco ({accentOnWhite.toFixed(1)}:1).
+            Tu color de detalle casi no se ve sobre fondo blanco. Prueba uno más fuerte.
           </p>
         )}
         {error && (
@@ -138,11 +146,10 @@ export function BrandForm({
             {error}
           </p>
         )}
-        <div className="flex items-center gap-3">
-          <Button type="submit" isLoading={saving}>
-            {saving ? 'Guardando' : 'Guardar marca'}
+        <div>
+          <Button type="submit" isLoading={saving} className="max-sm:w-full">
+            {saving ? 'Guardando…' : 'Guardar marca'}
           </Button>
-          {saved && <p className="text-sm text-success">Guardado ✓</p>}
         </div>
       </div>
 
@@ -165,7 +172,7 @@ export function BrandForm({
         <div className="mt-5 w-full rounded-full px-5 py-3 text-center text-sm font-semibold" style={{ background: primary, color: fg }}>
           Reservar cita
         </div>
-        <p className="mt-2 text-center text-xs text-[#6b7280]">Contraste del texto: {ratio.toFixed(1)}:1</p>
+        <p className="mt-2 text-center text-xs text-[#6b7280]">{ratio >= 4.5 ? 'El texto del botón se lee bien' : 'El texto del botón se lee con dificultad'}</p>
       </section>
     </form>
   );

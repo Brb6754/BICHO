@@ -1,4 +1,6 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import { ArrowLeft } from 'lucide-react';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireTenantStaff } from '@/lib/auth/tenantStaff';
 import { productosDe } from '@/lib/products';
@@ -75,25 +77,37 @@ export default async function NuevaFacturaPage({
 
   return (
     <div>
-      <PageHeader
-        title="Nueva factura"
-        description="Se factura una cotización aceptada, con los datos fiscales de quien la recibe."
-      />
+      <Link
+        href="/dashboard/facturas"
+        className="inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-muted transition-colors hover:text-ink"
+      >
+        <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+        Facturas
+      </Link>
+      <div className="mt-2">
+        <PageHeader
+          title="Hacer una factura"
+          description="Elige la cotización que tu cliente aceptó y copia sus datos de su constancia del SAT."
+        />
+      </div>
 
       {!credenciales?.api_key ? (
         <div className="mt-8 rounded-2xl bg-surface p-6 ring-1 ring-border">
-          <p className="text-[15px] font-medium text-ink">Todavía no puedes emitir</p>
+          <p className="text-[15px] font-medium text-ink">Todavía no puedes hacer facturas</p>
           <p className="mt-2 max-w-prose text-sm leading-relaxed text-muted">
-            Falta conectar este negocio: su RFC, su Certificado de Sello Digital y la Carta
-            Manifiesto.
+            Falta conectar tu negocio con el SAT.{' '}
+            <Link href="/dashboard/facturas" className="font-medium text-ink underline underline-offset-4">
+              Ve qué te falta
+            </Link>
+            .
           </p>
         </div>
       ) : (
         <div className="mt-8 flex flex-col gap-5">
           {!credenciales.live && (
             <p className="rounded-2xl bg-warning-soft px-4 py-3 text-sm text-ink ring-1 ring-border">
-              <strong className="font-semibold">Modo de pruebas.</strong> Esto timbra un CFDI sin
-              efectos fiscales. Sirve para probar, no para entregárselo a un cliente.
+              <strong className="font-semibold">Estás en modo de prueba.</strong> Esta factura no vale ante
+              el SAT: sirve para practicar, no para dársela a un cliente.
             </p>
           )}
           <NuevaFacturaForm slug={slug} cotizaciones={facturables} preseleccion={cotizacion} />

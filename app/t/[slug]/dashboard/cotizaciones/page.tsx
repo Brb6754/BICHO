@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Plus, Eye, Check, Send, FileText } from 'lucide-react';
+import { Plus, Eye, Send, FileText } from 'lucide-react';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireTenantStaff } from '@/lib/auth/tenantStaff';
 import { PageHeader } from '@/components/tenant-dash/PageHeader';
@@ -27,9 +27,9 @@ export const dynamic = 'force-dynamic';
 
 
 const ESTADOS: Record<string, { texto: string; clase: string }> = {
-  draft: { texto: 'Borrador', clase: 'bg-ink/[0.07] text-muted' },
+  draft: { texto: 'Sin enviar', clase: 'bg-ink/[0.07] text-muted' },
   sent: { texto: 'Enviada', clase: 'bg-info-soft text-info' },
-  viewed: { texto: 'Vista', clase: 'bg-warning-soft text-warning' },
+  viewed: { texto: 'La abrió', clase: 'bg-warning-soft text-warning' },
   accepted: { texto: 'Aceptada', clase: 'bg-success-soft text-success' },
   declined: { texto: 'Rechazada', clase: 'bg-error-soft text-error' },
   expired: { texto: 'Vencida', clase: 'bg-ink/[0.07] text-muted' },
@@ -76,24 +76,18 @@ export default async function CotizacionesPage({ params }: { params: Promise<{ s
     <div>
       <PageHeader
         title="Cotizaciones"
-        description="Ármala en treinta segundos, mándala y entérate cuándo la abrió."
-        action={
-          <Link
-            href="/dashboard/cotizaciones/nueva"
-            className="inline-flex min-h-11 items-center gap-2 rounded-full bg-gradient-to-r from-primary to-secondary px-5 text-sm font-semibold text-[rgb(var(--color-cta-fg))]"
-          >
-            <Plus className="h-4 w-4" aria-hidden="true" />
-            Nueva cotización
-          </Link>
-        }
+        description="Arma un presupuesto en un minuto, mándalo por WhatsApp y entérate cuándo lo abrió."
+        action={<BotonNueva texto="Nueva cotización" />}
       />
 
       {!quotes?.length ? (
         <div className="mt-8">
           <EmptyState
             icon={FileText}
-            title="Todavía no hay cotizaciones"
-            description="La primera te va a tomar menos de un minuto: nombre del cliente, conceptos y listo."
+            title="Todavía no tienes cotizaciones"
+            description="La primera te toma menos de un minuto: para quién es, qué incluye y cuánto cuesta."
+            why="Se la mandas por WhatsApp con un link y aquí ves cuándo la abrió y si la aceptó."
+            action={<BotonNueva texto="Hacer mi primera cotización" />}
           />
         </div>
       ) : (
@@ -117,28 +111,20 @@ export default async function CotizacionesPage({ params }: { params: Promise<{ s
               <li key={q.id} className="rounded-2xl bg-surface p-4 ring-1 ring-border sm:p-5">
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                   <div className="min-w-0 flex-1">
-                    <p className="flex items-center gap-2 text-[15px] font-medium text-ink">
-                      <span className="tabular-nums text-muted">#{formatFolio(q.folio)}</span>
-                      <span className="truncate">{q.customer_name}</span>
-                    </p>
+                    <p className="truncate text-[15px] font-medium text-ink">{q.customer_name}</p>
                     <p className="mt-0.5 flex flex-wrap items-center gap-x-3 text-[13px] text-muted">
-                      <span className="tabular-nums">{formatMoney(totals.totalCents)}</span>
-                      {q.viewed_at && (
+                      <span className="font-semibold tabular-nums text-ink">{formatMoney(totals.totalCents)}</span>
+                      <span className="tabular-nums">#{formatFolio(q.folio)}</span>
+                      {q.viewed_at && estado !== 'viewed' && estado !== 'accepted' && (
                         <span className="inline-flex items-center gap-1">
                           <Eye className="h-3.5 w-3.5" aria-hidden="true" />
                           la abrió
                         </span>
                       )}
-                      {estado === 'accepted' && (
-                        <span className="inline-flex items-center gap-1">
-                          <Check className="h-3.5 w-3.5" aria-hidden="true" />
-                          aceptada
-                        </span>
-                      )}
                     </p>
                   </div>
 
-                  <span className={`rounded-full px-2.5 py-1 text-[12px] font-semibold ${badge.clase}`}>
+                  <span className={`rounded-full px-2.5 py-1 text-[13px] font-semibold ${badge.clase}`}>
                     {badge.texto}
                   </span>
 
@@ -157,9 +143,21 @@ export default async function CotizacionesPage({ params }: { params: Promise<{ s
 
       <p className="mt-10 max-w-xl text-[13px] leading-relaxed text-muted">
         <Send className="mr-1 inline h-3.5 w-3.5" aria-hidden="true" />
-        Una cotización no es una factura: no lleva folio fiscal ni sirve para deducir. Si tu cliente
-        necesita CFDI, se lo timbras aparte.
+        Una cotización no es una factura del SAT: no sirve para deducir. Si tu cliente necesita factura,
+        cuando la acepte hazla desde Facturas.
       </p>
     </div>
+  );
+}
+
+function BotonNueva({ texto }: { texto: string }) {
+  return (
+    <Link
+      href="/dashboard/cotizaciones/nueva"
+      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-[rgb(var(--color-cta-fg))] shadow-sm transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
+    >
+      <Plus className="h-4 w-4" aria-hidden="true" />
+      {texto}
+    </Link>
   );
 }

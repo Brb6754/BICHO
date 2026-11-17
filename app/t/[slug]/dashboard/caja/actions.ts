@@ -7,6 +7,12 @@ import { productosDe } from '@/lib/products';
 import { dayKey } from '@/lib/dates/tenantTime';
 import { CATEGORIAS_GASTO, METODOS, pesosACentavos, type CategoriaGasto, type Metodo } from '@/lib/caja/resumen';
 
+/** El detalle técnico va al log del servidor; a la dueña, qué pasó y qué hacer. */
+function aviso(que: string, e: { message: string }): string {
+  console.error(`${que}:`, e.message);
+  return `${que}. Revisa tu internet e inténtalo otra vez.`;
+}
+
 // Escritura de la Caja.
 //
 // Mismo patrón que cotizaciones y clientes: una Server Action es un
@@ -84,11 +90,11 @@ export async function guardarMovimiento(slug: string, input: MovimientoInput): P
         .eq('tenant_id', tenantId)
         .is('booking_id', null)
         .select('id');
-      if (error) throw new Error(`No se pudo guardar: ${error.message}`);
+      if (error) throw new Error(aviso('No se pudo guardar', error));
       if (!data?.length) return { ok: false, error: 'Ese movimiento ya no existe.' };
     } else {
       const { error } = await db.from('caja_movimientos').insert({ ...fila, tenant_id: tenantId });
-      if (error) throw new Error(`No se pudo guardar: ${error.message}`);
+      if (error) throw new Error(aviso('No se pudo guardar', error));
     }
     return listo(slug);
   } catch (e) {
@@ -105,7 +111,7 @@ export async function borrarMovimiento(slug: string, id: string): Promise<Result
       .eq('id', id)
       .eq('tenant_id', tenantId)
       .is('booking_id', null);
-    if (error) throw new Error(`No se pudo borrar: ${error.message}`);
+    if (error) throw new Error(aviso('No se pudo borrar', error));
     return listo(slug);
   } catch (e) {
     return fallo(e);
@@ -150,7 +156,7 @@ async function ajustarCita(
         booking_id: bookingId,
         dia: dayKey(cita.starts_at, timezone),
       });
-  if (error) throw new Error(`No se pudo guardar: ${error.message}`);
+  if (error) throw new Error(aviso('No se pudo guardar', error));
   return listo(slug);
 }
 

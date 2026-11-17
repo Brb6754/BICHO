@@ -2,19 +2,26 @@ import { Gift, MessageCircle } from 'lucide-react';
 import { requireTenantStaff } from '@/lib/auth/tenantStaff';
 import { createClient } from '@/lib/supabase/server';
 import { PageHeader, SectionHeading } from '@/components/tenant-dash/PageHeader';
-import { CopyLinkButton } from '@/components/tenant-dash/CopyLinkButton';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Badge } from '@/components/ui/Badge';
 import { referralUrl } from '@/lib/referidos/rules';
 import { isMissingReferrals } from '@/lib/referidos/grant';
+import { CompartirReferido } from './CompartirReferido';
 
 export const dynamic = 'force-dynamic';
 
 type Referral = { referred_name: string; created_at: string; first_paid_at: string | null; credit_status: string };
 
-// Referidos (db/052): para todos los negocios, sin flag. Se lee con el
-// cliente de sesión: RLS solo deja ver las filas donde este negocio es el
-// referidor, y la tabla no tiene más que nombre y estado del referido.
+const PASOS = [
+  'Le mandas tu mensaje a otro negocio que agenda por WhatsApp o en libreta.',
+  'Se registra con tu link y prueba bicho 15 días gratis.',
+  'Cuando paga su primer mes, tú ganas un mes gratis.',
+];
+
+// "Gana meses gratis" (referidos, db/052): para todos los negocios, sin
+// flag. Se lee con el cliente de sesión: RLS solo deja ver las filas donde
+// este negocio es el referidor, y la tabla no tiene más que nombre y
+// estado del referido.
 export default async function ReferidosPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const { tenantId } = await requireTenantStaff(slug);
@@ -34,57 +41,85 @@ export default async function ReferidosPage({ params }: { params: Promise<{ slug
   const applied = rows.filter((r) => r.credit_status === 'applied' || r.credit_status === 'done').length;
   const pending = rows.filter((r) => r.credit_status === 'pending').length;
 
+  const whatsapp = (
+    <a
+      href={`https://wa.me/?text=${encodeURIComponent(message)}`}
+      target="_blank"
+      rel="noreferrer"
+      className="ui-btn inline-flex min-h-[2.75rem] items-center justify-center gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-[rgb(var(--color-cta-fg))] transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
+    >
+      <MessageCircle className="h-4 w-4" aria-hidden="true" />
+      Mandar por WhatsApp
+    </a>
+  );
+
   return (
     <div>
       <PageHeader
-        title="Referidos"
-        description="Recomienda bicho a otro negocio. Por cada uno que se registre con tu link y haga su primer pago, ganas 1 mes gratis."
+        title="Gana meses gratis"
+        description="Recomienda bicho a otro negocio: cuando pague su primer mes, tú ganas uno gratis."
+        action={whatsapp}
       />
 
-      <section className="mt-8 rounded-2xl bg-surface p-5 ring-1 ring-border sm:p-6">
-        <p className="text-sm font-medium text-muted">Tu link</p>
-        <p className="mt-1 break-all text-[15px] font-medium text-ink">{url}</p>
-        <div className="mt-4 flex flex-wrap gap-3">
-          <CopyLinkButton url={url} label="Copiar link" />
-          <a
-            href={`https://wa.me/?text=${encodeURIComponent(message)}`}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-medium text-[rgb(var(--color-cta-fg))] shadow-sm hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-          >
-            <MessageCircle className="h-4 w-4" aria-hidden="true" />
-            Compartir por WhatsApp
-          </a>
+      <section className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
+        <div>
+          <SectionHeading title="Tu mensaje, listo para mandar" />
+          <CompartirReferido mensaje={message} url={url} />
+        </div>
+        <div>
+          <SectionHeading title="Cómo funciona" />
+          <ol className="flex flex-col gap-4">
+            {PASOS.map((p, i) => (
+              <li key={p} className="flex items-start gap-3 text-[15px] leading-relaxed text-ink">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-ink/[0.07] text-sm font-semibold tabular-nums">
+                  {i + 1}
+                </span>
+                {p}
+              </li>
+            ))}
+          </ol>
         </div>
       </section>
 
-      <dl className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {[
-          ['Se registraron', rows.length],
-          ['Ya pagaron', paid],
-          ['Meses aplicados', applied],
-          ['Meses por aplicar', pending],
-        ].map(([label, value]) => (
-          <div key={label} className="rounded-2xl bg-surface p-4 ring-1 ring-border">
-            <dt className="text-sm text-muted">{label}</dt>
-            <dd className="mt-1 text-2xl font-semibold tabular-nums text-ink">{value}</dd>
-          </div>
-        ))}
-      </dl>
-      {pending > 0 && (
-        <p className="mt-3 text-sm text-muted">Como ya pagas tu plan, esos meses los aplicamos a mano a tu suscripción.</p>
+      {rows.length > 0 && (
+        <>
+          <dl className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {[
+              ['Se registraron', rows.length],
+              ['Ya pagaron', paid],
+              ['Meses que ya ganaste', applied],
+              ['Meses por aplicar', pending],
+            ].map(([label, value]) => (
+              <div key={label} className="rounded-2xl bg-surface p-4 ring-1 ring-border">
+                <dt className="text-[13px] text-muted">{label}</dt>
+                <dd className="mt-1 text-2xl font-semibold tabular-nums text-ink">{value}</dd>
+              </div>
+            ))}
+          </dl>
+          {pending > 0 && (
+            <p className="mt-3 text-sm text-muted">Como ya pagas tu plan, esos meses los aplicamos nosotros a tu suscripción.</p>
+          )}
+        </>
       )}
 
       <section className="mt-10">
         <SectionHeading title="Negocios que invitaste" meta={rows.length || undefined} />
         {rows.length === 0 ? (
-          <EmptyState icon={Gift} title="Aún nadie se registra con tu link" description="Compártelo con otros negocios que agenden por WhatsApp o en libreta." />
+          <div className="rounded-2xl border border-dashed border-border px-5 [&>div]:py-10">
+            <EmptyState
+              icon={Gift}
+              title="Todavía nadie se registra con tu link"
+              description="Cuando un negocio se registre con tu link, aparece aquí y ves si ya pagó."
+              why="Piensa en tu estilista de confianza, tu dentista o la barbería de enfrente: cada uno que pague es un mes que no pagas tú."
+              action={whatsapp}
+            />
+          </div>
         ) : (
           <ul className="divide-y divide-border rounded-2xl bg-surface ring-1 ring-border">
             {rows.map((r) => (
-              <li key={`${r.referred_name}-${r.created_at}`} className="flex items-center justify-between gap-3 px-4 py-3">
+              <li key={`${r.referred_name}-${r.created_at}`} className="flex min-h-[3.25rem] items-center justify-between gap-3 px-4 py-3">
                 <span className="min-w-0 truncate text-[15px] text-ink">{r.referred_name}</span>
-                <Badge tone={r.first_paid_at ? 'default' : 'muted'}>{r.first_paid_at ? 'Ya pagó' : 'En prueba'}</Badge>
+                <Badge tone={r.first_paid_at ? 'default' : 'muted'}>{r.first_paid_at ? 'Ya pagó: ganaste 1 mes' : 'Probando gratis'}</Badge>
               </li>
             ))}
           </ul>

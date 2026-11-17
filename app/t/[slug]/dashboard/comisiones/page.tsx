@@ -31,16 +31,19 @@ export default async function ComisionesPage({
 
   return (
     <div>
-      <PageHeader title="Comisiones" description="Cuánto vendió cada quien y cuánto le toca." />
       {'faltaMigracion' in datos ? (
-        <div className="mt-8 rounded-2xl bg-surface p-6 ring-1 ring-border">
-          <p className="text-[15px] font-medium text-ink">Falta correr una migración</p>
-          <p className="mt-2 text-sm leading-relaxed text-muted">
-            Corre <code className="rounded bg-ink/[0.06] px-1.5 py-0.5">db/050_comisiones.sql</code> en el SQL Editor
-            de Supabase y recarga esta página.
-          </p>
-        </div>
+        <>
+          <PageHeader title="Comisiones" description="Cuánto le toca a cada quien por lo que vendió." />
+          <div className="mt-8 rounded-2xl bg-surface p-6 ring-1 ring-border">
+            <p className="text-[15px] font-medium text-ink">Falta correr una migración</p>
+            <p className="mt-2 text-sm leading-relaxed text-muted">
+              Corre <code className="rounded bg-ink/[0.06] px-1.5 py-0.5">db/050_comisiones.sql</code> en el SQL Editor
+              de Supabase y recarga esta página.
+            </p>
+          </div>
+        </>
       ) : (
+        // El encabezado vive dentro del tablero (lo comparte con la demo).
         <ComisionesBoard
           slug={slug}
           basePath="/dashboard/comisiones"

@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import { PageHeader } from '@/components/tenant-dash/PageHeader';
+import { DemoNote } from '@/components/demo/DemoNote';
 import { LealtadVista } from '@/components/tenant-dash/LealtadVista';
 import { cargarPanelDemo } from '@/lib/demo/panelData';
 import { lealtadDemo, TOKEN_DEMO } from '@/lib/lealtad/demo';
@@ -24,9 +25,10 @@ export default async function LealtadDemoPage({ params }: { params: Promise<{ sl
     <div>
       <PageHeader
         title="Lealtad"
-        description="La tarjeta de sellos de siempre, pero en el teléfono de tus clientas. Y promociones con fecha de caducidad."
+        description="La tarjeta de sellos de siempre, en el teléfono de tus clientas, y promociones con fecha."
       />
       <LealtadVista slug={slug} datos={lealtad} tarjetas={tarjetas} hoy={dayKey(now, tenant.timezone)} soloLectura />
+      <DemoNote>Clientas, sellos y promociones de ejemplo. En la demo los botones no guardan nada.</DemoNote>
     </div>
   );
 }

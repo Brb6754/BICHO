@@ -10,7 +10,7 @@ import type { PasoResico } from '@/lib/resico/pasos';
 
 export const dynamic = 'force-dynamic';
 
-// GUÍA RESICO (db/051) — cómo formalizarse + checklist + ISR estimado.
+// IMPUESTOS (RESICO), antes "Guía RESICO" (db/051) — cómo formalizarse + checklist + ISR estimado.
 export default async function ResicoPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const { tenantId, timezone } = await requireTenantStaff(slug);
@@ -33,7 +33,10 @@ export default async function ResicoPage({ params }: { params: Promise<{ slug: s
 
   return (
     <div>
-      <PageHeader title="Guía RESICO" description="¿Cómo me formalizo? Los trámites, lo que te toca y cuánto ISR pagarías." />
+      <PageHeader
+        title="Impuestos (RESICO)"
+        description="Cuánto pagarías de impuestos y qué trámites te faltan, sin enredos."
+      />
       {error ? (
         <div className="mt-8 rounded-2xl bg-surface p-6 ring-1 ring-border">
           <p className="text-[15px] font-medium text-ink">Falta correr una migración</p>

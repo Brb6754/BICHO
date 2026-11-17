@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import { PageHeader } from '@/components/tenant-dash/PageHeader';
-import { RegresanBoard } from '@/components/tenant-dash/RegresanBoard';
+import { AyudaRegresan, RegresanBoard } from '@/components/tenant-dash/RegresanBoard';
 import { cargarPanelDemo } from '@/lib/demo/panelData';
 import { DEMO_LINK_RESENA, demoCitasRegresan } from '@/lib/demo/regresanFixtures';
 import { armarRegresan } from '@/lib/regresan/armar';
@@ -33,7 +33,8 @@ export default async function RegresanDemoPage({ params }: { params: Promise<{ s
     <div>
       <PageHeader
         title="Clientes que regresan"
-        description="A quién escribirle hoy para que vuelva, a quién pedirle una reseña, y los recordatorios que salen solos."
+        description="Mensajes listos para que tus clientas vuelvan y te dejen reseña en Google."
+        help={<AyudaRegresan />}
       />
       <RegresanBoard
         negocio={tenant.name}

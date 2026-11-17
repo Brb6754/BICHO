@@ -1,5 +1,4 @@
 import { notFound } from 'next/navigation';
-import { PageHeader } from '@/components/tenant-dash/PageHeader';
 import { InventarioBoard } from '@/components/tenant-dash/InventarioBoard';
 import { cargarPanelDemo } from '@/lib/demo/panelData';
 import { demoInventario } from '@/lib/inventario/demo';
@@ -18,7 +17,6 @@ export default async function InventarioDemoPage({ params }: { params: Promise<{
   const { productos, movimientos } = demoInventario(slug, hoy);
   return (
     <div>
-      <PageHeader title="Inventario" description="Lo que usas y vendes, y lo que se te está acabando." />
       <InventarioBoard slug={slug} hoy={hoy} productos={productos} movimientos={movimientos} soloLectura />
     </div>
   );

@@ -8,6 +8,12 @@ import { dayKey } from '@/lib/dates/tenantTime';
 import { METODOS, pesosACentavos, type Metodo } from '@/lib/caja/resumen';
 import { TIPOS_MOVIMIENTO, mensajeDeError, parseCantidad, type TipoMovimiento } from '@/lib/inventario/logica';
 
+/** El detalle técnico va al log del servidor; a la dueña, qué pasó y qué hacer. */
+function aviso(que: string, e: { message: string }): string {
+  console.error(`${que}:`, e.message);
+  return `${que}. Revisa tu internet e inténtalo otra vez.`;
+}
+
 // Escritura del Inventario. Mismo patrón que caja/actions.ts:
 // `requireTenantStaff` (sesión + membresía en ESTE negocio), módulo
 // prendido, luego service_role con `tenant_id` en cada filtro. El stock
@@ -91,7 +97,7 @@ export async function guardarProducto(slug: string, input: ProductoInput): Promi
         .eq('id', input.id)
         .eq('tenant_id', tenantId)
         .select('id');
-      if (error) throw new Error(`No se pudo guardar: ${error.message}`);
+      if (error) throw new Error(aviso('No se pudo guardar', error));
       if (!data?.length) return { ok: false, error: 'Ese producto ya no existe.' };
       return listo(slug);
     }
@@ -104,7 +110,7 @@ export async function guardarProducto(slug: string, input: ProductoInput): Promi
       .insert({ ...fila, tenant_id: tenantId })
       .select('id')
       .single();
-    if (error) throw new Error(`No se pudo guardar: ${error.message}`);
+    if (error) throw new Error(aviso('No se pudo guardar', error));
 
     // El stock inicial entra como un ajuste: así queda en el historial.
     if (stockInicial > 0) {
@@ -129,7 +135,7 @@ export async function borrarProducto(slug: string, id: string): Promise<Resultad
     const { tenantId } = await acceso(slug);
     // Los movimientos se van en cascada (db/049); lo anotado en Caja se queda.
     const { error } = await createAdminClient().from('inventario_productos').delete().eq('id', id).eq('tenant_id', tenantId);
-    if (error) throw new Error(`No se pudo borrar: ${error.message}`);
+    if (error) throw new Error(aviso('No se pudo borrar', error));
     return listo(slug);
   } catch (e) {
     return fallo(e);

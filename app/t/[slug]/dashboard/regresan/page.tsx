@@ -1,12 +1,15 @@
-import { redirect } from 'next/navigation';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireTenantStaff } from '@/lib/auth/tenantStaff';
 import { productosDe } from '@/lib/products';
 import { PageHeader } from '@/components/tenant-dash/PageHeader';
-import { AjustesRegresan, RegresanBoard } from '@/components/tenant-dash/RegresanBoard';
+import { AjustesRegresan, AyudaRegresan, RegresanBoard } from '@/components/tenant-dash/RegresanBoard';
 import { ajustesDe, armarRegresan, type CitaRegresan } from '@/lib/regresan/armar';
 import { tenantBookingPageUrl } from '@/lib/urls';
 import { guardarAjustesRegresan } from './actions';
+import { Bloqueado } from '../plan/Bloqueado';
+
+const TITULO = 'Clientes que regresan';
+const DESCRIPCION = 'Mensajes listos para que tus clientas vuelvan y te dejen reseña en Google.';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,9 +27,26 @@ export default async function RegresanPage({ params }: { params: Promise<{ slug:
   const { slug } = await params;
   const { tenantId, timezone } = await requireTenantStaff(slug);
   const productos = await productosDe(slug);
-  if (!productos.regresan) redirect('/dashboard');
-
   const db = createAdminClient();
+  if (!productos.regresan) {
+    const { data: t } = await db.from('tenants').select('plan').eq('id', tenantId).maybeSingle();
+    return (
+      <div>
+        <PageHeader title={TITULO} description={DESCRIPCION} />
+        <Bloqueado
+          modulo="regresan"
+          plan={t?.plan}
+          ejemplo="/panel/regresan"
+          ganas={[
+            'Ver qué clientas llevan semanas sin venir y escribirles con un toque.',
+            'Pedir reseñas de Google a quien vino esta semana.',
+            'Que cada clienta reciba un recordatorio un día antes de su cita.',
+          ]}
+        />
+      </div>
+    );
+  }
+
   const [{ data: tenant }, { data: raw }] = await Promise.all([
     // select('*'): sin db/046 los ajustes caen a sus valores por omisión.
     db.from('tenants').select('*').eq('id', tenantId).maybeSingle(),
@@ -56,10 +76,7 @@ export default async function RegresanPage({ params }: { params: Promise<{ slug:
 
   return (
     <div>
-      <PageHeader
-        title="Clientes que regresan"
-        description="A quién escribirle hoy para que vuelva, a quién pedirle una reseña, y los recordatorios que salen solos."
-      />
+      <PageHeader title={TITULO} description={DESCRIPCION} help={<AyudaRegresan />} />
       <RegresanBoard
         negocio={negocio}
         semanas={ajustes.semanas}

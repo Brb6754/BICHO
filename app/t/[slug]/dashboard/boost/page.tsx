@@ -1,20 +1,20 @@
-import Link from 'next/link';
-import { Lock } from 'lucide-react';
 import { requireTenantStaff } from '@/lib/auth/tenantStaff';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { PageHeader } from '@/components/tenant-dash/PageHeader';
-import { Card } from '@/components/ui/Card';
-import { BoostVista, type ContactoVista } from '@/components/tenant-dash/BoostVista';
+import { AyudaBoost, BoostVista, type ContactoVista } from '@/components/tenant-dash/BoostVista';
 import { ADDON_BOOST, TOPE_BOOST_MENSAJES_MES } from '@/lib/billing/planes';
 import { planPermiteBoost, resumirResultados } from '@/lib/boost/reglas';
 import { inicioDeMes } from '@/lib/posts/contexto';
 import { tenantBookingPageUrl } from '@/lib/urls';
 import { cambiarBoost, guardarHorasFlojas } from './actions';
+import { Bloqueado } from '../plan/Bloqueado';
 
 export const dynamic = 'force-dynamic';
 
-const DESCRIPCION = 'Llena los huecos de tu agenda con clientas que ya te conocen: avisos cuando se cancela una cita y promociones en tus horas flojas.';
+// El nombre humano de la página es "Llena tus huecos"; Boost queda de apellido (docs/UX-PANEL.md §2.1).
+const TITULO = 'Llena tus huecos';
+const DESCRIPCION = 'Avisa a tus clientas cuando se libera un horario o te quedan horas vacías.';
 
 export default async function BoostPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -26,18 +26,18 @@ export default async function BoostPage({ params }: { params: Promise<{ slug: st
   if (!planPermiteBoost(tenant?.plan)) {
     return (
       <>
-        <PageHeader title={ADDON_BOOST.nombre} description={DESCRIPCION} />
-        <Card className="mt-6 flex flex-col items-start gap-3">
-          <span className="flex items-center gap-2 font-semibold text-ink">
-            <Lock className="h-4 w-4" aria-hidden="true" /> Extra de los planes Negocio y Pro
-          </span>
-          <p className="text-sm text-muted">
-            ${ADDON_BOOST.precio}/mes con {ADDON_BOOST.topeMensajes} mensajes de WhatsApp al mes. Sube de plan para contratarlo.
-          </p>
-          <Link href="/dashboard/plan" className="text-sm font-medium text-primary hover:underline">
-            Ver planes
-          </Link>
-        </Card>
+        <PageHeader title={TITULO} description={DESCRIPCION} help={<AyudaBoost />} />
+        <Bloqueado
+          modulo="boost"
+          plan={tenant?.plan}
+          ejemplo="/panel/boost"
+          aviso={`Es un extra de $${ADDON_BOOST.precio} al mes para los planes Negocio y Pro.`}
+          ganas={[
+            'Cuando alguien cancela, avisamos a las clientas que querían ese horario.',
+            'Ofrecer con descuento las horas que se quedan vacías, solo a quien aceptó promociones.',
+            `${ADDON_BOOST.topeMensajes} mensajes de WhatsApp al mes incluidos.`,
+          ]}
+        />
       </>
     );
   }
@@ -81,7 +81,7 @@ export default async function BoostPage({ params }: { params: Promise<{ slug: st
 
   return (
     <>
-      <PageHeader title={ADDON_BOOST.nombre} description={DESCRIPCION} />
+      <PageHeader title={TITULO} description={DESCRIPCION} help={<AyudaBoost />} />
       <BoostVista
         usados={msgs.filter((m) => m.status === 'sent').length}
         tope={TOPE_BOOST_MENSAJES_MES}
@@ -98,11 +98,14 @@ export default async function BoostPage({ params }: { params: Promise<{ slug: st
         contactos={lista}
         linkPublico={tenantBookingPageUrl(slug)}
         aviso={
+          // !migrada = falta db/058_boost.sql.
           !migrada
-            ? 'Falta correr db/058_boost.sql en Supabase. Hasta entonces Boost no guarda ni manda nada.'
+            ? 'Estamos terminando de activar esto en tu cuenta. Mientras, no se guarda ni se manda nada.'
             : sinWhatsApp
-              ? 'Hubo huecos para ofrecer, pero WhatsApp todavía no está conectado: no salió ningún mensaje (no gasta tu tope).'
-              : null
+              ? 'Hubo horarios para ofrecer, pero tu WhatsApp todavía no está conectado (eso lo hacemos nosotros): no salió ningún mensaje y no se gastó ninguno de los incluidos.'
+              : !puedeCambiar
+                ? 'Solo el dueño o un administrador puede prender esto o cambiar las reglas.'
+                : null
         }
         acciones={
           puedeCambiar && migrada

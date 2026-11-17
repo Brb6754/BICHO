@@ -30,7 +30,7 @@ export async function updateOwnBrand(slug: string, formData: FormData): Promise<
 
   const primary = formData.get('primary_color');
   const accent = formData.get('accent_color');
-  if (!isHexColor(primary) || !isHexColor(accent)) return { ok: false, error: 'Elige colores válidos.' };
+  if (!isHexColor(primary) || !isHexColor(accent)) return { ok: false, error: 'Elige los dos colores con el selector.' };
 
   const update: Record<string, string> = { primary_color: primary, accent_color: accent };
 
@@ -67,7 +67,7 @@ export async function updateOwnBrand(slug: string, formData: FormData): Promise<
   // Sin fila = RLS no lo dejó (no es owner según la base).
   if (error || !data) {
     console.error('updateOwnBrand: update', slug, error);
-    return { ok: false, error: 'No se pudo guardar la marca.' };
+    return { ok: false, error: 'No se pudo guardar tu marca. Inténtalo otra vez.' };
   }
 
   revalidatePath(`/t/${slug}/dashboard`, 'layout');

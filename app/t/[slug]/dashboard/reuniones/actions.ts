@@ -5,6 +5,12 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { requireTenantStaff } from '@/lib/auth/tenantStaff';
 import { esReunion, type Modalidad, type Resultado } from '@/lib/meetings/kinds';
 
+/** El detalle técnico va al log del servidor; a la dueña, qué pasó y qué hacer. */
+function aviso(que: string, e: { message: string }): string {
+  console.error(`${que}:`, e.message);
+  return `${que}. Revisa tu internet e inténtalo otra vez.`;
+}
+
 // Las acciones del módulo de reuniones.
 //
 // Todas pasan por `requireTenantStaff` y escriben con service_role, por
@@ -45,7 +51,7 @@ export async function setMeetingOutcome(
       if (error.code === '42703') {
         return { ok: false, error: 'Falta correr db/039_reuniones.sql en Supabase.' };
       }
-      return { ok: false, error: `No se pudo guardar: ${error.message}` };
+      return { ok: false, error: aviso('No se pudo guardar', error) };
     }
     // Un update cuyos filtros no matchean no es error para PostgREST —
     // el bug silencioso que ya costó un correo de "tu cita se movió"
@@ -75,7 +81,7 @@ export async function setMeetingNotes(
       .eq('kind', 'reunion')
       .select('id');
 
-    if (error) return { ok: false, error: `No se pudo guardar: ${error.message}` };
+    if (error) return { ok: false, error: aviso('No se pudo guardar', error) };
     if (!data?.length) return { ok: false, error: 'Esa reunión no es de este negocio.' };
 
     revalidatePath(`/t/${slug}/dashboard/reuniones`);
@@ -94,7 +100,7 @@ export async function cancelMeeting(bookingId: string, slug: string) {
     .eq('id', bookingId)
     .eq('tenant_id', tenantId)
     .eq('kind', 'reunion');
-  if (error) throw new Error(`No se pudo cancelar la reunión: ${error.message}`);
+  if (error) throw new Error(aviso('No se pudo cancelar la reunión', error));
   revalidatePath(`/t/${slug}/dashboard/reuniones`);
 }
 
@@ -153,7 +159,7 @@ export async function createMeeting({
       .eq('tenant_id', tenantId)
       .maybeSingle(),
   ]);
-  if (!resource || !tipo) return { ok: false, error: 'Asesor o tipo de reunión inválido.' };
+  if (!resource || !tipo) return { ok: false, error: 'Elige otra vez quién la atiende y el tipo de reunión.' };
   // Y tiene que ser un tipo de REUNIÓN: agendar un servicio por aquí
   // crearía una cita disfrazada, con empresa y dirección, en una
   // pantalla que no la va a mostrar nunca.
@@ -187,7 +193,7 @@ export async function createMeeting({
     if (error.code === 'PGRST202') {
       return { ok: false, error: 'Falta correr db/039_reuniones.sql en Supabase.' };
     }
-    return { ok: false, error: `No se pudo agendar: ${error.message}` };
+    return { ok: false, error: aviso('No se pudo agendar', error) };
   }
 
   revalidatePath(`/t/${slug}/dashboard/reuniones`);
@@ -234,7 +240,7 @@ export async function createMeetingType({
       if (error.code === '42703') {
         return { ok: false, error: 'Falta correr db/039_reuniones.sql en Supabase.' };
       }
-      return { ok: false, error: `No se pudo crear: ${error.message}` };
+      return { ok: false, error: aviso('No se pudo crear', error) };
     }
 
     revalidatePath(`/t/${slug}/dashboard/reuniones/tipos`);
@@ -254,7 +260,7 @@ export async function setMeetingTypeActive(slug: string, typeId: string, active:
     .eq('id', typeId)
     .eq('tenant_id', tenantId)
     .eq('kind', 'reunion');
-  if (error) throw new Error(`No se pudo actualizar: ${error.message}`);
+  if (error) throw new Error(aviso('No se pudo actualizar', error));
   revalidatePath(`/t/${slug}/dashboard/reuniones/tipos`);
 }
 
@@ -275,6 +281,6 @@ export async function deleteMeetingType(typeId: string, slug: string) {
       'Ya hay reuniones agendadas con este tipo. Desactívalo en vez de borrarlo: deja de ofrecerse y las que ya existen conservan su nombre.'
     );
   }
-  if (error) throw new Error(`No se pudo borrar: ${error.message}`);
+  if (error) throw new Error(aviso('No se pudo borrar', error));
   revalidatePath(`/t/${slug}/dashboard/reuniones/tipos`);
 }

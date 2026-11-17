@@ -36,7 +36,7 @@ export default async function NuevaCotizacionPage({ params }: { params: Promise<
       <div className="mt-2">
         <PageHeader
           title="Nueva cotización"
-          description="El nombre del cliente y los conceptos. Lo demás es opcional."
+          description="Para quién es, qué incluye y cuánto cuesta. Lo demás es opcional."
         />
       </div>
 

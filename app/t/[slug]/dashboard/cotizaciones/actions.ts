@@ -9,6 +9,12 @@ import { cotizacionesConIva } from '@/lib/quotes/preciosIva';
 import { sendQuoteEmail } from '@/lib/email/sendQuote';
 import { crearCotizacion } from '@/lib/quotes/crear';
 
+/** El detalle técnico va al log del servidor; a la dueña, qué pasó y qué hacer. */
+function aviso(que: string, e: { message: string }): string {
+  console.error(`${que}:`, e.message);
+  return `${que}. Revisa tu internet e inténtalo otra vez.`;
+}
+
 // Todo lo que escribe una cotización.
 //
 // Pasa por `requireTenantStaff` y no solo por RLS: las cotizaciones se
@@ -160,6 +166,6 @@ export async function deleteQuote(slug: string, quoteId: string): Promise<void> 
   const { tenantId } = await requireTenantStaff(slug);
   const db = createAdminClient();
   const { error } = await db.from('quotes').delete().eq('id', quoteId).eq('tenant_id', tenantId);
-  if (error) throw new Error(`No se pudo borrar: ${error.message}`);
+  if (error) throw new Error(aviso('No se pudo borrar', error));
   revalidatePath(`/t/${slug}/dashboard/cotizaciones`);
 }

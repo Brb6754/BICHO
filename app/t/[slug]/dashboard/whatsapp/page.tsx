@@ -1,26 +1,36 @@
-import Link from 'next/link';
-import { Lock } from 'lucide-react';
 import { requireTenantStaff } from '@/lib/auth/tenantStaff';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { planPermiteAgente } from '@/lib/whatsapp/agente/ruteo';
-import { PageHeader } from '@/components/tenant-dash/PageHeader';
-import { Button } from '@/components/ui/Button';
+import { PageHeader, SectionHeading } from '@/components/tenant-dash/PageHeader';
+import { ActionForm, SubmitButton } from '@/components/tenant-dash/ui/ActionForm';
+import { HelpTip } from '@/components/tenant-dash/ui/HelpTip';
 import { Card } from '@/components/ui/Card';
-import { ADDON_COTIZA_WHATSAPP } from '@/lib/billing/planes';
+import { PLANES } from '@/lib/billing/planes';
 import { computeTotals } from '@/lib/quotes/totals';
 import { cotizacionesConIva } from '@/lib/quotes/preciosIva';
+import { Bloqueado } from '../plan/Bloqueado';
 import { Conversaciones, type ConversacionVista } from './Conversaciones';
 import { CotizacionesWhatsapp, type CotizacionWA } from './CotizacionesWhatsapp';
+import { Intro, Pestanas, Proximamente, Requisitos, vistaDe } from './Secciones';
 import { aprobarFactura, cambiarAgente, cambiarConfirmarFacturas, cambiarCotiza, cambiarEstado, responder } from './actions';
 
 export const dynamic = 'force-dynamic';
 
-const TITULO = 'Recepcionista de WhatsApp';
-const DESCRIPCION = 'Contesta a tus clientes por WhatsApp y agenda directo en tu agenda. Si una plática se complica, la tomas tú.';
+// El nombre es el mismo del menú. Adentro, dos pestañas: la recepcionista
+// (Pro) y Cotiza (un extra encima de Pro, precio por decidir: no se publica).
+const TITULO = 'WhatsApp';
+const DESCRIPCION = 'Que tus clientas agenden y pidan precio por WhatsApp aunque tú estés ocupada.';
 
-export default async function WhatsappPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function WhatsappPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ vista?: string }>;
+}) {
   const { slug } = await params;
+  const vista = vistaDe((await searchParams).vista);
   const { tenantId, timezone, role } = await requireTenantStaff(slug);
 
   // `*`: sin db/056 corrida, las columnas nuevas simplemente no vienen.
@@ -30,15 +40,17 @@ export default async function WhatsappPage({ params }: { params: Promise<{ slug:
     return (
       <>
         <PageHeader title={TITULO} description={DESCRIPCION} />
-        <Card className="mt-6 flex flex-col items-start gap-3">
-          <span className="flex items-center gap-2 font-semibold text-ink">
-            <Lock className="h-4 w-4" aria-hidden="true" /> Incluido en el plan Pro
-          </span>
-          <p className="text-sm text-muted">Sube a Pro para prender la recepcionista y que agende por ti las 24 horas.</p>
-          <Link href="/dashboard/plan" className="text-sm font-medium text-primary hover:underline">
-            Ver planes
-          </Link>
-        </Card>
+        <Bloqueado
+          modulo="whatsapp"
+          plan={tenant?.plan}
+          ejemplo="/panel/whatsapp"
+          aviso={`La recepcionista de WhatsApp viene en el plan Pro, de $${PLANES.pro.precio} al mes.`}
+          ganas={[
+            'Que te contesten y te agenden por WhatsApp las 24 horas, aunque estés atendiendo.',
+            'Cada cita cae directo en tu agenda, con tus horarios libres de verdad.',
+            'Ver cada plática y tomarla tú cuando quieras.',
+          ]}
+        />
       </>
     );
   }
@@ -46,26 +58,102 @@ export default async function WhatsappPage({ params }: { params: Promise<{ slug:
   const prendido = tenant?.agente_whatsapp_enabled === true;
   const migrada = tenant != null && 'agente_whatsapp_enabled' in tenant;
   const puedeCambiar = role === 'owner' || role === 'admin';
+  const numeroPropio = Boolean(tenant?.whatsapp_phone_number_id);
+  // Sin token de Meta o sin número (propio o el de bicho) la recepcionista no puede contestar nada.
+  const numeroListo = Boolean(process.env.WHATSAPP_ACCESS_TOKEN) && (numeroPropio || Boolean(process.env.WHATSAPP_PHONE_NUMBER_ID));
 
-  // Lectura con la sesión del usuario: la RLS de db/056 ya limita a sus negocios; el filtro por tenant elige ESTE.
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from('whatsapp_conversaciones')
-    .select('id, telefono, estado, last_message_at, historial')
-    .eq('tenant_id', tenantId)
-    .order('last_message_at', { ascending: false })
-    .limit(30);
+  const encabezado = (
+    <>
+      <PageHeader title={TITULO} description={DESCRIPCION} />
+      <Pestanas actual={vista} />
+      <Intro vista={vista} />
+    </>
+  );
 
-  // Cotiza por WhatsApp. `quotes` no tiene policies (db/027): se lee con
-  // service_role después de requireTenantStaff, filtrando por este negocio.
+  if (vista === 'recepcionista') {
+    // Lectura con la sesión del usuario: la RLS de db/056 ya limita a sus negocios; el filtro por tenant elige ESTE.
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from('whatsapp_conversaciones')
+      .select('id, telefono, estado, last_message_at, historial')
+      .eq('tenant_id', tenantId)
+      .order('last_message_at', { ascending: false })
+      .limit(30);
+    const conversaciones = (data ?? []) as ConversacionVista[];
+
+    return (
+      <>
+        {encabezado}
+        {!migrada ? (
+          // Falta db/056_whatsapp_agente.sql.
+          <Proximamente vista="recepcionista" />
+        ) : !numeroListo && !prendido ? (
+          <Proximamente vista="recepcionista" />
+        ) : (
+          <Card className="mt-8 flex flex-wrap items-center justify-between gap-4">
+            <div className="min-w-0 flex-1 basis-64">
+              <p className="flex items-center gap-2 text-[15px] font-semibold text-ink">
+                <span className={`h-2.5 w-2.5 rounded-full ${prendido ? 'bg-success' : 'bg-ink/25'}`} aria-hidden="true" />
+                {prendido ? 'Prendida' : 'Apagada'}
+              </p>
+              <p className="mt-1 text-sm leading-relaxed text-muted">
+                {prendido
+                  ? 'Contesta al instante cada mensaje nuevo que llega a tu WhatsApp.'
+                  : 'Nadie contesta en automático. Los mensajes te llegan a ti como siempre.'}
+              </p>
+            </div>
+            {puedeCambiar ? (
+              <ActionForm
+                action={cambiarAgente.bind(null, slug, !prendido)}
+                success={prendido ? 'Recepcionista apagada' : 'Recepcionista prendida'}
+                className="max-sm:w-full"
+              >
+                <SubmitButton variant={prendido ? 'outline' : 'primary'} className="max-sm:w-full" pending={prendido ? 'Apagando…' : 'Prendiendo…'}>
+                  {prendido ? 'Apagar recepcionista' : 'Prender recepcionista'}
+                </SubmitButton>
+              </ActionForm>
+            ) : (
+              <p className="text-sm text-muted">Solo el dueño o un administrador la prende o la apaga.</p>
+            )}
+          </Card>
+        )}
+
+        {(conversaciones.length > 0 || (migrada && (numeroListo || prendido))) && (
+          <section className="mt-10">
+            <h2 className="mb-3 flex min-h-[2.75rem] items-center gap-1 text-[17px] font-semibold tracking-tight text-ink">
+              Pláticas
+              <HelpTip title="¿Cuándo conviene contestar yo?">
+                Cuando piden algo que la recepcionista no sabe (un precio especial, una queja, un grupo grande). Toca la
+                plática y luego «Contestar yo». Cuando termines, regrésasela para que siga agendando.
+              </HelpTip>
+            </h2>
+            <Conversaciones
+              conversaciones={conversaciones}
+              timezone={timezone}
+              acciones={{
+                tomar: (id) => cambiarEstado.bind(null, slug, id, 'humano'),
+                devolver: (id) => cambiarEstado.bind(null, slug, id, 'ia'),
+                responder: (id) => responder.bind(null, slug, id),
+              }}
+            />
+          </section>
+        )}
+      </>
+    );
+  }
+
+  // ── Cotiza por WhatsApp ──
+  // `quotes` no tiene policies (db/027): se lee con service_role después de
+  // requireTenantStaff, filtrando por este negocio.
   const cotizaMigrada = tenant != null && 'cotiza_whatsapp_enabled' in tenant;
   const cotizaPrendida = tenant?.cotiza_whatsapp_enabled === true;
   const confirmar = tenant?.cotiza_confirmar_facturas !== false;
   const requisitos = [
-    { ok: tenant?.quotes_enabled === true, texto: 'Cotizaciones prendidas' },
-    { ok: !!tenant?.whatsapp_phone_number_id, texto: 'Tu propio número de WhatsApp conectado (lo configura bicho)' },
-    { ok: tenant?.facturacion_enabled === true, texto: 'Facturación conectada (opcional: sin ella cotiza, pero no factura)' },
+    { ok: tenant?.quotes_enabled === true, texto: 'Cotizaciones prendidas en tu panel' },
+    { ok: numeroPropio, texto: 'Tu propio número de WhatsApp conectado (lo hacemos nosotros)' },
+    { ok: tenant?.facturacion_enabled === true, texto: 'Facturas prendidas (opcional: sin ellas cotiza, pero no hace facturas)' },
   ];
+
   let cotizaciones: CotizacionWA[] = [];
   if (cotizaMigrada) {
     const admin = createAdminClient();
@@ -93,86 +181,77 @@ export default async function WhatsappPage({ params }: { params: Promise<{ slug:
 
   return (
     <>
-      <PageHeader
-        title={TITULO}
-        description={DESCRIPCION}
-        action={
-          puedeCambiar && migrada ? (
-            <form action={cambiarAgente.bind(null, slug, !prendido)}>
-              <Button type="submit" variant={prendido ? 'outline' : 'primary'}>
-                {prendido ? 'Apagar recepcionista' : 'Prender recepcionista'}
-              </Button>
-            </form>
-          ) : undefined
-        }
-      />
-      <p className="mb-6 mt-3 text-sm text-muted">
-        {!migrada
-          ? 'Falta correr db/056_whatsapp_agente.sql en Supabase.'
-          : prendido
-            ? 'Encendida: contesta los mensajes nuevos al instante.'
-            : 'Apagada: nadie contesta en automático.'}
-      </p>
-      <Conversaciones
-        conversaciones={(data ?? []) as ConversacionVista[]}
-        timezone={timezone}
-        acciones={{
-          tomar: (id) => cambiarEstado.bind(null, slug, id, 'humano'),
-          devolver: (id) => cambiarEstado.bind(null, slug, id, 'ia'),
-          responder: (id) => responder.bind(null, slug, id),
-        }}
-      />
-
-      <section className="mt-12">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="max-w-xl">
-            <h2 className="text-lg font-semibold text-ink">{ADDON_COTIZA_WHATSAPP.nombre}</h2>
-            <p className="mt-1 text-sm text-muted">
-              Add-on premium. Tus clientes piden precio por WhatsApp, reciben la cotización en PDF con tu catálogo, la aceptan y piden su factura ahí mismo.
-            </p>
-          </div>
-          {puedeCambiar && cotizaMigrada && (
-            <form action={cambiarCotiza.bind(null, slug, !cotizaPrendida)}>
-              <Button type="submit" variant={cotizaPrendida ? 'outline' : 'primary'}>
-                {cotizaPrendida ? 'Apagar Cotiza' : 'Prender Cotiza'}
-              </Button>
-            </form>
+      {encabezado}
+      {!cotizaMigrada || (!numeroPropio && !cotizaPrendida) ? (
+        // Sin db/057_cotiza_whatsapp.sql, o sin el número propio del negocio.
+        <>
+          <Proximamente vista="cotiza" />
+          {cotizaMigrada && (
+            <section className="mt-8 max-w-2xl">
+              <SectionHeading title="Lo que necesita" />
+              <Requisitos items={requisitos} />
+            </section>
           )}
-        </div>
-        {!cotizaMigrada ? (
-          <p className="mt-3 text-sm text-muted">Falta correr db/057_cotiza_whatsapp.sql en Supabase.</p>
-        ) : (
-          <>
-            <ul className="mt-4 space-y-1 text-sm">
-              {requisitos.map((r) => (
-                <li key={r.texto} className={r.ok ? 'text-ink' : 'text-muted'}>
-                  {r.ok ? '✓' : '○'} {r.texto}
-                </li>
-              ))}
-            </ul>
-            <Card className="mt-4 flex flex-wrap items-center justify-between gap-3">
-              <span className="max-w-lg text-sm">
-                <span className="block font-medium text-ink">Confirmar facturas antes de timbrar</span>
-                <span className="block text-muted">
-                  {confirmar
-                    ? 'Prendido: cuando el cliente confirma sus datos, la factura espera tu aprobación aquí abajo.'
-                    : 'Apagado: en cuanto el cliente confirma sus datos, se timbra sola.'}
-                </span>
-              </span>
+        </>
+      ) : (
+        <>
+          <Card className="mt-8 flex flex-col gap-5">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="min-w-0 flex-1 basis-64">
+                <p className="flex items-center gap-2 text-[15px] font-semibold text-ink">
+                  <span className={`h-2.5 w-2.5 rounded-full ${cotizaPrendida ? 'bg-success' : 'bg-ink/25'}`} aria-hidden="true" />
+                  {cotizaPrendida ? 'Cotiza está prendido' : 'Cotiza está apagado'}
+                </p>
+                <p className="mt-1 text-sm leading-relaxed text-muted">
+                  {cotizaPrendida ? 'Cuando alguien pide precio, recibe su cotización en PDF al momento.' : 'Nadie recibe cotizaciones en automático.'}
+                </p>
+              </div>
               {puedeCambiar && (
-                <form action={cambiarConfirmarFacturas.bind(null, slug, !confirmar)}>
-                  <Button type="submit" variant="outline">
-                    {confirmar ? 'Apagar' : 'Prender'}
-                  </Button>
-                </form>
+                <ActionForm
+                  action={cambiarCotiza.bind(null, slug, !cotizaPrendida)}
+                  success={cotizaPrendida ? 'Cotiza apagado' : 'Cotiza prendido'}
+                  className="max-sm:w-full"
+                >
+                  <SubmitButton variant={cotizaPrendida ? 'outline' : 'primary'} className="max-sm:w-full">
+                    {cotizaPrendida ? 'Apagar Cotiza' : 'Prender Cotiza'}
+                  </SubmitButton>
+                </ActionForm>
               )}
-            </Card>
-            <div className="mt-6">
-              <CotizacionesWhatsapp cotizaciones={cotizaciones} timezone={timezone} aprobar={(id) => aprobarFactura.bind(null, slug, id)} />
             </div>
-          </>
-        )}
-      </section>
+            <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border pt-5">
+              <div className="min-w-0 flex-1 basis-64">
+                <p className="text-[15px] font-medium text-ink">Revisar cada factura antes de hacerla</p>
+                <p className="mt-1 text-sm leading-relaxed text-muted">
+                  {confirmar
+                    ? 'Sí: cuando el cliente confirma sus datos, la factura te espera aquí abajo para que la apruebes.'
+                    : 'No: en cuanto el cliente confirma sus datos, la factura se hace sola.'}
+                </p>
+              </div>
+              {puedeCambiar && (
+                <ActionForm
+                  action={cambiarConfirmarFacturas.bind(null, slug, !confirmar)}
+                  success={confirmar ? 'Las facturas se harán solas' : 'Vas a revisar cada factura'}
+                  className="max-sm:w-full"
+                >
+                  <SubmitButton variant="outline" className="max-sm:w-full">
+                    {confirmar ? 'Que se hagan solas' : 'Quiero revisarlas'}
+                  </SubmitButton>
+                </ActionForm>
+              )}
+            </div>
+          </Card>
+          {requisitos.some((r) => !r.ok) && (
+            <section className="mt-8 max-w-2xl">
+              <SectionHeading title="Lo que necesita" />
+              <Requisitos items={requisitos} />
+            </section>
+          )}
+          <section className="mt-10">
+            <SectionHeading title="Cotizaciones por WhatsApp" meta={cotizaciones.length || undefined} />
+            <CotizacionesWhatsapp cotizaciones={cotizaciones} timezone={timezone} aprobar={(id) => aprobarFactura.bind(null, slug, id)} />
+          </section>
+        </>
+      )}
     </>
   );
 }

@@ -5,8 +5,12 @@ import { useRouter } from 'next/navigation';
 import { BellRing, Mail, MessageCircle, Star, UserRoundX } from 'lucide-react';
 import { SectionHeading } from '@/components/tenant-dash/PageHeader';
 import { Button } from '@/components/ui/Button';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
+import { FormField } from '@/components/tenant-dash/ui/FormField';
+import { HelpTip } from '@/components/tenant-dash/ui/HelpTip';
+import { toast } from '@/components/tenant-dash/ui/Toast';
 import { mailtoLink, waLink } from '@/lib/regresan/mensajes';
 
 // La pantalla de "Clientes que regresan", separada de la página para
@@ -32,6 +36,16 @@ export type ProximoRecordatorio = {
   cuando: string;
   estado: 'enviado' | 'pendiente' | 'sin-canal';
 };
+
+/** El "¿qué es esto?" del encabezado, compartido por el panel y la demo. */
+export function AyudaRegresan() {
+  return (
+    <HelpTip title="¿Esto manda mensajes solo?">
+      Solo el recordatorio de cita, un día antes. Lo demás lo mandas tú: tocas «Escribirle», revisas el mensaje y se
+      abre tu WhatsApp con el texto listo. Nadie recibe mensajes en masa y tu número no corre riesgo.
+    </HelpTip>
+  );
+}
 
 const ESTADO_LABEL: Record<ProximoRecordatorio['estado'], string> = {
   enviado: 'Recordatorio enviado',
@@ -59,7 +73,7 @@ function FilaMensaje({
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <div className="min-w-0 flex-1">
           <p className="truncate font-medium text-ink">{fila.name}</p>
-          <p className="truncate text-sm text-muted">{fila.detalle}</p>
+          <p className="line-clamp-2 text-sm text-muted">{fila.detalle}</p>
         </div>
         {fila.phone || fila.email ? (
           <Button variant={abierta ? 'outline' : 'primary'} onClick={() => setAbierta((v) => !v)} aria-expanded={abierta}>
@@ -84,7 +98,7 @@ function FilaMensaje({
           <div className="mt-2 flex flex-wrap gap-2">
             {wa &&
               (demo ? (
-                <span className="inline-flex items-center rounded-full border border-border px-4 py-2 text-sm text-muted">
+                <span className="inline-flex min-h-[2.75rem] items-center rounded-full border border-border px-4 text-sm text-muted">
                   En la demo no se abre WhatsApp
                 </span>
               ) : (
@@ -92,7 +106,7 @@ function FilaMensaje({
                   href={wa}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-[rgb(var(--color-cta-fg))] shadow-sm hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                  className="inline-flex min-h-[2.75rem] items-center gap-2 rounded-full bg-primary px-5 text-sm font-medium text-[rgb(var(--color-cta-fg))] shadow-sm hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                 >
                   <MessageCircle className="h-4 w-4" aria-hidden="true" />
                   Abrir WhatsApp
@@ -101,7 +115,7 @@ function FilaMensaje({
             {fila.email && !demo && (
               <a
                 href={mailtoLink(fila.email, asunto, texto)}
-                className="inline-flex items-center gap-2 rounded-full border border-border px-5 py-2.5 text-sm font-medium text-ink hover:bg-ink/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                className="inline-flex min-h-[2.75rem] items-center gap-2 rounded-full border border-border px-5 text-sm font-medium text-ink hover:bg-ink/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
               >
                 <Mail className="h-4 w-4" aria-hidden="true" />
                 Por correo
@@ -114,11 +128,11 @@ function FilaMensaje({
   );
 }
 
-function Vacio({ children }: { children: React.ReactNode }) {
+function Vacio(props: React.ComponentProps<typeof EmptyState>) {
   return (
-    <p className="rounded-2xl border border-dashed border-border px-5 py-8 text-center text-sm leading-relaxed text-muted">
-      {children}
-    </p>
+    <div className="rounded-2xl border border-dashed border-border px-5 [&>div]:py-10">
+      <EmptyState {...props} />
+    </div>
   );
 }
 
@@ -152,10 +166,12 @@ export function RegresanBoard({
           Un mensaje a tiempo es la venta más barata que vas a hacer hoy.
         </p>
         {inactivas.length === 0 ? (
-          <Vacio>
-            <UserRoundX className="mx-auto mb-2 h-5 w-5" aria-hidden="true" />
-            Nadie lleva tanto tiempo sin venir. Aquí van a aparecer en cuanto alguien se tarde.
-          </Vacio>
+          <Vacio
+            icon={UserRoundX}
+            title="Nadie lleva tanto tiempo sin venir"
+            description={`Cuando una clienta pase ${semanas} ${semanas === 1 ? 'semana' : 'semanas'} sin agendar, aparece aquí con un mensaje listo para mandarle.`}
+            why="Recuperar a una clienta que ya te conoce cuesta mucho menos que conseguir una nueva."
+          />
         ) : (
           <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-surface">
             {inactivas.map((f) => (
@@ -171,14 +187,28 @@ export function RegresanBoard({
           Quien vino esta semana. Pedirla el mismo día o al siguiente es cuando más reseñas se consiguen.
         </p>
         {!tieneLinkResena ? (
-          <Vacio>
-            <Star className="mx-auto mb-2 h-5 w-5" aria-hidden="true" />
-            {demo
-              ? 'El negocio pega aquí su link de reseñas de Google.'
-              : 'Pega tu link de reseñas de Google en los ajustes de abajo y aquí te aparece a quién pedírsela.'}
-          </Vacio>
+          <Vacio
+            icon={Star}
+            title="Falta tu link de reseñas de Google"
+            description="Con él, aquí te aparece quién vino esta semana y un mensaje listo para pedirle su reseña."
+            why="Más reseñas = sales más arriba cuando alguien busca un salón en Google Maps."
+            action={
+              ajustes ? (
+                <a
+                  href="#regresan-resena"
+                  className="ui-btn inline-flex min-h-[2.75rem] items-center rounded-full bg-primary px-5 text-sm font-semibold text-[rgb(var(--color-cta-fg))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                >
+                  Pegar mi link
+                </a>
+              ) : undefined
+            }
+          />
         ) : resenas.length === 0 ? (
-          <Vacio>Nadie ha venido en los últimos 7 días.</Vacio>
+          <Vacio
+            icon={Star}
+            title="Nadie ha venido en los últimos 7 días"
+            description="Cuando una clienta venga a su cita, aparece aquí en cuanto pasa su cita, con el mensaje listo."
+          />
         ) : (
           <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-surface">
             {resenas.map((f) => (
@@ -239,42 +269,51 @@ export function AjustesRegresan({
 }) {
   const router = useRouter();
   const [form, setForm] = useState({ semanas: String(semanas), linkResena });
-  const [estado, setEstado] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(null);
+  const [error, setError] = useState<{ campo: 'semanas' | 'link' | null; texto: string } | null>(null);
   const [guardando, setGuardando] = useState(false);
 
   async function guardar(e: React.FormEvent) {
     e.preventDefault();
     setGuardando(true);
-    setEstado(null);
-    const r = await onGuardar(form);
+    setError(null);
+    const r = await onGuardar(form).catch(() => ({ ok: false as const, error: 'No se pudo guardar. Revisa tu internet e inténtalo otra vez.' }));
     setGuardando(false);
     if (r.ok) {
-      setEstado({ tipo: 'ok', texto: 'Guardado.' });
+      toast('Ajustes guardados');
       router.refresh();
     } else {
-      setEstado({ tipo: 'error', texto: r.error });
+      // El error se dice junto al campo que lo causó; lo escrito se queda.
+      setError({ campo: /semana/i.test(r.error) ? 'semanas' : /link|https/i.test(r.error) ? 'link' : null, texto: r.error });
+      toast(r.error, 'error');
     }
   }
 
   return (
     <section>
-      <SectionHeading title="Ajustes" />
-      <form onSubmit={guardar} className="flex flex-col gap-4 rounded-2xl border border-border bg-surface px-4 py-5 sm:px-5">
-        <div>
-          <Label htmlFor="regresan-semanas">Semanas sin venir para avisarte</Label>
+      <SectionHeading title="Ajustes de esta sección" />
+      <form onSubmit={guardar} className="flex flex-col gap-5 rounded-2xl border border-border bg-surface px-4 py-5 sm:px-5">
+        <FormField
+          label="¿Cuántas semanas sin venir para avisarte?"
+          hint="Ejemplo: 6. Si alguien pasa ese tiempo sin agendar, aparece arriba en «no han vuelto»."
+          error={error?.campo === 'semanas' ? error.texto : null}
+        >
           <Input
-            id="regresan-semanas"
             type="number"
             inputMode="numeric"
             min={1}
             max={52}
+            required
             value={form.semanas}
             onChange={(e) => setForm({ ...form, semanas: e.target.value })}
             className="w-28"
           />
-        </div>
-        <div>
-          <Label htmlFor="regresan-resena">Link de reseñas de Google</Label>
+        </FormField>
+        <FormField
+          label="Tu link de reseñas de Google"
+          hint="En tu Perfil de Negocio de Google toca «Pedir reseñas» y copia el link."
+          error={error?.campo === 'link' ? error.texto : null}
+          optional
+        >
           <Input
             id="regresan-resena"
             type="url"
@@ -282,21 +321,18 @@ export function AjustesRegresan({
             placeholder="https://g.page/r/…/review"
             value={form.linkResena}
             onChange={(e) => setForm({ ...form, linkResena: e.target.value })}
-            className="w-full"
+            className="w-full scroll-mt-24"
           />
-          <p className="mt-1 text-xs leading-relaxed text-muted">
-            En tu Perfil de Negocio de Google: «Pedir reseñas» → copia el link.
+        </FormField>
+        {error && !error.campo && (
+          <p role="alert" className="rounded-xl bg-error-soft px-3.5 py-2.5 text-sm text-error">
+            {error.texto}
           </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <Button type="submit" isLoading={guardando}>
-            Guardar
+        )}
+        <div>
+          <Button type="submit" isLoading={guardando} className="max-sm:w-full">
+            {guardando ? 'Guardando…' : 'Guardar ajustes'}
           </Button>
-          {estado && (
-            <p role="status" className={`text-sm ${estado.tipo === 'ok' ? 'text-success' : 'text-error'}`}>
-              {estado.texto}
-            </p>
-          )}
         </div>
       </form>
     </section>

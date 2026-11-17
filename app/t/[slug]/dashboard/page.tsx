@@ -1,8 +1,7 @@
 import { productosDe } from '@/lib/products';
 import { ResumenCotizaciones } from './ResumenCotizaciones';
-import Link from 'next/link';
-import { ArrowUpRight, Check } from 'lucide-react';
-import { CopyLinkButton } from '@/components/tenant-dash/CopyLinkButton';
+import { ShareLink } from '@/components/tenant-dash/ui/ShareLink';
+import { PrimerosPasos } from '@/components/tenant-dash/ui/PrimerosPasos';
 import { createClient } from '@/lib/supabase/server';
 import { type AgendaBooking } from '@/components/tenant-dash/AgendaList';
 import { dayKey } from '@/lib/dates/tenantTime';
@@ -56,8 +55,14 @@ export default async function DashboardOverviewPage({ params }: { params: Promis
   const from = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
   const to = new Date(now.getTime() + 8 * 24 * 60 * 60 * 1000).toISOString();
 
-  const [{ data: raw }, { data: servicios }, { count: resourceCount }, { count: scheduleCount }, { data: conEstilo }] =
-    await Promise.all([
+  const [
+    { data: raw },
+    { data: servicios },
+    { count: resourceCount },
+    { count: scheduleCount },
+    { data: conEstilo },
+    { count: bookingCount },
+  ] = await Promise.all([
       supabase
         .from('bookings')
         .select('id, starts_at, ends_at, status, resources(name), service_types(name), customers(name, phone)')
@@ -84,6 +89,8 @@ export default async function DashboardOverviewPage({ params }: { params: Promis
       // Estilo del panel (db/054), aparte: sin la columna esta consulta
       // falla sola, data queda null y el Resumen sale en clásico.
       supabase.from('tenants').select('dashboard_estilo').eq('id', tenant!.id).maybeSingle(),
+      // ¿Ya llegó la primera cita? Último paso de "Tu agenda en 5 minutos".
+      supabase.from('bookings').select('id', { count: 'exact', head: true }).eq('tenant_id', tenant!.id),
     ]);
 
   const bookings = (raw ?? []) as unknown as AgendaBooking[];
@@ -95,12 +102,13 @@ export default async function DashboardOverviewPage({ params }: { params: Promis
 
   const serviceCount = (servicios ?? []).filter(esServicio).length;
 
-  const setup = [
-    { done: serviceCount > 0, label: 'Agrega al menos un servicio', href: '/dashboard/services' },
-    { done: (resourceCount ?? 0) > 0, label: 'Agrega quién o qué atiende', href: '/dashboard/resources' },
-    { done: (scheduleCount ?? 0) > 0, label: 'Define tu horario de atención', href: '/dashboard/schedule' },
-  ];
-  const setupComplete = setup.every((s) => s.done);
+  const pasos = {
+    servicios: serviceCount > 0,
+    quienAtiende: (resourceCount ?? 0) > 0,
+    horario: (scheduleCount ?? 0) > 0,
+    primeraCita: (bookingCount ?? 0) > 0,
+  };
+  const bookingUrl = tenantBookingPageUrl(slug);
 
   // Lo que pide atención y el dinero del día. Cada pieza solo si el
   // módulo está prendido, y cada una tolerante: sin su migración (o con
@@ -135,45 +143,10 @@ export default async function DashboardOverviewPage({ params }: { params: Promis
       alertas={alertas}
       base="/dashboard"
       modulos={tilesDe(productos, '/dashboard', planDe(tenant?.plan))}
-      action={<CopyLinkButton url={tenantBookingPageUrl(slug)} />}
-      setup={
-        setupComplete ? undefined : (
-          // Only shown when the page can't take bookings yet. It sits above
-          // everything because nothing below it can happen until it's done.
-          <section
-            className="mt-7 rounded-2xl border border-warning/30 bg-warning-soft px-5 py-5 sm:px-6"
-            aria-label="Configuración pendiente"
-          >
-            <p className="font-semibold text-ink">Tu página todavía no puede recibir citas</p>
-            <p className="mt-1 text-sm text-muted">
-              Faltan {setup.filter((s) => !s.done).length} de 3 pasos. Sin ellos no hay horarios que ofrecer.
-            </p>
-            <ol className="mt-3 flex flex-col">
-              {setup.map((s) => (
-                <li key={s.label}>
-                  {s.done ? (
-                    <span className="flex min-h-[2.75rem] items-center gap-2.5 text-sm text-muted line-through">
-                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-success text-white">
-                        <Check className="h-3 w-3" strokeWidth={3} />
-                      </span>
-                      {s.label}
-                    </span>
-                  ) : (
-                    <Link
-                      href={s.href}
-                      className="group flex min-h-[2.75rem] items-center gap-2.5 rounded-sm text-sm font-medium text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-                    >
-                      <span className="h-5 w-5 rounded-full border-2 border-ink/25" />
-                      <span className="underline-offset-4 group-hover:underline">{s.label}</span>
-                      <ArrowUpRight className="h-3.5 w-3.5 text-muted" aria-hidden="true" />
-                    </Link>
-                  )}
-                </li>
-              ))}
-            </ol>
-          </section>
-        )
-      }
+      action={<ShareLink url={bookingUrl} slug={slug} negocio={tenant?.name} className="justify-center" />}
+      // Primeros pasos: hasta que el negocio recibe su primera cita, arriba
+      // de todo, porque nada de lo de abajo pasa sin ellos.
+      setup={<PrimerosPasos slug={slug} url={bookingUrl} negocio={tenant?.name ?? ''} estado={pasos} />}
     />
   );
 }

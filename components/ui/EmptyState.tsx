@@ -2,16 +2,26 @@ import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Text } from './Text';
 
+// Un estado vacío ENSEÑA, no solo avisa (docs/UX-PANEL.md → "Estados
+// vacíos"): qué va a aparecer aquí (title + description), por qué le
+// sirve (why), un botón que lleva a hacerlo (action) y, si existe, un
+// ejemplo para ver cómo se ve antes de empezar (example).
 export function EmptyState({
   icon: Icon,
   title,
   description,
+  why,
   action,
+  example,
 }: {
   icon: LucideIcon;
   title: string;
   description?: string;
+  /** Por qué vale la pena: el beneficio en una frase, no la función. */
+  why?: string;
   action?: ReactNode;
+  /** Acción secundaria discreta, normalmente "Ver un ejemplo". */
+  example?: ReactNode;
 }) {
   return (
     <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
@@ -28,8 +38,14 @@ export function EmptyState({
             {description}
           </Text>
         )}
+        {why && <p className="mx-auto mt-2 max-w-sm text-sm font-medium leading-relaxed text-ink">{why}</p>}
       </div>
-      {action}
+      {(action || example) && (
+        <div className="mt-1 flex flex-col items-center gap-1">
+          {action}
+          {example}
+        </div>
+      )}
     </div>
   );
 }

@@ -3824,3 +3824,19 @@ manera más bonita, y que conforme avance el proceso ya no aparezca".
   arriba desapareció.
 - Bug viejo corregido: la barra de acción móvil no era sticky (su padre
   era un div de su mismo alto); ahora el wrapper es `contents`.
+
+**UX del panel, fase 1 (2026-11-16)**. Pedido de Bruno: "que nadie me
+rechace por complicado". Auditoría + reglas + plan en `docs/UX-PANEL.md`
+(leerlo antes de tocar cualquier pantalla del panel). Cimientos en
+`components/tenant-dash/ui/`: `toast()`/`Toaster` (montado en ambos
+layouts), `ActionForm`/`SubmitButton` (un error de server action ya no
+tira la página ni borra lo escrito), `FormField`, `HelpTip` (popover
+nativo, por toque), `ShareLink` (copiar + WhatsApp) y `PrimerosPasos`
+("Tu agenda en 5 minutos", reemplaza el checklist de 3 pasos del inicio).
+`PageHeader` ganó `help`/`actions`; `EmptyState` ganó `why`/`example`.
+Menú por intención (Agenda/Clientes/Dinero/Crecer/Ajustes), "Mi plan" en
+Ajustes, lo bloqueado por plan al final con candado (`bloqueados` = misma
+cuenta que `tilesDe`, vía el nuevo `productosDeFila`). Bug de tablet
+corregido: el inicio cambia en `lg`, no en `md`. `error.tsx` ya no enseña
+el genérico en inglés de producción. Fase 2 = 3 grupos en paralelo con
+archivos repartidos en el doc.

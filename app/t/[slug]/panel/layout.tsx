@@ -5,6 +5,7 @@ import { cookies } from 'next/headers';
 import { tenantColorCssVars, tenantDarkModeCssVars } from '@/lib/branding/colors';
 import { COOKIE_ESTILO_DEMO, estiloDe } from '@/lib/branding/dashEstilo';
 import { DemoRoot, EstiloSwitcher } from '@/components/tenant-dash/EstiloDemo';
+import { Toaster } from '@/components/tenant-dash/ui/Toast';
 
 // El armazón del panel abierto: el MISMO Sidebar que usa el panel real,
 // con su menú desplegable en teléfono.
@@ -92,6 +93,7 @@ export default async function PanelDemoLayout({
         <div className="dash-page mx-auto max-w-5xl px-4 py-7 sm:px-8 sm:py-10 lg:px-12">{children}</div>
       </div>
       <EstiloSwitcher inicial={estilo} />
+      <Toaster />
     </DemoRoot>
   );
 }

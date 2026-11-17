@@ -12,6 +12,7 @@
 - Search Console verificado y sitemap enviado. www → apex con 308 (Vercel).
 
 - Dashboard móvil tipo app: tiles con colores de campaña (5dce738). Paleta en `lib/branding/moduloColores.ts`.
+- UX del panel fase 1: auditoría, reglas y plan de 3 grupos en `docs/UX-PANEL.md`; primeros pasos, compartir link, toasts y menú por intención.
 - Recepcionista IA por WhatsApp (919bf58), desplegada pero sin conectar:
   - Webhook: `/api/webhooks/whatsapp`.
   - Panel: `/dashboard/whatsapp`.

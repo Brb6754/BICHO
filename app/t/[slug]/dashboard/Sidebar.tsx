@@ -30,11 +30,15 @@ import {
   MessageCircle,
   Zap,
   Lock,
+  Settings2,
+  ChevronRight,
 } from 'lucide-react';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { BusinessMark } from '@/components/tenant-dash/BusinessMark';
 import { tenantBookingPageUrl, tenantMeetingsPageUrl } from '@/lib/urls';
 import SignOutButton from './SignOutButton';
+import { ShareLink, ShareLinkCompact } from '@/components/tenant-dash/ui/ShareLink';
+import type { TileModulo } from '@/lib/branding/moduloColores';
 
 // These hrefs are the PUBLIC paths as seen on the tenant's subdomain
 // (e.g. test-salon.localhost:3000/dashboard/resources) — proxy.ts
@@ -50,16 +54,19 @@ import SignOutButton from './SignOutButton';
 const DASHBOARD_ROOT = '/dashboard';
 
 // Con trece módulos posibles, una lista plana de quince renglones ya no
-// se lee: se busca. Agrupados por el trabajo que hacen, el ojo salta al
-// bloque y luego al renglón. El orden dentro de cada bloque es el de
-// siempre (lo que más se abre, arriba).
-type NavGroup = 'dinero' | 'clientes' | 'negocio';
+// se lee: se busca. Agrupados por INTENCIÓN —lo que la dueña viene a
+// hacer— el ojo salta al bloque y luego al renglón (docs/UX-PANEL.md →
+// "Navegación"). Dentro de cada bloque, lo que más se abre va arriba.
+// Lo que su plan no incluye no estorba aquí: va al final, con candado.
+type NavGroup = 'agenda' | 'clientes' | 'dinero' | 'crecer' | 'ajustes';
 const GROUP_LABELS: Record<NavGroup, string> = {
-  dinero: 'Dinero',
+  agenda: 'Agenda',
   clientes: 'Clientes',
-  negocio: 'Tu negocio',
+  dinero: 'Dinero',
+  crecer: 'Crecer',
+  ajustes: 'Ajustes',
 };
-const GROUP_ORDER: (NavGroup | undefined)[] = [undefined, 'dinero', 'clientes', 'negocio'];
+const GROUP_ORDER: (NavGroup | undefined)[] = [undefined, 'agenda', 'clientes', 'dinero', 'crecer', 'ajustes'];
 
 // La barra de abajo en el teléfono, como la de una app: Inicio / Citas /
 // Clientes / Más. Si el negocio no tiene agenda, el hueco lo toma la
@@ -98,53 +105,48 @@ const NAV_ITEMS: {
   /** Bloque del menú. Sin grupo: lo de todos los días, arriba y sin título. */
   group?: NavGroup;
 }[] = [
-  { href: '/dashboard', label: 'Resumen', icon: LayoutDashboard, exact: true },
+  { href: '/dashboard', label: 'Inicio', icon: House, exact: true },
   // Arriba de todo lo demás: es una forma de leer las otras secciones,
   // no una sección más.
   { href: '/dashboard/copiloto', label: 'Copiloto', icon: Sparkles, requiresCopiloto: true },
-  { href: '/dashboard/calendar', label: 'Agenda', icon: CalendarDays, requiresReservas: true },
-  // Caja (db/045): justo después de la agenda, porque las citas completadas son sus ventas.
-  { href: '/dashboard/caja', label: 'Caja', icon: Wallet, requiresCaja: true, group: 'dinero' },
-  // Comisiones (db/050): junto a Caja, salen de las mismas citas completadas.
-  { href: '/dashboard/comisiones', label: 'Comisiones', icon: HandCoins, requiresComisiones: true, group: 'dinero' },
-  // Inventario (db/049): también área Números; una venta de producto puede caer en Caja.
-  { href: '/dashboard/inventario', label: 'Inventario', icon: Package, requiresInventario: true, group: 'dinero' },
-  // Above the catalogue on purpose: services and hours are setup, changed
-  // a few times a year. Customers is something an owner looks up.
+
+  // AGENDA — las citas y lo que las hace posibles. Servicios, quién
+  // atiende y horario se configuran pocas veces, pero son de la agenda:
+  // buscarlos en "Tu negocio" era adivinar.
+  { href: '/dashboard/calendar', label: 'Agenda', icon: CalendarDays, requiresReservas: true, group: 'agenda' },
+  // Una reunión ocupa a la misma persona en el mismo calendario (db/039).
+  { href: '/dashboard/reuniones', label: 'Reuniones', icon: Handshake, requiresReuniones: true, group: 'agenda' },
+  { href: '/dashboard/services', label: 'Servicios', icon: Tag, requiresReservas: true, group: 'agenda' },
+  // Infraestructura compartida: citas O reuniones (ver db/039).
+  { href: '/dashboard/resources', label: 'Quién atiende', icon: Users, requiresAgenda: true, group: 'agenda' },
+  { href: '/dashboard/schedule', label: 'Horario', icon: Clock3, requiresAgenda: true, group: 'agenda' },
+
+  // CLIENTES — las mismas personas, vistas desde distintos lados.
   { href: '/dashboard/customers', label: 'Clientes', icon: Contact, group: 'clientes' },
-  // Lealtad (db/047): junto a Clientes, es sobre las mismas personas.
-  { href: '/dashboard/lealtad', label: 'Lealtad', icon: Stamp, requiresLealtad: true, group: 'clientes' },
-  // Clientes que regresan (db/046): también sobre las mismas personas.
   { href: '/dashboard/regresan', label: 'Clientes que regresan', icon: HeartHandshake, requiresRegresan: true, group: 'clientes' },
-  // El segundo producto de bicho. Aparece solo si el negocio lo tiene
-  // prendido: para quien solo agenda citas, un menú con una sección que
-  // no usa es ruido permanente.
-  // Posts con IA (db/048): para traer a esas mismas clientas desde redes.
-  { href: '/dashboard/posts', label: 'Posts con IA', icon: Megaphone, requiresPosts: true, group: 'clientes' },
-  // WhatsApp (db/056, db/057): recepcionista y Cotiza por WhatsApp; habla con las mismas personas.
+  { href: '/dashboard/lealtad', label: 'Lealtad', icon: Stamp, requiresLealtad: true, group: 'clientes' },
+  // Recepcionista y Cotiza por WhatsApp: habla con esas mismas personas.
   { href: '/dashboard/whatsapp', label: 'WhatsApp', icon: MessageCircle, requiresWhatsapp: true, group: 'clientes' },
-  // Boost (db/058): llena huecos de la agenda con esas mismas clientas.
-  { href: '/dashboard/boost', label: 'Boost', icon: Zap, requiresBoost: true, group: 'clientes' },
+
+  // DINERO — en el orden real del trabajo: se cobra (Caja), se reparte
+  // (Comisiones), se repone (Inventario); y para quien vende por
+  // proyecto: se cotiza, se factura, y la guía para poder facturar.
+  { href: '/dashboard/caja', label: 'Caja', icon: Wallet, requiresCaja: true, group: 'dinero' },
+  { href: '/dashboard/comisiones', label: 'Comisiones', icon: HandCoins, requiresComisiones: true, group: 'dinero' },
+  { href: '/dashboard/inventario', label: 'Inventario', icon: Package, requiresInventario: true, group: 'dinero' },
   { href: '/dashboard/cotizaciones', label: 'Cotizaciones', icon: FileText, requiresQuotes: true, group: 'dinero' },
-  // Cuarto módulo. Arriba de cotizaciones no: primero se habla con el
-  // prospecto y después se le pone precio, así que este es el orden
-  // real del trabajo.
-  { href: '/dashboard/reuniones', label: 'Reuniones', icon: Handshake, requiresReuniones: true },
-  // Tercer producto. Debajo de cotizaciones porque ese es el orden
-  // real del trabajo: se cotiza, se cobra, y al final se factura.
   { href: '/dashboard/facturas', label: 'Facturas', icon: ReceiptText, requiresFacturacion: true, group: 'dinero' },
-  // Guía RESICO (db/051): junto a Facturas, es el camino para llegar a facturar.
   { href: '/dashboard/resico', label: 'Guía RESICO', icon: Landmark, requiresResico: true, group: 'dinero' },
-  { href: '/dashboard/services', label: 'Servicios', icon: Tag, requiresReservas: true, group: 'negocio' },
-  // "Quién atiende" y "Horario" son infraestructura compartida: una
-  // reunión ocupa al mismo asesor y el mismo horario que una cita (ver
-  // db/039). Un negocio que solo contrató reuniones los necesita igual,
-  // y sin esto se quedaría sin dónde darlos de alta.
-  { href: '/dashboard/resources', label: 'Quién atiende', icon: Users, requiresAgenda: true, group: 'negocio' },
-  { href: '/dashboard/schedule', label: 'Horario', icon: Clock3, requiresAgenda: true, group: 'negocio' },
-  { href: '/dashboard/marca', label: 'Mi marca', icon: Palette, ownerOnly: true, group: 'negocio' },
-  // Referidos (db/052): todos los negocios, sin flag. El demo no tiene esta página.
-  { href: '/dashboard/referidos', label: 'Referidos', icon: Gift, ownerOnly: true, group: 'negocio' },
+
+  // CRECER — traer clientas nuevas y llenar huecos.
+  { href: '/dashboard/boost', label: 'Boost de clientes', icon: Zap, requiresBoost: true, group: 'crecer' },
+  { href: '/dashboard/posts', label: 'Posts con IA', icon: Megaphone, requiresPosts: true, group: 'crecer' },
+
+  // AJUSTES — lo que se toca una vez. Solo el dueño de un negocio real.
+  { href: '/dashboard/marca', label: 'Mi marca', icon: Palette, ownerOnly: true, group: 'ajustes' },
+  { href: '/dashboard/plan', label: 'Mi plan', icon: Settings2, ownerOnly: true, group: 'ajustes' },
+  // Referidos (db/052): todos los negocios, sin flag.
+  { href: '/dashboard/referidos', label: 'Gana meses gratis', icon: Gift, ownerOnly: true, group: 'ajustes' },
 ];
 
 const ROLE_LABELS: Record<string, string> = {
@@ -183,6 +185,7 @@ export function Sidebar({
   inventarioEnabled = false,
   whatsappEnabled = false,
   boost,
+  bloqueados = [],
   bookingHref,
   footer,
 }: {
@@ -226,6 +229,8 @@ export function Sidebar({
   whatsappEnabled?: boolean;
   /** Boost: 'on' = abre su página; 'locked' = el plan no lo incluye, candado a /dashboard/plan; sin valor = oculto. */
   boost?: 'on' | 'locked';
+  /** Módulos que el plan no incluye (tilesDe con `bloqueado`): al final del menú, con candado. */
+  bloqueados?: TileModulo[];
   // Same reason: the demo's booking page isn't on a tenant subdomain.
   bookingHref?: string;
   // Defaults to the real sign-out. The demo has no session to end.
@@ -266,17 +271,25 @@ export function Sidebar({
       (!item.requiresComisiones || comisionesEnabled) &&
       (!item.requiresInventario || inventarioEnabled) &&
       (!item.requiresWhatsapp || whatsappEnabled) &&
-      (!item.requiresBoost || Boolean(boost)) &&
+      (!item.requiresBoost || boost === 'on') &&
       (!item.requiresAgenda || reservasEnabled || reunionesEnabled) &&
       (!item.requiresFacturacion || facturacionEnabled) &&
       (!item.ownerOnly || (role === 'owner' && !navBase))
   ).map((item) => {
-    const locked = item.requiresBoost === true && boost === 'locked';
-    const destino = locked ? `${DASHBOARD_ROOT}/plan` : item.href;
-    const href = navBase ? `${navBase}${destino.slice(DASHBOARD_ROOT.length)}` : destino;
+    const href = navBase ? `${navBase}${item.href.slice(DASHBOARD_ROOT.length)}` : item.href;
     const isActive = item.exact ? pathname === href : (pathname?.startsWith(href) ?? false);
-    return { ...item, href, key: item.href, isActive: locked ? false : isActive, locked };
+    return { ...item, href, key: item.href, isActive };
   });
+
+  // El link que la dueña reparte. Sin citas ni reuniones no hay página
+  // pública: el enlace llevaría a un 404 del propio negocio. Con las dos,
+  // gana la de reservas — es la que un negocio reparte.
+  const linkPublico =
+    reservasEnabled || reunionesEnabled
+      ? (bookingHref ?? (reservasEnabled ? tenantBookingPageUrl(slug) : tenantMeetingsPageUrl(slug)))
+      : null;
+  // La demo no deja seña de "link compartido": no es el teléfono de una dueña.
+  const slugSena = navBase ? undefined : slug;
 
   const bottom = BOTTOM_PRIORITY.map((h) => visible.find((v) => v.key === h))
     .filter((v): v is (typeof visible)[number] => Boolean(v))
@@ -294,6 +307,8 @@ export function Sidebar({
           <BusinessMark name={tenantName} logoUrl={logoUrl} color={primaryColor} size="sm" />
         </span>
         <p className="min-w-0 truncate text-[16px] font-semibold tracking-tight">{tenantName}</p>
+        {/* La acción #1 de valor, siempre a un toque en el teléfono. */}
+        {linkPublico && <ShareLinkCompact url={linkPublico} slug={slugSena} negocio={tenantName} />}
       </div>
 
       {/* Phone bottom bar. The owner holds the phone in one hand between
@@ -409,9 +424,6 @@ export function Sidebar({
                             aria-hidden="true"
                           />
                           <span className="truncate">{item.label}</span>
-                          {item.locked && (
-                            <Lock className="ml-auto h-3.5 w-3.5 shrink-0" aria-label="Fuera de tu plan" />
-                          )}
                         </Link>
                       </li>
                     );
@@ -421,25 +433,32 @@ export function Sidebar({
             );
           })}
 
-          {/* Sin citas ni reuniones no hay página pública que ver: el
-              enlace llevaría a un 404 del propio negocio. Con las dos,
-              gana la de reservas — es la que un negocio reparte. */}
-          {(reservasEnabled || reunionesEnabled) && (
-            <a
-              href={
-                bookingHref ??
-                (reservasEnabled ? tenantBookingPageUrl(slug) : tenantMeetingsPageUrl(slug))
-              }
-              target="_blank"
-              rel="noreferrer"
-              className="group mt-5 flex min-h-[2.75rem] items-center gap-3 rounded-xl border border-dashed border-border-strong px-3 text-sm font-medium text-ink transition-colors hover:border-solid hover:bg-ink/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-            >
-              <ArrowUpRight
-                className="h-[18px] w-[18px] shrink-0 text-muted transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
-                aria-hidden="true"
-              />
-              {reservasEnabled ? 'Ver mi página de reservas' : 'Ver mi página de reuniones'}
-            </a>
+          {/* Lo que el plan no incluye: al final, plegado, sin estorbar.
+              Cerrado por omisión; quien lo abre ve qué gana subiendo. */}
+          {bloqueados.length > 0 && (
+            <details className="group/mas mt-5">
+              <summary className="flex min-h-[2.75rem] cursor-pointer list-none items-center gap-3 rounded-xl px-3 text-xs font-medium text-muted hover:bg-ink/[0.05] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 [&::-webkit-details-marker]:hidden">
+                <Lock className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                Más con otro plan ({bloqueados.length})
+                <ChevronRight
+                  className="ml-auto h-3.5 w-3.5 transition-transform duration-200 group-open/mas:rotate-90 motion-reduce:transition-none"
+                  aria-hidden="true"
+                />
+              </summary>
+              <ul className="mt-0.5 flex flex-col gap-0.5">
+                {bloqueados.map((t) => (
+                  <li key={t.clave}>
+                    <Link
+                      href={navBase ? `${navBase}${t.href.slice(DASHBOARD_ROOT.length)}` : t.href}
+                      className="flex min-h-[2.75rem] items-center gap-3 rounded-xl px-3 text-sm text-muted hover:bg-ink/[0.05] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 lg:min-h-[2.5rem]"
+                    >
+                      <span className="truncate">{t.label}</span>
+                      {t.bloqueado && <span className="ml-auto shrink-0 text-xs">Plan {t.bloqueado.plan}</span>}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </details>
           )}
         </nav>
 
@@ -453,6 +472,31 @@ export function Sidebar({
               <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
             </span>
           </Link>
+        )}
+
+        {linkPublico && (
+          // En el teléfono ya está en la barra de arriba; en el cajón solo estorbaría.
+          <div className="mx-3 mb-3 hidden rounded-2xl border border-border p-3 lg:block">
+            <p className="px-1 text-[13px] font-semibold text-ink">
+              {reservasEnabled ? 'Tu link de reservas' : 'Tu link de reuniones'}
+            </p>
+            <ShareLink
+              url={linkPublico}
+              slug={slugSena}
+              negocio={tenantName}
+              corto
+              className="mt-2 !flex-nowrap [&>*]:flex-1 [&>*]:justify-center [&>*]:px-2"
+            />
+            <a
+              href={linkPublico}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-1 flex min-h-[2.75rem] items-center justify-center gap-1.5 rounded-xl text-[13px] font-medium text-muted lg:min-h-[2.25rem] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+            >
+              Ver cómo la ven tus clientas
+              <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
+            </a>
+          </div>
         )}
 
         <div className="border-t border-border p-3">

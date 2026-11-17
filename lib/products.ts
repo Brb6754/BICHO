@@ -44,6 +44,11 @@ export async function productosDe(slug: string): Promise<ProductosDelNegocio> {
     .eq('slug', slug)
     .maybeSingle();
 
+  return productosDeFila(data);
+}
+
+/** Lo mismo que productosDe, sobre una fila de `tenants` que ya se tiene (el layout del panel). */
+export function productosDeFila(data: Record<string, unknown> | null | undefined): ProductosDelNegocio {
   return {
     reservas: data?.reservas_enabled !== false,
     cotizaciones: data?.quotes_enabled === true,

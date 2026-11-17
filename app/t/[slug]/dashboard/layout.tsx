@@ -11,7 +11,10 @@ import { Sidebar } from './Sidebar';
 import { TrialBanner } from '@/components/tenant-dash/TrialBanner';
 import { tenantAccess } from '@/lib/billing/trial';
 import { estiloDe } from '@/lib/branding/dashEstilo';
-import { boostVisible, whatsappVisible } from '@/lib/products';
+import { boostVisible, productosDeFila, whatsappVisible } from '@/lib/products';
+import { tilesDe } from '@/lib/branding/moduloColores';
+import { planDe } from '@/lib/billing/planes';
+import { Toaster } from '@/components/tenant-dash/ui/Toast';
 
 export default async function DashboardLayout({
   children,
@@ -146,6 +149,13 @@ export default async function DashboardLayout({
         inventarioEnabled={inventarioEnabled}
         whatsappEnabled={whatsappEnabled}
         boost={boost}
+        // Lo que el plan no incluye, con candado al final del menú: la
+        // MISMA cuenta que los tiles del inicio móvil.
+        bloqueados={
+          membership.role === 'owner'
+            ? tilesDe(productosDeFila(ajustes), '/dashboard', planDe(ajustes?.plan)).filter((t) => t.bloqueado)
+            : []
+        }
       />
       <main className="dash-main relative z-10 min-w-0 flex-1 px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-20 sm:px-8 lg:px-12 lg:pb-16 lg:pt-12">
         <div className="dash-page mx-auto max-w-5xl">
@@ -153,6 +163,7 @@ export default async function DashboardLayout({
           {children}
         </div>
       </main>
+      <Toaster />
     </div>
   );
 }

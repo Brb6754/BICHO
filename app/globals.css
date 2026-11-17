@@ -1584,3 +1584,9 @@ html:not(.dark) .tenant-shell.tenant-dash[data-estilo='vibrante'] {
     animation: mk-stock 1400ms cubic-bezier(0.16, 1, 0.3, 1) 300ms both;
   }
 }
+
+/* HelpTip (components/tenant-dash/ui/HelpTip.tsx): la tarjeta de "¿qué es
+   esto?" usa el popover nativo; el velo de atrás la separa del panel. */
+.help-tip::backdrop {
+  background: rgb(0 0 0 / 0.35);
+}

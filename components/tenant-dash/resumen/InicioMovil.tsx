@@ -25,10 +25,10 @@ import { ListaPendientes, enCuanto, plural, type Dia, type ResumenProps } from '
 
 // EL INICIO EN EL TELÉFONO — "todo tu salón desde el cel".
 //
-// Debajo de 768px el Resumen deja de ser un tablero y se vuelve la
+// Debajo de 1024px (teléfono y tablet) el Resumen deja de ser un tablero y se vuelve la
 // pantalla de inicio de una app: lo esencial de hoy en una tarjeta, lo
 // que pide atención, y una cuadrícula de módulos con el color de cada
-// uno (el mismo de los anuncios). Arriba de 768px no se pinta: ahí
+// uno (el mismo de los anuncios). Arriba de 1024px no se pinta: ahí
 // mandan los cuatro estilos. Mismas cuentas (armar), cero consultas.
 
 const ICONO: Record<ClaveColor, LucideIcon> = {
@@ -99,7 +99,7 @@ export function InicioMovil({ p, d, modulos }: { p: ResumenProps; d: Dia; modulo
   const { tz, active, done, next, inProgress } = d;
   const restantes = active.length - done;
   return (
-    <div className="md:hidden">
+    <div className="mx-auto max-w-2xl lg:hidden">
       <header>
         <h1 className="text-[1.75rem] font-semibold leading-[1.1] tracking-[-0.03em] text-ink">{d.saludo}</h1>
         <p className="mt-1 text-sm text-muted first-letter:uppercase">{d.fecha}</p>

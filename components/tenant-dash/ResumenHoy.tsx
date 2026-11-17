@@ -90,11 +90,13 @@ export function ResumenHoy(props: ResumenProps) {
     }
   })();
   if (!props.modulos) return estilo;
-  // Teléfono: el inicio tipo app. De 768px para arriba, el estilo intacto.
+  // Teléfono y tablet: el inicio tipo app. De 1024px (lg, donde aparece el
+  // menú lateral) para arriba, el estilo intacto. Con md la tablet mezclaba
+  // las barras del teléfono con el tablero de escritorio.
   return (
     <>
       <InicioMovil p={props} d={d} modulos={props.modulos} />
-      <div className="hidden md:block">{estilo}</div>
+      <div className="hidden lg:block">{estilo}</div>
     </>
   );
 }

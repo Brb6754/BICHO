@@ -12,7 +12,6 @@ import { ResumenHoy, alertaInventario, alertaRegresan, dineroDe, type Alerta } f
 import { requireTenantStaff } from '@/lib/auth/tenantStaff';
 import { cargarCaja } from '@/lib/caja/datos';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { estiloDe } from '@/lib/branding/dashEstilo';
 import { ajustesDe, armarRegresan, type CitaRegresan } from '@/lib/regresan/armar';
 import { tilesDe } from '@/lib/branding/moduloColores';
 import { planDe } from '@/lib/billing/planes';
@@ -60,7 +59,6 @@ export default async function DashboardOverviewPage({ params }: { params: Promis
     { data: servicios },
     { count: resourceCount },
     { count: scheduleCount },
-    { data: conEstilo },
     { count: bookingCount },
   ] = await Promise.all([
       supabase
@@ -86,9 +84,6 @@ export default async function DashboardOverviewPage({ params }: { params: Promis
         .eq('tenant_id', tenant!.id)
         .eq('active', true),
       supabase.from('resource_schedules').select('id', { count: 'exact', head: true }).eq('tenant_id', tenant!.id),
-      // Estilo del panel (db/054), aparte: sin la columna esta consulta
-      // falla sola, data queda null y el Resumen sale en clásico.
-      supabase.from('tenants').select('dashboard_estilo').eq('id', tenant!.id).maybeSingle(),
       // ¿Ya llegó la primera cita? Último paso de "Tu agenda en 5 minutos".
       supabase.from('bookings').select('id', { count: 'exact', head: true }).eq('tenant_id', tenant!.id),
     ]);
@@ -133,7 +128,6 @@ export default async function DashboardOverviewPage({ params }: { params: Promis
 
   return (
     <ResumenHoy
-      estilo={estiloDe((conEstilo as { dashboard_estilo?: unknown } | null)?.dashboard_estilo)}
       tenantName={tenant?.name ?? 'Tu negocio'}
       now={now}
       timezone={tz}

@@ -3,18 +3,14 @@ import { Package, HeartHandshake } from 'lucide-react';
 import { addDaysKey } from '@/lib/dates/tenantTime';
 import { rangoDe, resumir, type Movimiento } from '@/lib/caja/resumen';
 import { armar, type ResumenProps } from './resumen/comun';
-import { ResumenClasico } from './resumen/Clasico';
-import { ResumenSuave } from './resumen/Suave';
-import { ResumenVibrante } from './resumen/Vibrante';
-import { ResumenPoster } from './resumen/Poster';
-import { InicioMovil } from './resumen/InicioMovil';
+import { Inicio } from './resumen/Inicio';
 
 // EL RESUMEN — la pantalla con la que la dueña abre el día.
 //
-// Una sola pregunta manda: "¿qué tengo hoy?". Cada uno de los cuatro
-// estilos (Clásico, Suave, Vibrante, Póster) la contesta con su propio
-// acomodo, siempre con los mismos datos: la siguiente cita, el avance
-// del día, lo que pide atención, el dinero y la agenda.
+// Una sola pregunta manda: "¿qué tengo hoy?". Un solo diseño, blanco con
+// colores, del teléfono al escritorio (resumen/Inicio): lo que pide
+// atención, la siguiente cita, los números del día, los atajos, la agenda
+// y los módulos.
 //
 // Es la misma pieza para el panel real (/dashboard) y la demo sin login
 // (/panel): cada página junta sus datos y esta solo pinta. `base` es el
@@ -72,31 +68,6 @@ export function alertaRegresan(nombres: string[], semanas: number, base: string)
   };
 }
 
-// Un componente por estilo (db/054): las mismas props, las mismas
-// cuentas (armar), distinto acomodo. El estilo de la piel —colores,
-// radios, sombras— vive en globals.css bajo .tenant-dash[data-estilo].
 export function ResumenHoy(props: ResumenProps) {
-  const d = armar(props);
-  const estilo = (() => {
-    switch (props.estilo) {
-      case 'suave':
-        return <ResumenSuave p={props} d={d} />;
-      case 'vibrante':
-        return <ResumenVibrante p={props} d={d} />;
-      case 'poster':
-        return <ResumenPoster p={props} d={d} />;
-      default:
-        return <ResumenClasico p={props} d={d} />;
-    }
-  })();
-  if (!props.modulos) return estilo;
-  // Teléfono y tablet: el inicio tipo app. De 1024px (lg, donde aparece el
-  // menú lateral) para arriba, el estilo intacto. Con md la tablet mezclaba
-  // las barras del teléfono con el tablero de escritorio.
-  return (
-    <>
-      <InicioMovil p={props} d={d} modulos={props.modulos} />
-      <div className="hidden lg:block">{estilo}</div>
-    </>
-  );
+  return <Inicio p={props} d={armar(props)} modulos={props.modulos ?? []} />;
 }

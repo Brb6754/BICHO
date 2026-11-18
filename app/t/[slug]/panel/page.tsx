@@ -10,8 +10,6 @@ import { demoCaja } from '@/lib/caja/demo';
 import { demoInventario } from '@/lib/inventario/demo';
 import { seAcaba } from '@/lib/inventario/logica';
 import { tenantBookingPageUrl } from '@/lib/urls';
-import { cookies } from 'next/headers';
-import { COOKIE_ESTILO_DEMO, estiloDe } from '@/lib/branding/dashEstilo';
 import { tilesDe } from '@/lib/branding/moduloColores';
 
 // Los módulos que la demo enseña (los mismos que prende su Sidebar en panel/layout.tsx).
@@ -60,20 +58,12 @@ export const dynamic = 'force-dynamic';
 // Y es de solo lectura: ningún botón escribe. Un panel público con
 // acciones sería una puerta abierta para cancelarle la agenda a alguien
 // desde la calle.
-export default async function PanelDemoPage({
-  params,
-  searchParams,
-}: {
-  params: Promise<{ slug: string }>;
-  searchParams: Promise<{ estilo?: string }>;
-}) {
+export default async function PanelDemoPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  // ?estilo= manda (el conmutador de la demo); si no, la cookie que dejó.
-  const estilo = estiloDe((await searchParams).estilo ?? (await cookies()).get(COOKIE_ESTILO_DEMO)?.value);
   const datos = await cargarPanelDemo(slug);
   if (!datos) notFound();
 
-  const { tenant, citas, services, now } = datos;
+  const { tenant, citas, services, resources, now } = datos;
   const tz = tenant.timezone;
 
   const hoyKey = dayKey(now, tz);
@@ -104,7 +94,6 @@ export default async function PanelDemoPage({
   return (
     <div>
       <ResumenHoy
-        estilo={estilo}
         tenantName={tenant.name}
         now={now}
         timezone={tz}
@@ -114,11 +103,11 @@ export default async function PanelDemoPage({
         alertas={alertas}
         base="/panel"
         modulos={tilesDe(PRODUCTOS_DEMO, '/panel', null, false)}
+        demo={{ servicios: services.map((s) => s.name), personas: resources.map((r) => r.name), hoyKey }}
       />
 
       <p className="mt-12 text-[13px] leading-relaxed text-muted">
-        En el panel real cada cita se puede mover, cancelar o marcar como atendida, y el dueño
-        agenda a mano a quien llama por teléfono. Aquí todo es de solo lectura.
+        Es una demo: puedes tocar y probar todo, pero nada se guarda.
       </p>
     </div>
   );

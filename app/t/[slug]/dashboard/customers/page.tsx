@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/tenant-dash/PageHeader';
 import { buildRoster, customerTenure, type RosterBooking } from '@/lib/customers/roster';
 import { buildDirectory } from '@/lib/contacts/directory';
-import { ContactDirectory } from '@/components/tenant-dash/ContactDirectory';
+import { ContactDirectory, type CitaHistorial } from '@/components/tenant-dash/ContactDirectory';
 import { dayKey, dayLabel, longDate } from '@/lib/dates/tenantTime';
 
 // CLIENTES — the people behind the agenda.
@@ -72,7 +72,7 @@ export default async function CustomersPage({ params }: { params: Promise<{ slug
     const [{ data: bk }, { data: qt }, { data: inv }] = await Promise.all([
       supabase
         .from('bookings')
-        .select('contact_id:customers(contact_id), starts_at, status')
+        .select('contact_id:customers(contact_id), starts_at, status, service_types(name)')
         .eq('tenant_id', tenant!.id)
         .order('starts_at', { ascending: false })
         .limit(BOOKING_LIMIT),
@@ -87,11 +87,20 @@ export default async function CustomersPage({ params }: { params: Promise<{ slug
       contact_id: { contact_id: string | null } | null;
       starts_at: string;
       status: string;
+      service_types: { name: string } | null;
     }[]).map((b) => ({
       contact_id: b.contact_id?.contact_id ?? null,
       starts_at: b.starts_at,
       status: b.status,
+      servicio: b.service_types?.name ?? null,
     }));
+
+    // Sus citas por persona (ya vienen de la más reciente a la más vieja):
+    // la ficha de la hoja y el "por qué" de cada tarjeta ("última falta: 3 nov").
+    const historial: Record<string, CitaHistorial[]> = {};
+    for (const b of bookings) {
+      if (b.contact_id) (historial[b.contact_id] ??= []).push(b);
+    }
 
     const entries = buildDirectory(
       contactRows ?? [],
@@ -104,11 +113,8 @@ export default async function CustomersPage({ params }: { params: Promise<{ slug
 
     return (
       <div>
-        <PageHeader
-          title="Clientes"
-          description="Busca a cualquier cliente, llámale o mira quién dejó de venir."
-        />
-        <ContactDirectory entries={entries} now={now} timezone={tz} emptyAction={compartir} />
+        <PageHeader title="Clientes" description="Búscalos, escríbeles o mira quién dejó de venir." />
+        <ContactDirectory entries={entries} now={now} timezone={tz} emptyAction={compartir} historial={historial} />
       </div>
     );
   }

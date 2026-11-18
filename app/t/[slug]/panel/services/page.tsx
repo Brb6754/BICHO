@@ -1,15 +1,16 @@
 import { notFound } from 'next/navigation';
-import { Clock3 } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { PageHeader } from '@/components/tenant-dash/PageHeader';
 import { cargarPanelDemo } from '@/lib/demo/panelData';
-import { formatDuration, formatPrice } from '@/components/booking/types';
+import { AbrirHoja, HojaFormulario } from '@/components/tenant-dash/fichas/Hoja';
+import { CamposServicio, ServicioCard } from '@/components/tenant-dash/fichas/ServicioCard';
 
 export const dynamic = 'force-dynamic';
 
-// Servicios: estos SÍ son reales — son el catálogo público del negocio,
-// el mismo que alimenta la página de reservas. Es la pantalla donde se
-// ve que el panel y la página de reservas son el mismo sistema y no dos
-// listas que alguien mantiene a mano.
+// Servicios de la demo: el catálogo REAL del negocio (el mismo que ve la
+// página de reservas), con las mismas tarjetas y hojas del panel. Agregar
+// y editar se pueden probar: la hoja se llena igual, pero al guardar solo
+// confirma "Ejemplo: …" (la demo es de solo lectura).
 export default async function ServiciosDemoPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const datos = await cargarPanelDemo(slug);
@@ -19,25 +20,24 @@ export default async function ServiciosDemoPage({ params }: { params: Promise<{ 
     <div>
       <PageHeader
         title="Servicios"
-        description="Lo que tus clientas pueden reservar en tu página, con cuánto dura y cuánto cuesta."
+        description="Lo que tus clientas pueden reservar. Toca uno para editarlo."
+        action={
+          <AbrirHoja id="nuevo-servicio">
+            <Plus className="h-5 w-5" aria-hidden="true" />
+            Agregar servicio
+          </AbrirHoja>
+        }
       />
 
-      <ul className="mt-8 divide-y divide-border overflow-hidden rounded-2xl bg-surface ring-1 ring-border">
+      <ul className="mt-6 grid gap-3 lg:grid-cols-2">
         {datos.services.map((s) => (
-          <li key={s.id} className="flex items-center gap-x-4 px-4 py-4 sm:px-5">
-            <div className="min-w-0 flex-1">
-              <p className="text-[15px] font-medium text-ink">{s.name}</p>
-              <p className="mt-0.5 flex items-center gap-1.5 text-[13px] text-muted">
-                <Clock3 className="h-3.5 w-3.5" aria-hidden="true" />
-                {formatDuration(s.duration_minutes)}
-              </p>
-            </div>
-            <span className="rounded-full bg-primary/[0.14] px-3 py-1 text-sm font-bold tabular-nums text-ink">
-              {formatPrice(s.price_cents) || 'Gratis'}
-            </span>
-          </li>
+          <ServicioCard key={s.id} s={s} />
         ))}
       </ul>
+
+      <HojaFormulario id="nuevo-servicio" titulo="Agregar servicio" success="servicio agregado" enviar="Agregar servicio">
+        <CamposServicio />
+      </HojaFormulario>
     </div>
   );
 }

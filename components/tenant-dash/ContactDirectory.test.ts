@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { coincide } from './ContactDirectory';
+import { coincide, porQue } from './ContactDirectory';
 import type { DirectoryEntry } from '@/lib/contacts/directory';
 
 const lupita = {
@@ -27,5 +27,24 @@ describe('buscar una clienta', () => {
 
   it('sin texto, todas coinciden', () => {
     expect(coincide(lupita, '   ')).toBe(true);
+  });
+});
+
+describe('por qué está en su sección', () => {
+  const now = new Date('2026-11-17T18:00:00Z');
+  const base = { ...lupita, visits: 3, noShows: 2, openQuotes: 0, lastVisit: '2026-10-20T17:00:00Z', nextVisit: null } as DirectoryEntry;
+
+  it('dice cuántas faltas y cuándo fue la última', () => {
+    const hist = [
+      { starts_at: '2026-11-03T17:00:00Z', status: 'no_show' },
+      { starts_at: '2026-10-20T17:00:00Z', status: 'completed' },
+      { starts_at: '2026-09-01T17:00:00Z', status: 'no_show' },
+    ];
+    expect(porQue('noLlegaron', base, hist, now, 'America/Mexico_City')).toBe('No vino 2 veces · última falta: 3 nov');
+  });
+
+  it('a quien se enfrió le dice desde cuándo', () => {
+    const fria = { ...base, lastVisit: '2026-06-10T17:00:00Z' } as DirectoryEntry;
+    expect(porQue('seEnfriaron', fria, [], now, 'America/Mexico_City')).toBe('No viene desde hace 5 meses · última vez: 10 jun');
   });
 });

@@ -3,12 +3,12 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 
-export async function createService(slug: string, formData: FormData) {
+// Lo que manda la hoja de agregar o de editar, ya validado. Las dos
+// acciones validan igual: editar no puede dejar pasar lo que agregar no.
+function leerServicio(formData: FormData) {
   const name = formData.get('name') as string;
   const durationMinutes = Number(formData.get('duration_minutes'));
   const priceMxn = Number(formData.get('price_mxn'));
-  const requiresStaff = formData.get('requires_staff') === 'on';
-  const showPrice = formData.get('show_price') === 'on';
 
   // Number(...) on a missing/malformed field silently produces NaN or 0,
   // which would otherwise hit the DB's `check (duration_minutes > 0)`
@@ -28,19 +28,23 @@ export async function createService(slug: string, formData: FormData) {
   if (!Number.isFinite(priceMxn) || priceMxn < 0) {
     throw new Error('El precio tiene que ser 0 o más, por ejemplo 250.');
   }
+  return {
+    name: name.trim(),
+    duration_minutes: durationMinutes,
+    price_cents: Math.round(priceMxn * 100),
+    requires_staff: formData.get('requires_staff') === 'on',
+    show_price: formData.get('show_price') === 'on',
+  };
+}
+
+export async function createService(slug: string, formData: FormData) {
+  const campos = leerServicio(formData);
 
   const supabase = await createClient();
   const { data: tenant } = await supabase.from('tenants').select('id').eq('slug', slug).single();
   if (!tenant) return;
 
-  const fila = {
-    tenant_id: tenant.id,
-    name,
-    duration_minutes: durationMinutes,
-    price_cents: Math.round(priceMxn * 100),
-    requires_staff: requiresStaff,
-    show_price: showPrice,
-  };
+  const fila = { tenant_id: tenant.id, ...campos };
 
   let { error } = await supabase.from('service_types').insert(fila);
 
@@ -56,6 +60,28 @@ export async function createService(slug: string, formData: FormData) {
   if (error) {
     console.error('createService', error);
     throw new Error('No se pudo agregar el servicio. Revisa tu internet e inténtalo otra vez.');
+  }
+
+  revalidatePath(`/t/${slug}/dashboard/services`);
+}
+
+// Editar desde la hoja: los mismos campos que al agregar, sobre el mismo
+// servicio y siempre filtrando por tenant (no solo por RLS).
+export async function updateService(serviceId: string, slug: string, formData: FormData) {
+  const campos = leerServicio(formData);
+  const supabase = await createClient();
+  const { data: tenant } = await supabase.from('tenants').select('id').eq('slug', slug).single();
+  if (!tenant) return;
+
+  let { error } = await supabase.from('service_types').update(campos).eq('id', serviceId).eq('tenant_id', tenant.id);
+  // 42703: sin db/031 no existe show_price; mismo respaldo que al agregar.
+  if (error?.code === '42703') {
+    const { show_price: _sp, ...sinColumna } = campos;
+    ({ error } = await supabase.from('service_types').update(sinColumna).eq('id', serviceId).eq('tenant_id', tenant.id));
+  }
+  if (error) {
+    console.error('updateService', error);
+    throw new Error('No se pudo guardar el servicio. Revisa tu internet e inténtalo otra vez.');
   }
 
   revalidatePath(`/t/${slug}/dashboard/services`);

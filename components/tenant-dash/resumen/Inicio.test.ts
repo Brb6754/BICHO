@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ordenarPorUso } from './InicioMovil';
+import { ordenarPorUso } from './Inicio';
 import type { TileModulo } from '@/lib/branding/moduloColores';
 
 const t = (clave: TileModulo['clave'], bloqueado = false): TileModulo => ({

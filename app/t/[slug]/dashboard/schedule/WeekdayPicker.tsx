@@ -40,7 +40,7 @@ export function WeekdayPicker({ defaultDays = [] }: { defaultDays?: number[] }) 
 
   return (
     <div>
-      <span className="mb-1.5 block text-[13px] font-medium text-ink">¿Qué días?</span>
+      <span className="mb-1.5 block text-[15px] font-semibold text-ink">¿Qué días?</span>
 
       {/* Siete columnas iguales: en un teléfono de 375 px caben los siete en una
           fila (unos 42 px cada uno) en vez de dejar el domingo solo abajo. */}
@@ -51,10 +51,10 @@ export function WeekdayPicker({ defaultDays = [] }: { defaultDays?: number[] }) 
             <label
               key={d.value}
               className={
-                'relative inline-flex h-11 w-full cursor-pointer items-center justify-center rounded-full text-sm font-semibold transition-colors ' +
+                'relative inline-flex h-12 w-full cursor-pointer items-center justify-center rounded-full text-[16px] font-semibold transition-colors ' +
                 (activo
                   ? 'bg-primary text-[rgb(var(--color-cta-fg))]'
-                  : 'bg-ink/[0.05] text-muted hover:bg-ink/[0.09]')
+                  : 'bg-ink/[0.06] text-ink hover:bg-ink/[0.1]')
               }
             >
               <input
@@ -84,7 +84,7 @@ export function WeekdayPicker({ defaultDays = [] }: { defaultDays?: number[] }) 
             key={a.label}
             type="button"
             onClick={() => setMarcados(a.dias)}
-            className="inline-flex min-h-[2.75rem] items-center rounded-full border border-border px-4 text-[13px] text-ink transition-colors hover:bg-ink/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+            className="inline-flex min-h-[2.75rem] items-center rounded-full border border-border px-4 text-[15px] text-ink transition-colors hover:bg-ink/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           >
             {a.label}
           </button>
@@ -93,7 +93,7 @@ export function WeekdayPicker({ defaultDays = [] }: { defaultDays?: number[] }) 
           <button
             type="button"
             onClick={() => setMarcados([])}
-            className="inline-flex min-h-[2.75rem] items-center rounded-full px-3 text-[13px] text-muted transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+            className="inline-flex min-h-[2.75rem] items-center rounded-full px-3 text-[15px] text-muted transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           >
             Limpiar
           </button>

@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import { PageHeader } from '@/components/tenant-dash/PageHeader';
-import { ContactDirectory } from '@/components/tenant-dash/ContactDirectory';
+import { ContactDirectory, type CitaHistorial } from '@/components/tenant-dash/ContactDirectory';
 import { cargarPanelDemo } from '@/lib/demo/panelData';
 import { buildDirectory, type ContactSeedRow } from '@/lib/contacts/directory';
 
@@ -35,14 +35,17 @@ export default async function ClientesDemoPage({ params }: { params: Promise<{ s
 
   const entries = buildDirectory([...contactos.values()], bookings, [], [], now, tenant.timezone);
 
+  // Sus citas de ejemplo, de la más reciente a la más vieja, para la ficha.
+  const historial: Record<string, CitaHistorial[]> = {};
+  for (const c of [...citas].sort((a, b) => b.starts_at.localeCompare(a.starts_at))) {
+    (historial[`demo-${c.customers?.name ?? 'Clienta'}`] ??= []).push({ starts_at: c.starts_at, status: c.status, servicio: c.service_types?.name ?? null });
+  }
+
   return (
     <div>
-      <PageHeader
-        title="Clientes"
-        description="Busca a cualquier cliente, llámale o mira quién dejó de venir."
-      />
-      {/* hrefBase null: en la demo no hay ficha que abrir. */}
-      <ContactDirectory entries={entries} now={now} timezone={tenant.timezone} hrefBase={null} />
+      <PageHeader title="Clientes" description="Búscalos, escríbeles o mira quién dejó de venir." />
+      {/* hrefBase null: en la demo no hay ficha completa que abrir; la hoja sí. */}
+      <ContactDirectory entries={entries} now={now} timezone={tenant.timezone} hrefBase={null} historial={historial} />
     </div>
   );
 }

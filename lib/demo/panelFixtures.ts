@@ -51,14 +51,38 @@ export type CatalogoDemo = {
   timezone: string;
   services: { id: string; name: string; duration_minutes: number }[];
   resources: { id: string; name: string }[];
+  /** Horario semanal del equipo (day_of_week 0=domingo, "HH:MM[:SS]"). */
+  schedules?: { resource_id: string; day_of_week: number; starts_at: string; ends_at: string }[];
 };
+
+// ¿Atiende esta persona de `hora` a `hora + min` ese día? Sin horario
+// cargado en el negocio no hay con qué comparar: se acepta.
+function dentroDelHorario(
+  schedules: NonNullable<CatalogoDemo['schedules']>,
+  resourceId: string,
+  dia: string,
+  hora: string,
+  min: number
+): boolean {
+  if (!schedules.length) return true;
+  const [y, m, d] = dia.split('-').map(Number);
+  const dow = new Date(Date.UTC(y, m - 1, d, 12)).getUTCDay();
+  const aMin = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
+  const ini = aMin(hora);
+  return schedules.some(
+    (s) => s.resource_id === resourceId && s.day_of_week === dow && aMin(s.starts_at) <= ini && ini + min <= aMin(s.ends_at)
+  );
+}
 
 /**
  * Una semana de citas plausibles: ayer y anteayer ya cerradas, hoy a
  * medias, y los días que vienen con hueco. Es lo que hace que el panel
  * se vea como un negocio en operación y no como una instalación nueva.
  */
-export function demoAgendaDeNegocio({ slug, timezone, services, resources }: CatalogoDemo, now: Date): AgendaBooking[] {
+export function demoAgendaDeNegocio(
+  { slug, timezone, services, resources, schedules = [] }: CatalogoDemo,
+  now: Date
+): AgendaBooking[] {
   if (!services.length || !resources.length) return [];
 
   const base = semilla(slug);
@@ -84,7 +108,15 @@ export function demoAgendaDeNegocio({ slug, timezone, services, resources }: Cat
     for (const hora of horas) {
       const servicio = services[(base + n * 7) % services.length];
       // De una en una: con n*3 y tres personas, todas caían en la misma.
-      const recurso = resources[(base + n) % resources.length];
+      // Y solo con quien sí trabaja a esa hora: una cita fuera del
+      // horario del equipo delata la demo. Si nadie atiende, no hay cita.
+      const recurso = resources
+        .map((_, i) => resources[(base + n + i) % resources.length])
+        .find((r) => dentroDelHorario(schedules, r.id, dia, hora, servicio.duration_minutes));
+      if (!recurso) {
+        n++;
+        continue;
+      }
       const quien = (base + n * 5) % NOMBRES.length;
       const startsAt = instantFromLocal(dia, hora, timezone);
       const endsAt = new Date(new Date(startsAt).getTime() + servicio.duration_minutes * 60_000).toISOString();

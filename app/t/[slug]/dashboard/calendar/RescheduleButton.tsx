@@ -63,9 +63,9 @@ export function RescheduleButton({
         type="button"
         variant="outline"
         onClick={() => setOpen(true)}
-        className="min-h-[2.75rem] px-4 text-[13px]"
+        className="min-h-12 w-full px-5 !text-base font-semibold"
       >
-        Mover
+        Mover a otra hora
       </Button>
 
       <Modal open={open} onClose={() => setOpen(false)} title="Mover la cita a otra hora">

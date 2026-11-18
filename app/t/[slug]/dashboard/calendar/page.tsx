@@ -3,35 +3,33 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Plus } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
-import { cancelBooking } from './actions';
 import { NewBookingForm } from './NewBookingForm';
-import { RescheduleButton } from './RescheduleButton';
-import { AttendanceButtons } from './AttendanceButtons';
-import { ConfirmForm } from '@/components/ui/ConfirmForm';
+import { AgendaCalendario } from './AgendaCalendario';
 import { HelpTip } from '@/components/tenant-dash/ui/HelpTip';
-import { ShareLink } from '@/components/tenant-dash/ui/ShareLink';
 import { PageHeader } from '@/components/tenant-dash/PageHeader';
 import { tenantBookingPageUrl } from '@/lib/urls';
-import { AgendaList, type AgendaBooking } from '@/components/tenant-dash/AgendaList';
-import { dayKey, formatTime } from '@/lib/dates/tenantTime';
+import type { AgendaBooking } from '@/components/tenant-dash/AgendaList';
+import { addDaysKey, dayKey, instantFromLocal } from '@/lib/dates/tenantTime';
+import { fechaDeParam, rangoDeCarga } from '@/lib/agenda/calendario';
 import { esServicio } from '@/lib/meetings/kinds';
 
-// AGENDA. Same AgendaList as the Resumen — one component for "a list of
-// appointments" across the whole dashboard, so a booking reads the same
-// wherever you meet it. The old page was one card per booking with the
-// date repeated on every row and the times formatted in the server's
-// timezone (UTC on Vercel).
+// AGENDA: calendario Día / Semana / Mes (AgendaCalendario). El servidor
+// manda el mes entero de ?fecha= (o de hoy); el resto pasa en el cliente.
+// Las horas siempre en la zona del negocio (lib/dates/tenantTime), nunca la
+// del servidor (UTC en Vercel).
 export default async function CalendarPage({
   params,
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ nueva?: string }>;
+  searchParams: Promise<{ nueva?: string; fecha?: string; dia?: string; hora?: string; quien?: string }>;
 }) {
   const { slug } = await params;
+  const sp = await searchParams;
   // ?nueva=1 abre "Agendar una cita" ya desplegado: es a donde llevan el
-  // botón de esta página, el del inicio y el atajo del teléfono.
-  const abrirNueva = Boolean((await searchParams).nueva);
+  // botón de esta página, el del inicio y el atajo del teléfono. Tocar
+  // una hora libre del calendario suma &dia=&hora=&quien=.
+  const abrirNueva = Boolean(sp.nueva);
   // Sin el producto de citas, esta pantalla no aplica. Redirige en vez
   // de 404: un 404 dentro del propio panel se lee como un error del
   // sistema, no como "no contrataste esto".
@@ -44,18 +42,20 @@ export default async function CalendarPage({
   const now = new Date();
   const tz = tenant?.timezone ?? null;
 
-  // Start 24h back so the rest of TODAY (including appointments that
-  // already started) is still on the agenda — the old query began at
-  // "now" and silently dropped everything earlier in the same day.
+  // El mes del calendario (semanas completas), en la zona del negocio.
+  const hoy = dayKey(now, tz);
+  const fecha = fechaDeParam(sp.fecha, hoy);
+  const rango = rangoDeCarga(fecha);
   const { data: raw } = await supabase
     .from('bookings')
     .select(
       'id, starts_at, ends_at, status, resource_id, service_type_id, resources(name), service_types(name), customers(name, phone)'
     )
     .eq('tenant_id', tenant!.id)
-    .gte('starts_at', new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString())
+    .gte('starts_at', instantFromLocal(rango.desde, '00:00', tz))
+    .lt('starts_at', instantFromLocal(addDaysKey(rango.hasta, 1), '00:00', tz))
     .order('starts_at')
-    .limit(150);
+    .limit(1000);
 
   // The catalog the "agendar una cita" form works from. Only active rows:
   // the form must offer exactly what the public page offers.
@@ -85,18 +85,26 @@ export default async function CalendarPage({
     duration_minutes: number;
   }[];
 
-  const todayKey = dayKey(now, tz);
-  const bookings = ((raw ?? []) as unknown as AgendaBooking[]).filter((b) => dayKey(b.starts_at, tz) >= todayKey);
-  const active = bookings.filter((b) => b.status === 'confirmed').length;
+  const bookings = (raw ?? []) as unknown as AgendaBooking[];
+
+  // Una columna por persona: las activas, más quien ya no está activa pero
+  // tiene citas en este mes (si no, esas citas no tendrían dónde dibujarse).
+  const personas = [...(resources ?? [])];
+  for (const b of bookings) {
+    if (b.resource_id && !personas.some((p) => p.id === b.resource_id)) {
+      personas.push({ id: b.resource_id, name: b.resources?.name ?? 'Sin nombre' });
+    }
+  }
 
   const puedeAgendar = services.length > 0 && (resources ?? []).length > 0;
+  const fechaValida = (v?: string) => (v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : undefined);
   const botonAgendar = (texto: string) => (
     <Link
       href="?nueva=1#agendar"
       scroll={false}
-      className="inline-flex min-h-[2.75rem] items-center justify-center gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-[rgb(var(--color-cta-fg))] transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
+      className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-primary px-6 text-base font-semibold text-[rgb(var(--color-cta-fg))] transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
     >
-      <Plus className="h-4 w-4" aria-hidden="true" />
+      <Plus className="h-5 w-5" aria-hidden="true" />
       {texto}
     </Link>
   );
@@ -105,23 +113,20 @@ export default async function CalendarPage({
     <div>
       <PageHeader
         title="Agenda"
-        eyebrow={
-          active > 0 ? `${active} ${active === 1 ? 'cita' : 'citas'} de hoy en adelante` : undefined
-        }
-        description="Tus citas día por día. Muévelas, cancélalas o anota si la clienta vino."
+        description="Tus citas en calendario. Toca una para moverla, cancelarla, anotar si vino o cobrarla."
         help={
           <HelpTip title="¿Qué hago con cada cita?">
-            Antes de la cita puedes <strong>Mover</strong>la a otra hora o <strong>Cancelar</strong>la:
-            la hora queda libre otra vez en tu página. Cuando ya pasó, toca <strong>Vino</strong> o{' '}
-            <strong>No vino</strong>. Eso solo se anota en la ficha de la clienta, para que sepas quién
-            falta seguido; a ella no le llega ningún mensaje.
+            Toca la cita. Antes de la hora puedes <strong>Mover</strong>la o <strong>Cancelar</strong>la: la hora
+            queda libre otra vez en tu página. Cuando ya pasó, toca <strong>Vino</strong> o{' '}
+            <strong>No vino</strong>. Eso solo se anota en la ficha de la clienta; a ella no le llega ningún
+            mensaje. Si vino y tienes Caja, de ahí la <strong>cobras</strong>.
           </HelpTip>
         }
-        action={puedeAgendar && !abrirNueva ? botonAgendar('Agendar cita') : undefined}
+        action={puedeAgendar ? botonAgendar('Agendar cita') : undefined}
       />
 
       {!puedeAgendar && (
-        <p className="mt-6 rounded-2xl border border-dashed border-border px-4 py-3 text-sm leading-relaxed text-muted">
+        <p className="mt-6 rounded-2xl border border-dashed border-border px-4 py-3 text-base leading-relaxed text-muted">
           Para agendar citas a mano primero necesitas{' '}
           {services.length === 0 ? (
             <Link href="/dashboard/services" className="font-medium text-ink underline underline-offset-4">
@@ -137,75 +142,30 @@ export default async function CalendarPage({
       )}
 
       {puedeAgendar && abrirNueva && (
-        <div className="mt-6">
-          <NewBookingForm
-            slug={slug}
-            services={services}
-            resources={resources ?? []}
-            timezone={tz}
-          />
-        </div>
+        <NewBookingForm
+          slug={slug}
+          services={services}
+          resources={resources ?? []}
+          timezone={tz}
+          quien={sp.quien}
+          dia={fechaValida(sp.dia)}
+          hora={sp.hora && /^\d{2}:\d{2}$/.test(sp.hora) ? sp.hora : undefined}
+        />
       )}
 
-      <div className="mt-8">
-        <AgendaList
-          bookings={bookings}
+      <div className="mt-6">
+        <AgendaCalendario
+          citas={bookings}
+          personas={personas}
           timezone={tz}
-          now={now}
-          emptyTitle="No tienes citas próximas"
-          emptyHint="Cuando una clienta reserve desde tu link, aparece aquí, día por día. Si alguien te llama, agéndala tú."
-          emptyAction={
-            <>
-              {puedeAgendar && botonAgendar('Agendar una cita')}
-              <ShareLink url={tenantBookingPageUrl(slug)} slug={slug} negocio={tenant?.name} />
-            </>
-          }
-          renderAction={(b) => {
-            // An appointment that has already ended asks a different
-            // question than one that hasn't. Before it happens the
-            // owner may need to move or call it off; after it happens
-            // the only thing left to record is whether the customer
-            // turned up.
-            const over = new Date(b.ends_at) <= now;
-
-            if (over) {
-              return (
-                <AttendanceButtons
-                  bookingId={b.id}
-                  slug={slug}
-                  customerName={b.customers?.name ?? 'La clienta'}
-                />
-              );
-            }
-
-            const quien = b.customers?.name ?? 'esta clienta';
-            return (
-              <div className="flex flex-wrap items-center gap-2">
-                {b.service_type_id && b.resource_id && (
-                  <RescheduleButton
-                    bookingId={b.id}
-                    slug={slug}
-                    serviceId={b.service_type_id}
-                    serviceName={b.service_types?.name ?? 'La cita'}
-                    resourceId={b.resource_id}
-                    currentStart={b.starts_at}
-                    timezone={tz}
-                  />
-                )}
-                <ConfirmForm
-                  action={cancelBooking.bind(null, b.id, slug)}
-                  success="Cita cancelada: la hora quedó libre"
-                  confirmTitle={`¿Cancelar la cita de ${quien}?`}
-                  confirmMessage={`${b.service_types?.name ?? 'La cita'}, ${formatTime(b.starts_at, tz)}. La hora vuelve a quedar libre en tu página. A ${quien} no le avisamos nosotros: si no lo sabe, escríbele.`}
-                  confirmLabel="Sí, cancelar cita"
-                  dismissLabel="No, dejarla"
-                  triggerClassName="min-h-[2.75rem] px-4 text-[13px]"
-                >
-                  Cancelar
-                </ConfirmForm>
-              </div>
-            );
-          }}
+          ahora={now.toISOString()}
+          fecha={fecha}
+          rango={rango}
+          slug={slug}
+          negocio={tenant?.name ?? ''}
+          linkReservas={tenantBookingPageUrl(slug)}
+          puedeAgendar={puedeAgendar}
+          cajaHref={productos.caja ? '/dashboard/caja' : null}
         />
       </div>
     </div>

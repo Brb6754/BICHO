@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { Text } from './Text';
 
@@ -24,6 +25,12 @@ export function Modal({
   size?: keyof typeof ANCHO;
   children: React.ReactNode;
 }) {
+  // Fuera del contenido con un portal: el contenido del panel vive en `.dash-main`
+  // (relative z-10), y sin portal el z-50 de aquí quedaba atrapado debajo
+  // de la barra de abajo del teléfono (z-30), que tapaba los botones.
+  const [montado, setMontado] = useState(false);
+  useEffect(() => setMontado(true), []);
+
   useEffect(() => {
     if (!open) return;
     function onKey(e: KeyboardEvent) {
@@ -33,13 +40,13 @@ export function Modal({
     return () => document.removeEventListener('keydown', onKey);
   }, [open, onClose]);
 
-  if (!open) return null;
+  if (!open || !montado) return null;
 
   // En el teléfono es una hoja que sube desde abajo (el pulgar llega);
   // desde sm, un diálogo centrado. En los dos, si el contenido es más alto
   // que la pantalla (ej. "Mover la cita" con la lista de horas), el cuerpo
   // hace scroll y el título con su "cerrar" se quedan a la vista.
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4">
       <div
         className="absolute inset-0 animate-fade-in bg-black/30 backdrop-blur-sm"
@@ -67,6 +74,9 @@ export function Modal({
         </div>
         <div className="min-h-0 overflow-y-auto overscroll-contain px-6 pb-6 pt-2">{children}</div>
       </div>
-    </div>
+    </div>,
+    // Dentro del panel, a su raíz (.tenant-shell): ahí viven los colores
+    // del negocio (variables CSS) y queda por encima de la barra de abajo.
+    document.querySelector('.tenant-shell') ?? document.body
   );
 }

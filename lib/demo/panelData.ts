@@ -76,7 +76,7 @@ export async function cargarPanelDemo(slug: string): Promise<PanelDemo | null> {
     resources: resources ?? [],
     schedules: schedules ?? [],
     citas: demoAgendaDeNegocio(
-      { slug, timezone, services: services ?? [], resources: resources ?? [] },
+      { slug, timezone, services: services ?? [], resources: resources ?? [], schedules: schedules ?? [] },
       now
     ),
     now,

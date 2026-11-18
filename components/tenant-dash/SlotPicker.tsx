@@ -26,6 +26,8 @@ export function SlotPicker({
   onResourceChange,
   onPick,
   picked,
+  preferDay,
+  preferTime,
 }: {
   services: (Option & { duration_minutes: number })[];
   resources: Option[];
@@ -38,6 +40,10 @@ export function SlotPicker({
   onResourceChange?: (id: string) => void;
   onPick: (slot: PickedSlot | null) => void;
   picked: PickedSlot | null;
+  // Al tocar un hueco de la agenda: arranca en ese día y aparta la primera
+  // hora libre desde esa hora ("HH:mm"). Si ya no hay nada, no aparta nada.
+  preferDay?: string;
+  preferTime?: string;
 }) {
   const [slots, setSlots] = useState<PickedSlot[]>([]);
   const [loading, setLoading] = useState(false);
@@ -70,8 +76,19 @@ export function SlotPicker({
     // still thought the day was today, and showed zero times with no
     // explanation for why.
     const days = [...new Set(loaded.map((s) => dayKey(s.slot_start, timezone)))].sort();
+    if (preferDay && days.includes(preferDay)) {
+      setDay(preferDay);
+      const hora = preferTime ?? '00:00';
+      const libre = loaded.find(
+        (s) => dayKey(s.slot_start, timezone) === preferDay && formatTime(s.slot_start, timezone) >= hora
+      );
+      if (libre) onPick(libre);
+      return;
+    }
     setDay((current) => (days.includes(current) ? current : (days[0] ?? current)));
-  }, [serviceId, resourceId, timezone]);
+    // onPick fuera a propósito: ver el efecto de abajo.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [serviceId, resourceId, timezone, preferDay, preferTime]);
 
   useEffect(() => {
     load();

@@ -47,18 +47,18 @@ export function AttendanceButtons({
   }
 
   return (
-    <div className="flex flex-col items-start gap-1 sm:items-end">
-      <div className="flex items-center gap-2">
+    <div className="flex w-full flex-col gap-1">
+      <div className="flex w-full items-center gap-2">
         <Button
           type="button"
           variant="outline"
           isLoading={pending === 'came'}
           disabled={pending !== null}
           onClick={() => mark(true)}
-          className="min-h-[2.75rem] px-4 text-[13px]"
+          className="min-h-12 flex-1 px-5 !text-base font-semibold"
           aria-label={`${customerName} sí vino`}
         >
-          {pending !== 'came' && <Check className="h-3.5 w-3.5" aria-hidden="true" />}
+          {pending !== 'came' && <Check className="h-4 w-4" aria-hidden="true" />}
           Vino
         </Button>
         <Button
@@ -67,15 +67,15 @@ export function AttendanceButtons({
           isLoading={pending === 'missed'}
           disabled={pending !== null}
           onClick={() => mark(false)}
-          className="min-h-[2.75rem] px-4 text-[13px]"
+          className="min-h-12 flex-1 px-5 !text-base font-semibold"
           aria-label={`${customerName} no vino`}
         >
-          {pending !== 'missed' && <X className="h-3.5 w-3.5" aria-hidden="true" />}
+          {pending !== 'missed' && <X className="h-4 w-4" aria-hidden="true" />}
           No vino
         </Button>
       </div>
       {error && (
-        <p role="alert" className="max-w-[16rem] text-[13px] text-error sm:text-right">
+        <p role="alert" className="text-[15px] text-error">
           {error}
         </p>
       )}

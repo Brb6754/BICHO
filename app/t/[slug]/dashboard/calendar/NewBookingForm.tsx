@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
-import { X } from 'lucide-react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
+import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import { FormField } from '@/components/tenant-dash/ui/FormField';
 import { toast } from '@/components/tenant-dash/ui/Toast';
@@ -18,23 +18,34 @@ import { createStaffBooking } from './actions';
 //
 // Se abre con ?nueva=1 en la URL: así el botón del encabezado de la
 // agenda, el del inicio y el del teléfono llegan todos al mismo
-// formulario ya abierto, en un solo toque. Cerrar o terminar quita el
-// parámetro.
+// formulario ya abierto, en un solo toque. Tocar un hueco del calendario
+// suma &dia=&hora=&quien= para llegar con esa hora y esa persona puestas.
+// Cerrar o terminar quita esos parámetros y deja el resto (?fecha=).
+// Va en una hoja (Modal): en el teléfono sube desde abajo, sobre la agenda.
 export function NewBookingForm({
   slug,
   services,
   resources,
   timezone,
+  quien,
+  dia,
+  hora,
 }: {
   slug: string;
   services: { id: string; name: string; duration_minutes: number }[];
   resources: { id: string; name: string }[];
   timezone: string | null;
+  quien?: string;
+  dia?: string;
+  hora?: string;
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const search = useSearchParams();
   const [serviceId, setServiceId] = useState(services[0]?.id ?? '');
-  const [resourceId, setResourceId] = useState(resources[0]?.id ?? '');
+  const [resourceId, setResourceId] = useState(
+    resources.some((r) => r.id === quien) ? quien! : (resources[0]?.id ?? '')
+  );
   const [slot, setSlot] = useState<PickedSlot | null>(null);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -43,8 +54,10 @@ export function NewBookingForm({
   const [error, setError] = useState<string | null>(null);
 
   function cerrar() {
-    // La ruta tal como la ve el navegador (con o sin /t/{slug}), sin el ?nueva=1.
-    router.replace(pathname, { scroll: false });
+    // La ruta tal como la ve el navegador (con o sin /t/{slug}), sin ?nueva=1.
+    const q = new URLSearchParams(search.toString());
+    for (const k of ['nueva', 'dia', 'hora', 'quien']) q.delete(k);
+    router.replace(q.size ? `${pathname}?${q}` : pathname, { scroll: false });
   }
 
   async function save(e: React.FormEvent) {
@@ -76,24 +89,12 @@ export function NewBookingForm({
   }
 
   return (
-    <form id="agendar" onSubmit={save} className="scroll-mt-24 rounded-2xl border border-border bg-surface p-4 sm:p-5">
-      <div className="mb-4 flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-[17px] font-semibold tracking-tight text-ink">Agendar una cita</h2>
-          <p className="mt-0.5 text-[13px] leading-relaxed text-muted">
-            Para quien te llamó o llegó al local. Aparta la hora igual que si hubiera reservado en
-            tu página.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={cerrar}
-          aria-label="Cerrar sin agendar"
-          className="-mr-2 -mt-2 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted hover:bg-ink/5 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-        >
-          <X className="h-5 w-5" aria-hidden="true" />
-        </button>
-      </div>
+    <Modal open onClose={cerrar} title="Agendar una cita" size="lg">
+    <form id="agendar" onSubmit={save}>
+      <p className="mb-4 text-[15px] leading-relaxed text-muted">
+        Para quien te llamó o llegó al local. Aparta la hora igual que si hubiera reservado en tu
+        página.
+      </p>
 
       <div className="flex flex-col gap-4">
         <SlotPicker
@@ -105,6 +106,8 @@ export function NewBookingForm({
           onServiceChange={setServiceId}
           onResourceChange={setResourceId}
           picked={slot}
+          preferDay={dia}
+          preferTime={hora}
           onPick={(s) => {
             setSlot(s);
             if (s) setError(null);
@@ -177,5 +180,6 @@ export function NewBookingForm({
         </p>
       </div>
     </form>
+    </Modal>
   );
 }

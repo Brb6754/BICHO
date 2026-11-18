@@ -1,6 +1,5 @@
 import { FileText } from 'lucide-react';
 import { HelpTip } from '@/components/tenant-dash/ui/HelpTip';
-import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import { ConfirmForm } from '@/components/ui/ConfirmForm';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -28,15 +27,25 @@ export type CotizacionWA = {
   receptor_uso_cfdi: string | null;
 };
 
-const ESTADO: Record<EstadoCotizaWA, { texto: string; tone: 'default' | 'muted' | 'danger' | 'inverse' }> = {
-  enviada: { texto: 'Enviada', tone: 'muted' },
-  seguimiento: { texto: 'Seguimiento enviado', tone: 'muted' },
-  aceptada: { texto: 'Aceptada', tone: 'default' },
-  facturada: { texto: 'Con factura', tone: 'inverse' },
-  rechazada: { texto: 'Rechazada', tone: 'danger' },
-  vencida: { texto: 'Vencida', tone: 'muted' },
-  borrador: { texto: 'Sin mandar', tone: 'muted' },
+// Chips con tokens semánticos (Badge "inverse" es para fondos oscuros).
+const ESTADO: Record<EstadoCotizaWA, { texto: string; clase: string }> = {
+  enviada: { texto: 'Cotización enviada', clase: 'bg-ink/[0.06] text-ink' },
+  seguimiento: { texto: 'Le recordamos a las 48 h', clase: 'bg-ink/[0.06] text-ink' },
+  aceptada: { texto: 'Cotización aceptada', clase: 'bg-success-soft text-success' },
+  facturada: { texto: 'Aceptada y con factura', clase: 'bg-success-soft text-success' },
+  rechazada: { texto: 'No la aceptó', clase: 'bg-error-soft text-error' },
+  vencida: { texto: 'Venció', clase: 'bg-ink/[0.06] text-muted' },
+  borrador: { texto: 'Sin mandar', clase: 'bg-ink/[0.06] text-muted' },
 };
+
+/** La factura es otro paso, aparte de aceptar la cotización: se dice como tal. */
+function textoFactura(e: string): string {
+  if (e === 'por_aprobar') return 'Factura pendiente de aprobación';
+  if (e === 'error') return ETIQUETA_FACTURA.error;
+  const t = ETIQUETA_FACTURA[e] ?? e;
+  return `Factura: ${t.charAt(0).toLowerCase()}${t.slice(1)}`;
+}
+const porAprobar = (q: CotizacionWA) => q.factura_estado === 'por_aprobar' || q.factura_estado === 'error';
 
 // Claves del SAT más comunes en palabras; una clave rara se muestra tal cual.
 const REGIMEN: Record<string, string> = {
@@ -90,60 +99,77 @@ export function CotizacionesWhatsapp({
     );
   }
   const fmt = new Intl.DateTimeFormat('es-MX', { dateStyle: 'medium', timeZone: timezone ?? 'America/Mexico_City' });
+  // Primero lo que espera algo de ti: facturas por aprobar.
+  const orden = [...cotizaciones].sort((x, y) => Number(porAprobar(y)) - Number(porAprobar(x)));
 
   return (
-    <ul className="space-y-3">
-      {cotizaciones.map((q) => {
+    <ul className="grid gap-3 lg:grid-cols-2">
+      {orden.map((q) => {
         const estado = ESTADO[estadoCotizaWA(q)];
-        const factura = q.factura_estado && q.factura_estado !== 'timbrada' ? ETIQUETA_FACTURA[q.factura_estado] : null;
+        const factura = q.factura_estado && q.factura_estado !== 'timbrada' ? q.factura_estado : null;
+        const urge = porAprobar(q);
         return (
-          <li key={q.id}>
-            <Card padded={false}>
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-4 sm:px-5">
-                <span className="min-w-0 flex-1">
-                  <span className="block font-semibold text-ink">
-                    {formatFolio(q.folio)} · {q.customer_name}
-                  </span>
-                  <span className="block text-sm text-muted">
-                    {telefonoBonito(q.whatsapp_telefono)} · {fmt.format(new Date(q.created_at))} · {formatMoney(q.total_cents)}
-                  </span>
+          <li key={q.id} className={`flex flex-col overflow-hidden rounded-3xl border bg-surface shadow-sm ${urge ? 'border-warning/50' : 'border-border'}`}>
+            <div className="flex flex-col gap-3 p-4 sm:p-5">
+              <div className="flex items-start gap-3">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-ink" aria-hidden="true">
+                  <FileText className="h-5 w-5" />
                 </span>
-                {factura && <Badge tone={q.factura_estado === 'error' ? 'danger' : 'default'}>{factura}</Badge>}
-                <Badge tone={estado.tone}>{estado.texto}</Badge>
-              </div>
-              {q.receptor_rfc && q.factura_estado && (
-                <div className="border-t border-border px-4 py-4 sm:px-5">
-                  <p className="flex items-center gap-1 text-[13px] font-medium text-muted">
-                    Datos para la factura que mandó el cliente
-                    <HelpTip title="¿Qué son estos datos?">
-                      Los lee bicho de la constancia que el cliente mandó por WhatsApp. El RFC es su clave del SAT; el tipo
-                      de contribuyente y «para qué la usa» son claves que pide el SAT. Revísalos antes de aprobar.
-                    </HelpTip>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[17px] font-semibold text-ink">{q.customer_name}</p>
+                  <p className="text-[14px] text-muted">
+                    {formatFolio(q.folio)} · {fmt.format(new Date(q.created_at))}
+                    {q.whatsapp_telefono ? ` · ${telefonoBonito(q.whatsapp_telefono)}` : ''}
                   </p>
-                  <dl className="mt-2 grid grid-cols-1 gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
-                    <div className="flex gap-2"><dt className="text-muted">RFC</dt><dd className="font-medium text-ink">{q.receptor_rfc}</dd></div>
-                    <div className="flex gap-2"><dt className="text-muted">Tipo de contribuyente</dt><dd className="text-ink">{conNombre(q.receptor_regimen, REGIMEN)}</dd></div>
-                    <div className="flex gap-2 sm:col-span-2"><dt className="text-muted">Razón social</dt><dd className="text-ink">{q.receptor_razon_social}</dd></div>
-                    <div className="flex gap-2"><dt className="text-muted">C.P.</dt><dd className="text-ink">{q.receptor_codigo_postal}</dd></div>
-                    <div className="flex gap-2"><dt className="text-muted">Para qué la usa</dt><dd className="text-ink">{conNombre(q.receptor_uso_cfdi, USO)}</dd></div>
-                  </dl>
-                  {aprobar && (q.factura_estado === 'por_aprobar' || q.factura_estado === 'error') && (
-                    <div className="mt-4">
-                      <ConfirmForm
-                        action={aprobar(q.id)}
-                        confirmTitle={`¿Hacer la factura de ${formatFolio(q.folio)}?`}
-                        confirmMessage="Se hace una factura real ante el SAT con estos datos y se le manda al cliente por WhatsApp (si escribió en las últimas 24 horas; si no, descárgala en Facturas)."
-                        confirmLabel="Sí, hacer la factura"
-                        dismissLabel="Todavía no"
-                        triggerVariant="primary"
-                      >
-                        {q.factura_estado === 'error' ? 'Intentar otra vez' : 'Aprobar y hacer factura'}
-                      </ConfirmForm>
-                    </div>
-                  )}
                 </div>
-              )}
-            </Card>
+                <p className="shrink-0 text-[19px] font-semibold tabular-nums text-ink">{formatMoney(q.total_cents)}</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <span className={`rounded-full px-3 py-1 text-[14px] font-semibold ${estado.clase}`}>{estado.texto}</span>
+                {factura && (
+                  <span
+                    className={`rounded-full px-3 py-1 text-[14px] font-semibold ${
+                      factura === 'error' ? 'bg-error-soft text-error' : factura === 'por_aprobar' ? 'bg-warning-soft text-warning' : 'bg-ink/[0.06] text-ink'
+                    }`}
+                  >
+                    {textoFactura(factura)}
+                  </span>
+                )}
+              </div>
+            </div>
+            {q.receptor_rfc && q.factura_estado && (
+              <div className={`mt-auto border-t px-4 py-4 sm:px-5 ${urge ? 'border-warning/30 bg-warning-soft' : 'border-border'}`}>
+                <p className="flex items-center gap-1 text-[15px] font-semibold text-ink">
+                  {urge ? 'Revisa sus datos y aprueba la factura' : 'Datos para la factura'}
+                  <HelpTip title="¿Qué son estos datos?">
+                    Los lee bicho de la constancia que el cliente mandó por WhatsApp. El RFC es su clave del SAT; el tipo
+                    de contribuyente y «para qué la usa» son claves que pide el SAT. Revísalos antes de aprobar.
+                  </HelpTip>
+                </p>
+                <dl className="mt-2 grid grid-cols-1 gap-x-6 gap-y-1 text-[15px] sm:grid-cols-2">
+                  <div className="flex gap-2"><dt className="text-muted">RFC</dt><dd className="font-medium text-ink">{q.receptor_rfc}</dd></div>
+                  <div className="flex gap-2"><dt className="text-muted">C.P.</dt><dd className="text-ink">{q.receptor_codigo_postal}</dd></div>
+                  <div className="flex gap-2 sm:col-span-2"><dt className="text-muted">Razón social</dt><dd className="text-ink">{q.receptor_razon_social}</dd></div>
+                  <div className="flex gap-2 sm:col-span-2"><dt className="text-muted">Tipo de contribuyente</dt><dd className="text-ink">{conNombre(q.receptor_regimen, REGIMEN)}</dd></div>
+                  <div className="flex gap-2 sm:col-span-2"><dt className="text-muted">Para qué la usa</dt><dd className="text-ink">{conNombre(q.receptor_uso_cfdi, USO)}</dd></div>
+                </dl>
+                {aprobar && urge && (
+                  <div className="mt-4">
+                    <ConfirmForm
+                      action={aprobar(q.id)}
+                      confirmTitle={`¿Hacer la factura de ${formatFolio(q.folio)}?`}
+                      confirmMessage="Se hace una factura real ante el SAT con estos datos y se le manda al cliente por WhatsApp (si escribió en las últimas 24 horas; si no, descárgala en Facturas)."
+                      confirmLabel="Sí, hacer la factura"
+                      dismissLabel="Todavía no"
+                      triggerVariant="primary"
+                      triggerClassName="max-sm:w-full"
+                    >
+                      {q.factura_estado === 'error' ? 'Intentar otra vez' : 'Aprobar y hacer factura'}
+                    </ConfirmForm>
+                  </div>
+                )}
+              </div>
+            )}
           </li>
         );
       })}

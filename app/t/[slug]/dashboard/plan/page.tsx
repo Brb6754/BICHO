@@ -8,6 +8,7 @@ import { TRIAL_GRACE_DAYS, tenantAccess } from '@/lib/billing/trial';
 import { ADDON_BOOST, CUPO_FUNDADOR, PLANES, PLAN_IDS, PRECIO_FUNDADOR_MXN, planDe, precioCheckout, precioMensual, type Modulo, type PlanId } from '@/lib/billing/planes';
 import { fundadoresUsados } from '@/lib/billing/planServer';
 import { ActivatePlanButton } from './ActivatePlanButton';
+import { COLOR_MODULO } from '@/lib/branding/moduloColores';
 import { PlanPicker, type PlanVista } from './PlanPicker';
 
 export const dynamic = 'force-dynamic';
@@ -169,10 +170,10 @@ export default async function PlanPage({
       <section className="mt-12">
         <SectionHeading title="Extras que se pagan aparte" />
         <div className="grid gap-4 lg:grid-cols-2">
-          <article className="flex flex-col gap-3 rounded-3xl bg-surface p-5 ring-1 ring-border sm:p-6">
+          <article className="flex flex-col gap-3 rounded-3xl bg-surface p-5 shadow-sm ring-1 ring-border sm:p-6">
             <div className="flex items-start gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-ink/[0.06] text-ink" aria-hidden="true">
-                <Clock3 className="h-5 w-5" />
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl" style={{ background: `${COLOR_MODULO.boost}1a`, color: COLOR_MODULO.boost }} aria-hidden="true">
+                <Clock3 className="h-6 w-6" />
               </span>
               <div className="min-w-0">
                 <h3 className="text-[17px] font-semibold tracking-tight text-ink">Llena tus huecos</h3>
@@ -188,16 +189,16 @@ export default async function PlanPage({
             {boostPermitido && (
               <Link
                 href="/dashboard/boost"
-                className="mt-auto inline-flex min-h-[2.75rem] items-center self-start rounded-full px-1 text-sm font-semibold text-ink underline decoration-ink/30 underline-offset-4 hover:decoration-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                className="mt-auto inline-flex min-h-[2.75rem] items-center justify-center self-start rounded-2xl border border-border px-5 text-[15px] font-semibold text-ink transition-colors hover:bg-ink/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 max-sm:w-full"
               >
                 Ver cómo funciona
               </Link>
             )}
           </article>
-          <article className="flex flex-col gap-3 rounded-3xl bg-surface p-5 ring-1 ring-border sm:p-6">
+          <article className="flex flex-col gap-3 rounded-3xl bg-surface p-5 shadow-sm ring-1 ring-border sm:p-6">
             <div className="flex items-start gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-ink/[0.06] text-ink" aria-hidden="true">
-                <FileText className="h-5 w-5" />
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#D9FDD3] text-[#1F5E2E]" aria-hidden="true">
+                <FileText className="h-6 w-6" />
               </span>
               <div className="min-w-0">
                 <h3 className="text-[17px] font-semibold tracking-tight text-ink">Cotiza por WhatsApp</h3>

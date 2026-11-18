@@ -1,13 +1,12 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { ArrowUp, Database, FileSearch, FileText, Loader2 } from 'lucide-react';
+import { ArrowUp, Database, FileSearch, FileText, Loader2, Sparkles } from 'lucide-react';
 
-// El chat del copiloto. Deliberadamente NO es una burbuja de mensajería:
-// es el lenguaje del panel — la pregunta como encabezado, la respuesta
-// como texto, y debajo, plegable, lo que el copiloto consultó. Ese
-// "Consultó: select …" es lo importante: el dueño ve de dónde salió
-// cada cifra.
+// El chat del copiloto, con burbujas: la pregunta de ella a la derecha
+// con el color del negocio, la respuesta a la izquierda y, plegable
+// dentro de la respuesta, lo que el copiloto consultó (de dónde salió
+// cada cifra). Las preguntas de ejemplo son chips grandes.
 
 type Herramienta = { name: 'consultar_sql' | 'buscar_en_notas' | 'buscar_en_documentos'; input: string; ok: boolean; filas?: number };
 type Mensaje = { pregunta: string; respuesta: string; herramientas: Herramienta[]; estado: 'pensando' | 'listo' | 'error' };
@@ -84,22 +83,29 @@ export function CopilotoChat() {
     }
   }
 
+  const chipGrande =
+    'min-h-[2.75rem] rounded-full border border-border bg-surface px-4 py-2.5 text-left text-[15px] font-medium text-ink transition-[transform,background-color] duration-150 hover:bg-ink/[0.04] active:scale-[0.98] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:opacity-50';
+  const hechas = new Set(mensajes.map((m) => m.pregunta));
+  const otras = SUGERENCIAS.filter((s) => !hechas.has(s)).slice(0, 3);
+
   return (
-    <div className="mt-8 flex flex-col gap-8">
+    <div className="mt-8 flex flex-col gap-6">
       {mensajes.length === 0 && (
-        <section aria-labelledby="copiloto-ejemplos">
-          <h2 id="copiloto-ejemplos" className="text-[17px] font-semibold tracking-tight text-ink">
-            Toca una pregunta para empezar
+        <section aria-labelledby="copiloto-ejemplos" className="flex flex-col items-start gap-4">
+          <div className="flex items-start gap-3">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary text-[rgb(var(--color-cta-fg))]" aria-hidden="true">
+              <Sparkles className="h-5 w-5" />
+            </span>
+            <p className="max-w-md rounded-3xl rounded-tl-md border border-border bg-surface px-4 py-3 text-[16px] leading-relaxed text-ink">
+              ¡Hola! Pregúntame lo que quieras de tu negocio. Toca una pregunta o escribe la tuya.
+            </p>
+          </div>
+          <h2 id="copiloto-ejemplos" className="sr-only">
+            Preguntas de ejemplo
           </h2>
-          <p className="mt-1 text-[15px] text-muted">O escribe la tuya abajo, como se la dirías a una persona.</p>
-          <div className="mt-4 grid gap-2 sm:grid-cols-2">
+          <div className="flex flex-wrap gap-2 sm:pl-14">
             {SUGERENCIAS.map((s) => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => preguntar(s)}
-                className="flex min-h-[3rem] items-center rounded-2xl border border-border bg-surface px-4 py-2.5 text-left text-[15px] text-ink transition-[transform,background-color] duration-150 hover:bg-ink/[0.04] active:scale-[0.98] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-              >
+              <button key={s} type="button" onClick={() => preguntar(s)} className={chipGrande}>
                 {s}
               </button>
             ))}
@@ -108,49 +114,70 @@ export function CopilotoChat() {
       )}
 
       {mensajes.map((m, i) => (
-        <article key={i} className="border-b border-border pb-8 last:border-0">
-          <h2 className="text-lg font-semibold tracking-tight text-ink">{m.pregunta}</h2>
-          <div
-            className={`mt-3 whitespace-pre-wrap text-[15px] leading-relaxed ${m.estado === 'error' ? 'text-error' : 'text-ink'}`}
-          >
-            {m.respuesta}
-            {m.estado === 'pensando' && !m.respuesta && (
-              <span className="inline-flex items-center gap-2 text-muted">
-                <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Consultando tus datos…
-              </span>
-            )}
+        <article key={i} className="flex flex-col gap-3">
+          <h2 className="animate-fade-in max-w-[85%] self-end rounded-3xl rounded-tr-md bg-primary px-4 py-3 text-[16px] font-medium leading-relaxed text-[rgb(var(--color-cta-fg))]">
+            {m.pregunta}
+          </h2>
+          <div className="flex items-start gap-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/15 text-ink" aria-hidden="true">
+              <Sparkles className="h-4 w-4" />
+            </span>
+            <div
+              className={`min-w-0 max-w-[85%] rounded-3xl rounded-tl-md border px-4 py-3 ${
+                m.estado === 'error' ? 'border-error/30 bg-error-soft' : 'border-border bg-surface'
+              }`}
+            >
+              <div className={`whitespace-pre-wrap text-[16px] leading-relaxed ${m.estado === 'error' ? 'text-error' : 'text-ink'}`} aria-live="polite">
+                {m.respuesta}
+                {m.estado === 'pensando' && !m.respuesta && (
+                  <span className="inline-flex items-center gap-2 text-muted">
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Revisando tus datos…
+                  </span>
+                )}
+              </div>
+              {m.herramientas.length > 0 && (
+                <details className="mt-3 rounded-2xl bg-ink/[0.03]">
+                  <summary className="flex min-h-[2.75rem] cursor-pointer items-center px-3 text-[14px] font-medium text-muted hover:text-ink">
+                    Qué revisó para contestarte · {m.herramientas.length} {m.herramientas.length === 1 ? 'paso' : 'pasos'}
+                  </summary>
+                  <ol className="flex flex-col gap-3 border-t border-border px-3 py-3">
+                    {m.herramientas.map((h, j) => (
+                      <li key={j} className="text-xs">
+                        <p className="flex items-center gap-1.5 font-medium text-muted">
+                          {h.name === 'consultar_sql' ? (
+                            <Database className="h-3.5 w-3.5" aria-hidden />
+                          ) : h.name === 'buscar_en_documentos' ? (
+                            <FileText className="h-3.5 w-3.5" aria-hidden />
+                          ) : (
+                            <FileSearch className="h-3.5 w-3.5" aria-hidden />
+                          )}
+                          {{ consultar_sql: 'Revisó tus datos', buscar_en_notas: 'Buscó en tus notas', buscar_en_documentos: 'Buscó en tus documentos' }[h.name]}
+                          <span className={h.ok ? '' : 'text-error'}>
+                            · {h.ok ? `${h.filas ?? 0} ${h.filas === 1 ? 'resultado' : 'resultados'}` : 'no se pudo'}
+                          </span>
+                        </p>
+                        <pre className="mt-1 overflow-x-auto whitespace-pre-wrap rounded-lg bg-ink/[0.04] p-2 font-mono text-[11px] text-ink">
+                          {h.input}
+                        </pre>
+                      </li>
+                    ))}
+                  </ol>
+                </details>
+              )}
+            </div>
           </div>
-          {m.herramientas.length > 0 && (
-            <details className="mt-4 rounded-xl border border-border bg-surface">
-              <summary className="flex min-h-[2.75rem] cursor-pointer items-center px-4 text-[13px] font-medium text-muted hover:text-ink">
-                Qué revisó para contestarte · {m.herramientas.length} {m.herramientas.length === 1 ? 'paso' : 'pasos'}
-              </summary>
-              <ol className="flex flex-col gap-3 border-t border-border px-4 py-3">
-                {m.herramientas.map((h, j) => (
-                  <li key={j} className="text-xs">
-                    <p className="flex items-center gap-1.5 font-medium text-muted">
-                      {h.name === 'consultar_sql' ? (
-                        <Database className="h-3.5 w-3.5" aria-hidden />
-                      ) : h.name === 'buscar_en_documentos' ? (
-                        <FileText className="h-3.5 w-3.5" aria-hidden />
-                      ) : (
-                        <FileSearch className="h-3.5 w-3.5" aria-hidden />
-                      )}
-                      {{ consultar_sql: 'Revisó tus datos', buscar_en_notas: 'Buscó en tus notas', buscar_en_documentos: 'Buscó en tus documentos' }[h.name]}
-                      <span className={h.ok ? '' : 'text-error'}>
-                        · {h.ok ? `${h.filas ?? 0} ${h.filas === 1 ? 'resultado' : 'resultados'}` : 'no se pudo'}
-                      </span>
-                    </p>
-                    <pre className="mt-1 overflow-x-auto whitespace-pre-wrap rounded-lg bg-ink/[0.04] p-2 font-mono text-[11px] text-ink">
-                      {h.input}
-                    </pre>
-                  </li>
-                ))}
-              </ol>
-            </details>
-          )}
         </article>
       ))}
+
+      {mensajes.length > 0 && !ocupado && otras.length > 0 && (
+        <div className="flex flex-wrap gap-2 sm:pl-12" aria-label="Más preguntas">
+          {otras.map((s) => (
+            <button key={s} type="button" onClick={() => preguntar(s)} className={chipGrande}>
+              {s}
+            </button>
+          ))}
+        </div>
+      )}
       <div ref={fin} />
 
       <form
@@ -175,15 +202,16 @@ export function CopilotoChat() {
             }
           }}
           placeholder="Escribe tu pregunta…"
-          className="max-h-40 min-h-[44px] flex-1 resize-none bg-transparent px-3 py-2.5 text-base text-ink placeholder:text-muted focus:outline-none sm:text-sm"
+          className="max-h-40 min-h-[44px] flex-1 resize-none bg-transparent px-3 py-2.5 text-base text-ink placeholder:text-muted focus:outline-none"
         />
         <button
           type="submit"
           disabled={ocupado || !texto.trim()}
           aria-label="Preguntar"
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary text-[rgb(var(--color-cta-fg))] transition active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:opacity-40"
+          className="flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-xl bg-primary px-4 text-[15px] font-semibold text-[rgb(var(--color-cta-fg))] transition active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:opacity-40"
         >
           {ocupado ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <ArrowUp className="h-4 w-4" aria-hidden="true" />}
+          Preguntar
         </button>
       </form>
     </div>

@@ -9,7 +9,7 @@ import { tenantLoyaltyCardUrl } from '@/lib/urls';
 import { dayKey } from '@/lib/dates/tenantTime';
 import { Bloqueado } from '../plan/Bloqueado';
 
-const DESCRIPCION = 'La tarjeta de sellos de siempre, en el teléfono de tus clientas, y promociones con fecha.';
+const DESCRIPCION = 'La tarjeta de sellos de siempre, ahora en el teléfono de tus clientas.';
 
 export const dynamic = 'force-dynamic';
 
@@ -68,7 +68,7 @@ export default async function LealtadPage({ params }: { params: Promise<{ slug: 
   return (
     <div>
       {header}
-      <LealtadVista slug={slug} datos={datos} tarjetas={tarjetas} hoy={dayKey(new Date(), timezone)} />
+      <LealtadVista slug={slug} negocio={negocio} datos={datos} tarjetas={tarjetas} hoy={dayKey(new Date(), timezone)} />
     </div>
   );
 }

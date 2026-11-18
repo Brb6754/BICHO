@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { BellRing, Mail, MessageCircle, Star, UserRoundX } from 'lucide-react';
+import { BellRing, Mail, MessageCircle, Pencil, Star, UserRoundX } from 'lucide-react';
 import { SectionHeading } from '@/components/tenant-dash/PageHeader';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/Label';
 import { FormField } from '@/components/tenant-dash/ui/FormField';
 import { HelpTip } from '@/components/tenant-dash/ui/HelpTip';
 import { toast } from '@/components/tenant-dash/ui/Toast';
+import { Avatar, CheckListo, Pestanas } from '@/components/tenant-dash/crecer/ui';
 import { mailtoLink, waLink } from '@/lib/regresan/mensajes';
 
 // La pantalla de "Clientes que regresan", separada de la página para
@@ -19,6 +20,9 @@ import { mailtoLink, waLink } from '@/lib/regresan/mensajes';
 // Ningún botón manda nada: abre WhatsApp (wa.me) o el correo con el texto
 // listo para que el dueño lo revise y lo envíe él. Envío masivo
 // automático = número baneado.
+//
+// shortcut: "ya le escribiste" vive solo en este teléfono (localStorage),
+// no hay columna para guardarlo; si se quiere entre equipos, va a la base.
 
 export type FilaRegresan = {
   key: string;
@@ -53,84 +57,127 @@ const ESTADO_LABEL: Record<ProximoRecordatorio['estado'], string> = {
   'sin-canal': 'Sin correo ni WhatsApp',
 };
 
-function FilaMensaje({
+// Coral del módulo, en versión que pasa AA: texto oscuro sobre pastel.
+const CORAL = { suave: '#FFF1EB', chip: '#FDE2D6', fuerte: '#A8361A' };
+const MIEL = { chip: '#FFF0C2', fuerte: '#7A5200' };
+
+const CLAVE_LS = 'bicho:regresan:escritas';
+const VIGENCIA_MS = 30 * 24 * 3600 * 1000;
+
+function leerEscritas(): Record<string, number> {
+  try {
+    const crudo = JSON.parse(localStorage.getItem(CLAVE_LS) ?? '{}') as Record<string, number>;
+    const ahora = Date.now();
+    return Object.fromEntries(Object.entries(crudo).filter(([, t]) => ahora - t < VIGENCIA_MS));
+  } catch {
+    return {};
+  }
+}
+
+function TarjetaClienta({
   fila,
-  accion,
+  boton,
   asunto,
   demo,
+  tono,
+  escrita,
+  onEscribir,
 }: {
   fila: FilaRegresan;
-  accion: string;
+  boton: string;
   asunto: string;
   demo: boolean;
+  tono: { chip: string; fuerte: string };
+  escrita: boolean;
+  onEscribir: () => void;
 }) {
-  const [abierta, setAbierta] = useState(false);
+  const [editar, setEditar] = useState(false);
   const [texto, setTexto] = useState(fila.mensaje);
   const wa = waLink(fila.phone, texto);
+  const [cuando, ...resto] = fila.detalle.split(' · ');
+  const que = resto.join(' · ');
+
+  const abrir = (e: React.MouseEvent) => {
+    if (demo) {
+      e.preventDefault();
+      toast('En la demo no se abre WhatsApp. Así se marca cuando ya le escribiste.');
+    }
+    onEscribir();
+  };
+
+  const grande =
+    'ui-btn inline-flex min-h-[3.25rem] w-full items-center justify-center gap-2 rounded-2xl px-5 text-[16px] font-semibold transition active:scale-[0.98] motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2';
 
   return (
-    <li className="px-4 py-4 sm:px-5">
-      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+    <li
+      className={`flex flex-col gap-4 rounded-3xl border bg-surface p-4 shadow-sm transition-colors sm:p-5 ${escrita ? 'border-success/40' : 'border-border'}`}
+    >
+      <div className="flex items-start gap-3">
+        <Avatar nombre={fila.name} />
         <div className="min-w-0 flex-1">
-          <p className="truncate font-medium text-ink">{fila.name}</p>
-          <p className="line-clamp-2 text-sm text-muted">{fila.detalle}</p>
+          <p className="truncate text-[17px] font-semibold leading-snug text-ink">{fila.name}</p>
+          {que && <p className="line-clamp-2 text-[15px] leading-snug text-muted">{que}</p>}
         </div>
-        {fila.phone || fila.email ? (
-          <Button variant={abierta ? 'outline' : 'primary'} onClick={() => setAbierta((v) => !v)} aria-expanded={abierta}>
-            <MessageCircle className="h-4 w-4" aria-hidden="true" />
-            {abierta ? 'Cerrar' : accion}
-          </Button>
-        ) : (
-          <span className="text-sm text-muted">Sin teléfono</span>
-        )}
+        {escrita && <CheckListo />}
       </div>
 
-      {abierta && (
-        <div className="mt-3">
-          <Label htmlFor={`msg-${fila.key}`}>Mensaje (puedes editarlo antes de mandarlo)</Label>
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="rounded-full px-3 py-1 text-[14px] font-semibold" style={{ background: tono.chip, color: tono.fuerte }}>
+          {cuando}
+        </span>
+        {escrita && <span className="text-[14px] font-medium text-success">Ya le escribiste</span>}
+      </div>
+
+      {editar && (
+        <div className="animate-fade-in">
+          <Label htmlFor={`msg-${fila.key}`}>Tu mensaje (cámbialo si quieres)</Label>
           <textarea
             id={`msg-${fila.key}`}
             value={texto}
             onChange={(e) => setTexto(e.target.value)}
-            rows={4}
-            className="w-full rounded-xl border border-border bg-surface px-3 py-2 text-[15px] leading-relaxed text-ink focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+            rows={5}
+            className="w-full rounded-2xl border border-border bg-surface px-3.5 py-2.5 text-[16px] leading-relaxed text-ink focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
-          <div className="mt-2 flex flex-wrap gap-2">
-            {wa &&
-              (demo ? (
-                <span className="inline-flex min-h-[2.75rem] items-center rounded-full border border-border px-4 text-sm text-muted">
-                  En la demo no se abre WhatsApp
-                </span>
-              ) : (
-                <a
-                  href={wa}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex min-h-[2.75rem] items-center gap-2 rounded-full bg-primary px-5 text-sm font-medium text-[rgb(var(--color-cta-fg))] shadow-sm hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-                >
-                  <MessageCircle className="h-4 w-4" aria-hidden="true" />
-                  Abrir WhatsApp
-                </a>
-              ))}
-            {fila.email && !demo && (
-              <a
-                href={mailtoLink(fila.email, asunto, texto)}
-                className="inline-flex min-h-[2.75rem] items-center gap-2 rounded-full border border-border px-5 text-sm font-medium text-ink hover:bg-ink/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-              >
-                <Mail className="h-4 w-4" aria-hidden="true" />
-                Por correo
-              </a>
-            )}
-          </div>
         </div>
       )}
+
+      <div className="mt-auto flex flex-col gap-2">
+        {wa ? (
+          <a href={wa} target="_blank" rel="noreferrer" onClick={abrir} className={`${grande} bg-primary text-[rgb(var(--color-cta-fg))] shadow-sm hover:brightness-110`}>
+            <MessageCircle className="h-5 w-5" aria-hidden="true" />
+            {boton} por WhatsApp
+          </a>
+        ) : fila.email ? (
+          <a
+            href={demo ? '#' : mailtoLink(fila.email, asunto, texto)}
+            onClick={abrir}
+            className={`${grande} bg-primary text-[rgb(var(--color-cta-fg))] shadow-sm hover:brightness-110`}
+          >
+            <Mail className="h-5 w-5" aria-hidden="true" />
+            {boton} por correo
+          </a>
+        ) : (
+          <p className="rounded-2xl bg-ink/[0.04] px-4 py-3 text-center text-[15px] text-muted">No dejó teléfono ni correo</p>
+        )}
+        {(wa || fila.email) && (
+          <button
+            type="button"
+            onClick={() => setEditar((v) => !v)}
+            aria-expanded={editar}
+            className="inline-flex min-h-[2.75rem] items-center justify-center gap-2 rounded-2xl text-[15px] font-medium text-muted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+          >
+            <Pencil className="h-4 w-4" aria-hidden="true" />
+            {editar ? 'Listo, ya lo cambié' : 'Ver o cambiar el mensaje'}
+          </button>
+        )}
+      </div>
     </li>
   );
 }
 
 function Vacio(props: React.ComponentProps<typeof EmptyState>) {
   return (
-    <div className="rounded-2xl border border-dashed border-border px-5 [&>div]:py-10">
+    <div className="rounded-3xl border border-dashed border-border bg-surface px-5 [&>div]:py-10">
       <EmptyState {...props} />
     </div>
   );
@@ -157,35 +204,101 @@ export function RegresanBoard({
   demo?: boolean;
   ajustes?: React.ReactNode;
 }) {
+  const [escritas, setEscritas] = useState<Record<string, number>>({});
+  useEffect(() => {
+    if (!demo) setEscritas(leerEscritas());
+  }, [demo]);
+  function marcar(key: string) {
+    setEscritas((prev) => {
+      const sig = { ...prev, [key]: Date.now() };
+      try {
+        if (!demo) localStorage.setItem(CLAVE_LS, JSON.stringify(sig));
+      } catch {
+        /* sin almacenamiento: la palomita dura lo que dure la página */
+      }
+      return sig;
+    });
+  }
+  const n = inactivas.length;
+  const yaEscritas = inactivas.filter((f) => escritas[f.key]).length;
+  const sem = `${semanas} ${semanas === 1 ? 'semana' : 'semanas'}`;
+  const [vista, setVista] = useState<'recuperar' | 'resenas' | 'recordatorios'>('recuperar');
+
   return (
-    <div className="mt-8 flex flex-col gap-10">
-      <section>
-        <SectionHeading title="Clientas que no han vuelto" meta={inactivas.length} />
-        <p className="-mt-1 mb-3 text-sm text-muted">
-          Su última cita fue hace más de {semanas} {semanas === 1 ? 'semana' : 'semanas'} y no tienen nada agendado.
-          Un mensaje a tiempo es la venta más barata que vas a hacer hoy.
-        </p>
-        {inactivas.length === 0 ? (
+    <div className="mt-6 flex flex-col gap-8">
+      <Pestanas
+        etiqueta="Secciones de clientes que regresan"
+        actual={vista}
+        onCambiar={setVista}
+        opciones={[
+          { id: 'recuperar', texto: 'Recuperar clientas', cuenta: n },
+          { id: 'resenas', texto: 'Reseñas', cuenta: tieneLinkResena ? resenas.length : undefined },
+          { id: 'recordatorios', texto: 'Recordatorios', cuenta: proximos.length || undefined },
+        ]}
+      />
+
+      {vista === 'recuperar' && (
+      <section aria-labelledby="regresan-extranan">
+        <div className="mb-5 flex flex-wrap items-center gap-x-5 gap-y-3 rounded-3xl p-5 sm:p-6" style={{ background: CORAL.suave }}>
+          <h2 id="regresan-extranan" className="flex items-baseline gap-3">
+            <span className="text-[3rem] font-semibold leading-none tabular-nums" style={{ color: CORAL.fuerte }}>
+              {n}
+            </span>
+            <span className="text-[19px] font-semibold leading-tight text-ink">{n === 1 ? 'clienta te extraña' : 'clientas te extrañan'}</span>
+          </h2>
+          {n > 0 && (
+            <span className="flex -space-x-3" aria-hidden="true">
+              {inactivas.slice(0, 4).map((f) => (
+                <span key={f.key} className="rounded-full ring-4 ring-[#FFF1EB]">
+                  <Avatar nombre={f.name} />
+                </span>
+              ))}
+            </span>
+          )}
+          <p className="basis-full text-[15px] leading-relaxed text-ink/80" aria-live="polite">
+            {n === 0
+              ? `Nadie lleva más de ${sem} sin venir. ¡Tus clientas regresan solas!`
+              : yaEscritas > 0
+                ? `Ya les escribiste a ${yaEscritas} de ${n}. Un mensaje a tiempo es la venta más barata del día.`
+                : `Llevan más de ${sem} sin venir y no tienen cita. Un mensaje a tiempo es la venta más barata del día.`}
+          </p>
+        </div>
+
+        {n === 0 ? (
           <Vacio
             icon={UserRoundX}
-            title="Nadie lleva tanto tiempo sin venir"
-            description={`Cuando una clienta pase ${semanas} ${semanas === 1 ? 'semana' : 'semanas'} sin agendar, aparece aquí con un mensaje listo para mandarle.`}
+            title="Aquí aparecerán las que no han vuelto"
+            description={`Cuando una clienta pase ${sem} sin agendar, sale aquí con un mensaje listo para mandarle.`}
             why="Recuperar a una clienta que ya te conoce cuesta mucho menos que conseguir una nueva."
           />
         ) : (
-          <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-surface">
+          <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {inactivas.map((f) => (
-              <FilaMensaje key={f.key} fila={f} accion="Escribirle" asunto={`Te extrañamos en ${negocio}`} demo={demo} />
+              <TarjetaClienta
+                key={f.key}
+                fila={f}
+                boton="Escribirle"
+                asunto={`Te extrañamos en ${negocio}`}
+                demo={demo}
+                tono={CORAL}
+                escrita={Boolean(escritas[f.key])}
+                onEscribir={() => marcar(f.key)}
+              />
             ))}
           </ul>
         )}
       </section>
+      )}
 
+      {vista === 'resenas' && (
       <section>
-        <SectionHeading title="Pide tu reseña de Google" meta={tieneLinkResena ? resenas.length : undefined} />
-        <p className="-mt-1 mb-3 text-sm text-muted">
-          Quien vino esta semana. Pedirla el mismo día o al siguiente es cuando más reseñas se consiguen.
-        </p>
+        <h2 className="mb-4 flex items-center gap-1 text-[17px] font-semibold tracking-tight text-ink">
+          Quién vino esta semana
+          <HelpTip title="¿Por qué pedir reseña?">
+            Aquí salen las clientas cuya cita marcaste como «Vino» en los últimos 7 días. Pedirla el mismo día o al
+            siguiente es cuando más reseñas se consiguen, y más reseñas te suben en Google Maps.
+          </HelpTip>
+        </h2>
         {!tieneLinkResena ? (
           <Vacio
             icon={Star}
@@ -196,7 +309,7 @@ export function RegresanBoard({
               ajustes ? (
                 <a
                   href="#regresan-resena"
-                  className="ui-btn inline-flex min-h-[2.75rem] items-center rounded-full bg-primary px-5 text-sm font-semibold text-[rgb(var(--color-cta-fg))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                  className="ui-btn inline-flex min-h-[2.75rem] items-center rounded-full bg-primary px-5 text-[15px] font-semibold text-[rgb(var(--color-cta-fg))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                 >
                   Pegar mi link
                 </a>
@@ -206,38 +319,56 @@ export function RegresanBoard({
         ) : resenas.length === 0 ? (
           <Vacio
             icon={Star}
-            title="Nadie ha venido en los últimos 7 días"
-            description="Cuando una clienta venga a su cita, aparece aquí en cuanto pasa su cita, con el mensaje listo."
+            title="Nadie marcado como «Vino» esta semana"
+            description="Cuando en tu agenda marques que una clienta vino, aparece aquí con el mensaje listo para pedirle su reseña."
           />
         ) : (
-          <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-surface">
+          <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {resenas.map((f) => (
-              <FilaMensaje key={f.key} fila={f} accion="Pedir reseña" asunto={`¿Cómo te fue en ${negocio}?`} demo={demo} />
+              <TarjetaClienta
+                key={f.key}
+                fila={f}
+                boton="Pedirle reseña"
+                asunto={`¿Cómo te fue en ${negocio}?`}
+                demo={demo}
+                tono={MIEL}
+                escrita={Boolean(escritas[f.key])}
+                onEscribir={() => marcar(f.key)}
+              />
             ))}
           </ul>
         )}
       </section>
+      )}
 
+      {vista === 'recordatorios' && (
       <section>
-        <SectionHeading title="Recordatorio de cita" />
-        <div className="flex items-start gap-3 rounded-2xl border border-border bg-surface px-4 py-4 sm:px-5">
-          <BellRing className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
-          <p className="text-sm leading-relaxed text-muted">
+        <div className="flex items-start gap-3 rounded-3xl border border-border bg-surface px-4 py-4 sm:px-5">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-ink" aria-hidden="true">
+            <BellRing className="h-5 w-5" />
+          </span>
+          <p className="text-[15px] leading-relaxed text-muted">
             Un día antes de cada cita le llega un recordatorio a tu clienta por{' '}
-            <span className="font-medium text-ink">{canal === 'whatsapp' ? 'WhatsApp' : 'correo'}</span>
+            <span className="font-semibold text-ink">{canal === 'whatsapp' ? 'WhatsApp' : 'correo'}</span>
             {canal === 'correo' && ' (si dejó su correo al reservar)'}. No tienes que hacer nada.
           </p>
         </div>
+        {proximos.length === 0 && (
+          <p className="mt-3 rounded-3xl border border-dashed border-border px-5 py-6 text-center text-[15px] text-muted">
+            No hay citas en las próximas horas. Cuando las haya, aquí ves si ya salió su recordatorio.
+          </p>
+        )}
         {proximos.length > 0 && (
-          <ul className="mt-3 divide-y divide-border overflow-hidden rounded-2xl border border-border bg-surface">
+          <ul className="mt-3 divide-y divide-border overflow-hidden rounded-3xl border border-border bg-surface">
             {proximos.map((p) => (
-              <li key={p.id} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-3 sm:px-5">
-                <div className="min-w-0">
-                  <p className="truncate text-[15px] font-medium text-ink">{p.name}</p>
-                  <p className="text-sm text-muted">{p.cuando}</p>
+              <li key={p.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3 sm:px-5">
+                <Avatar nombre={p.name} />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[16px] font-medium text-ink">{p.name}</p>
+                  <p className="text-[14px] text-muted">{p.cuando}</p>
                 </div>
                 <span
-                  className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                  className={`rounded-full px-3 py-1 text-[13px] font-semibold ${
                     p.estado === 'enviado'
                       ? 'bg-success-soft text-success'
                       : p.estado === 'sin-canal'
@@ -252,6 +383,7 @@ export function RegresanBoard({
           </ul>
         )}
       </section>
+      )}
 
       {ajustes}
     </div>

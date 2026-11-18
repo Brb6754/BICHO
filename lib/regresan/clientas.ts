@@ -58,8 +58,9 @@ export type VisitaReciente = {
 
 /**
  * Citas que ya ocurrieron en los últimos `dias` días: el momento de
- * pedir la reseña. Cuenta como atendida la marcada "Vino" (completed) y
- * la pasada que sigue en confirmed — mismo criterio que buildRoster.
+ * pedir la reseña. Solo citas marcadas "Vino" (completed): una pasada que
+ * sigue en confirmed pudo ser falta, y pedirle reseña a quien no vino
+ * queda muy mal.
  * Una fila por persona (la visita más reciente).
  */
 export function visitasParaResena(bookings: RosterBooking[], now: Date, dias = 7): VisitaReciente[] {
@@ -69,7 +70,7 @@ export function visitasParaResena(bookings: RosterBooking[], now: Date, dias = 7
   for (const b of bookings) {
     const t = new Date(b.starts_at).getTime();
     if (t > now.getTime() || t < desde) continue;
-    if (b.status !== 'completed' && b.status !== 'confirmed') continue;
+    if (b.status !== 'completed') continue;
 
     const tel = normalizePhone(b.customers?.phone);
     const nombre = b.customers?.name?.trim();

@@ -62,7 +62,7 @@ describe('clientasInactivas', () => {
 });
 
 describe('visitasParaResena', () => {
-  it('una fila por persona, solo visitas de los últimos días que sí ocurrieron', () => {
+  it('una fila por persona, solo citas atendidas (Vino) de los últimos días', () => {
     const lista = visitasParaResena(
       [
         cita('1', haceDias(1), 'completed', 'Ana', '618 111 2233', 'Gelish', 'ana@x.mx'),
@@ -71,6 +71,7 @@ describe('visitasParaResena', () => {
         cita('4', haceDias(2), 'cancelled', 'Caro', '618 333 4455'),
         cita('5', haceDias(30), 'completed', 'Dani', '618 444 5566'),
         cita('6', enHoras(5), 'confirmed', 'Eva', '618 555 6677'),
+        cita('7', haceDias(1), 'confirmed', 'Fer', '618 666 7788'),
       ],
       NOW
     );

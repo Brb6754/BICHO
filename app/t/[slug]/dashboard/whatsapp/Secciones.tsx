@@ -15,27 +15,48 @@ export type Vista = 'recepcionista' | 'cotiza';
 
 export const vistaDe = (raw: unknown): Vista => (raw === 'cotiza' ? 'cotiza' : 'recepcionista');
 
-export function Pestanas({ actual }: { actual: Vista }) {
-  const pestanas: { id: Vista; texto: string; icono: typeof Bot }[] = [
-    { id: 'recepcionista', texto: 'Recepcionista', icono: Bot },
-    { id: 'cotiza', texto: 'Cotiza', icono: FileText },
-  ];
+/** Cómo está cada herramienta: prendida, apagada o por activar (null). */
+export type EstadoHerramienta = { texto: string; prendido: boolean | null };
+
+const HERRAMIENTAS: { id: Vista; texto: string; que: string; icono: typeof Bot }[] = [
+  { id: 'recepcionista', texto: 'Recepcionista', que: 'Contesta y agenda por ti, a cualquier hora.', icono: Bot },
+  { id: 'cotiza', texto: 'Cotiza', que: 'Manda cotizaciones en PDF y hace la factura.', icono: FileText },
+];
+
+/** Las dos herramientas como tarjetas grandes con su estado; tocar una abre su vista. */
+export function Pestanas({ actual, estados }: { actual: Vista; estados?: Record<Vista, EstadoHerramienta> }) {
   return (
-    <nav aria-label="Secciones de WhatsApp" className="mt-6 flex gap-1 rounded-full bg-ink/[0.06] p-1 sm:inline-flex">
-      {pestanas.map((p) => {
+    <nav aria-label="Herramientas de WhatsApp" className="mt-6 grid grid-cols-2 gap-3 lg:max-w-3xl">
+      {HERRAMIENTAS.map((p) => {
         const activa = p.id === actual;
+        const e = estados?.[p.id];
         return (
           <Link
             key={p.id}
             href={`?vista=${p.id}`}
             scroll={false}
             aria-current={activa ? 'page' : undefined}
-            className={`flex min-h-[2.75rem] flex-1 items-center justify-center gap-2 rounded-full px-5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 sm:flex-none ${
-              activa ? 'bg-surface text-ink shadow-sm' : 'text-muted hover:text-ink'
+            className={`flex min-h-[2.75rem] flex-col gap-3 rounded-3xl bg-surface p-4 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 sm:p-5 ${
+              activa ? 'shadow-md ring-[3px] ring-primary' : 'ring-1 ring-border hover:shadow-md'
             }`}
           >
-            <p.icono className="h-4 w-4" aria-hidden="true" />
-            {p.texto}
+            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#D9FDD3] text-[#1F5E2E]" aria-hidden="true">
+              <p.icono className="h-6 w-6" />
+            </span>
+            <span>
+              <span className="block text-[18px] font-semibold leading-tight text-ink">{p.texto}</span>
+              <span className="mt-1 block text-[14px] leading-snug text-muted max-sm:hidden">{p.que}</span>
+            </span>
+            {e && (
+              <span
+                className={`inline-flex items-center gap-1.5 self-start rounded-full px-3 py-1 text-[14px] font-semibold ${
+                  e.prendido === true ? 'bg-success-soft text-success' : e.prendido === false ? 'bg-ink/[0.07] text-ink' : 'bg-warning-soft text-warning'
+                }`}
+              >
+                <span className={`h-2 w-2 rounded-full ${e.prendido === true ? 'bg-success' : e.prendido === false ? 'bg-ink/40' : 'bg-warning'}`} aria-hidden="true" />
+                {e.texto}
+              </span>
+            )}
           </Link>
         );
       })}
@@ -43,29 +64,21 @@ export function Pestanas({ actual }: { actual: Vista }) {
   );
 }
 
-/** Una frase de qué hace + el detalle en un "¿cómo funciona?". */
+/** El detalle de cómo funciona cada una, en una ayuda desplegable. */
 export function Intro({ vista }: { vista: Vista }) {
   return vista === 'recepcionista' ? (
-    <div className="mt-6 flex max-w-2xl items-start gap-1">
-      <p className="text-[17px] leading-relaxed text-ink">
-        Contesta a tus clientas al instante, a cualquier hora, y les aparta la cita directo en tu agenda. Si una plática se
-        complica, la tomas tú.
-      </p>
-      <HelpTip title="¿Cómo funciona la recepcionista?">
+    <div className="mt-4">
+      <HelpTip title="¿Cómo funciona la recepcionista?" label="¿Cómo funciona la recepcionista?">
         Cuando alguien escribe a tu WhatsApp, la recepcionista le contesta con tus servicios, precios y horarios libres de
         verdad, y agenda la cita. Tú ves aquí cada plática. Si quieres contestar tú, tocas «Contestar yo» y ella se calla
         en esa plática hasta que se la regreses.
       </HelpTip>
     </div>
   ) : (
-    <div className="mt-6 flex max-w-2xl items-start gap-1">
-      <p className="text-[17px] leading-relaxed text-ink">
-        Tus clientes te piden precio por WhatsApp y reciben su cotización en PDF con tu catálogo. La aceptan y, si la
-        necesitan, piden su factura ahí mismo.
-      </p>
-      <HelpTip title="¿Cómo funciona Cotiza?">
-        Es un extra aparte del plan, para negocios que cotizan antes de vender. Arma la cotización con los precios de tu
-        catálogo, le da seguimiento a las 48 horas si no contestan y, cuando aceptan, les pide sus datos para la factura.
+    <div className="mt-4">
+      <HelpTip title="¿Cómo funciona Cotiza?" label="¿Cómo funciona Cotiza?">
+        Tus clientes te piden precio por WhatsApp y reciben su cotización en PDF con tu catálogo. Es un extra aparte del
+        plan: le da seguimiento a las 48 horas si no contestan y, cuando aceptan, les pide sus datos para la factura.
         Pregúntanos el precio.
       </HelpTip>
     </div>

@@ -74,11 +74,18 @@ export function PlanPicker({
           <article
             key={p.id}
             aria-current={activo ? 'true' : undefined}
-            className={`flex flex-col rounded-3xl bg-surface p-5 sm:p-6 ${activo ? 'ring-2 ring-ink' : 'ring-1 ring-border'}`}
+            className={`relative flex flex-col overflow-hidden rounded-3xl bg-surface p-5 sm:p-6 ${
+              activo ? 'shadow-lg ring-[3px] ring-primary' : 'shadow-sm ring-1 ring-border'
+            }`}
           >
+            {activo && <div className="absolute inset-x-0 top-0 h-1.5 bg-primary" aria-hidden="true" />}
             <div className="flex items-center justify-between gap-2">
-              <h3 className="text-[19px] font-semibold tracking-tight text-ink">{p.nombre}</h3>
-              {activo && <span className="rounded-full bg-ink px-2.5 py-1 text-xs font-semibold text-paper">Tu plan</span>}
+              <h3 className="text-[21px] font-semibold tracking-tight text-ink">{p.nombre}</h3>
+              {activo && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-[14px] font-semibold text-[rgb(var(--color-cta-fg))]">
+                  <Check className="h-4 w-4" strokeWidth={3} aria-hidden="true" /> Tu plan
+                </span>
+              )}
             </div>
             <p className="mt-3 text-[2rem] font-semibold leading-none tracking-tight tabular-nums text-ink">
               ${p.precio}
@@ -89,9 +96,9 @@ export function PlanPicker({
                 Precio de fundador. Normal: <span className="line-through">${p.precioNormal}</span>
               </p>
             )}
-            <p className="mt-3 text-[15px] leading-relaxed text-muted">{p.para}</p>
+            <p className="mt-3 text-[16px] leading-relaxed text-muted">{p.para}</p>
             <div className="mt-4 border-t border-border pt-4">
-              {p.base && <p className="mb-2.5 text-[13px] font-semibold text-ink">Todo lo de {p.base}, más:</p>}
+              {p.base && <p className="mb-2.5 text-[15px] font-semibold text-ink">Todo lo de {p.base}, más:</p>}
               <ul className="flex flex-col gap-2">
                 {p.suma.map((s) => (
                   <li key={s} className="flex items-start gap-2 text-[15px] leading-snug text-ink">
@@ -103,7 +110,7 @@ export function PlanPicker({
             </div>
             <div className="mt-auto pt-6">
               {activo ? (
-                <p className="flex min-h-[2.75rem] items-center justify-center rounded-full bg-ink/[0.06] text-sm font-semibold text-ink">
+                <p className="flex min-h-[3.25rem] items-center justify-center rounded-2xl bg-primary/10 text-[16px] font-semibold text-ink">
                   Es tu plan actual
                 </p>
               ) : puedeCambiar ? (
@@ -114,7 +121,7 @@ export function PlanPicker({
                   confirmLabel={`Sí, cambiar a ${p.nombre}`}
                   dismissLabel={actual ? `No, seguir en ${actual.nombre}` : 'No, dejarlo como está'}
                   triggerVariant="outline"
-                  triggerClassName="w-full"
+                  triggerClassName="w-full !min-h-[3.25rem] !rounded-2xl !text-[16px] !font-semibold"
                 >
                   Cambiar a {p.nombre}
                 </ConfirmForm>

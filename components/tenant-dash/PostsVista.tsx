@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Copy, Download, MessageCircle, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -10,6 +10,7 @@ import { Select } from '@/components/ui/Select';
 import { SectionHeading } from '@/components/tenant-dash/PageHeader';
 import { HelpTip } from '@/components/tenant-dash/ui/HelpTip';
 import { toast } from '@/components/tenant-dash/ui/Toast';
+import { Burbuja, FondoChat } from '@/components/tenant-dash/crecer/ui';
 import {
   FECHAS,
   LIMITE_MENSUAL,
@@ -45,11 +46,35 @@ const PLANTILLA_LABEL: Record<Plantilla, string> = {
 };
 
 const chip = (activo: boolean) =>
-  `min-h-[2.75rem] rounded-full px-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
+  `min-h-[2.75rem] rounded-full px-4 text-[15px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
     activo ? 'bg-primary text-[rgb(var(--color-cta-fg))]' : 'bg-ink/[0.05] text-ink hover:bg-ink/[0.09]'
   }`;
 const area =
   'w-full rounded-xl border border-border bg-surface px-3 py-2 text-[15px] leading-relaxed text-ink focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20';
+
+/** Cómo se ve el post: la imagen real (cuadrada) o, para WhatsApp, la burbuja. */
+function MiniPost({ slug, g, i = 0 }: { slug: string; g: Generacion; i?: number }) {
+  const o = g.opciones[i];
+  if (!o) return null;
+  if (g.formato === 'whatsapp' || !g.base) {
+    return (
+      <FondoChat className="aspect-square justify-end overflow-hidden !rounded-none">
+        <Burbuja mia>
+          <span className="line-clamp-6">{o.texto}</span>
+        </Burbuja>
+      </FondoChat>
+    );
+  }
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={imagenUrl(slug, 'feed', o.titular, g.base)}
+      alt=""
+      loading="lazy"
+      className="aspect-square w-full bg-ink/[0.04] object-cover"
+    />
+  );
+}
 
 export function PostsVista({
   slug,
@@ -86,6 +111,7 @@ export function PostsVista({
   const [base, setBase] = useState<BaseImagen | null>(null);
   const [formatoImg, setFormatoImg] = useState<Formato>('feed');
   const [copiado, setCopiado] = useState(false);
+  const editor = useRef<HTMLElement>(null);
 
   function abrir(g: Generacion, i = 0) {
     setGen(g);
@@ -94,6 +120,11 @@ export function PostsVista({
     setTitular(g.opciones[i]?.titular ?? '');
     setBase(g.base);
     setFormatoImg(g.formato === 'historia' ? 'historia' : 'feed');
+  }
+
+  function abrirDeGaleria(g: Generacion) {
+    abrir(g);
+    setTimeout(() => editor.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0);
   }
 
   async function onGenerar() {
@@ -242,7 +273,7 @@ export function PostsVista({
       </Card>
 
       {gen && (
-        <section>
+        <section ref={editor} className="scroll-mt-24">
           <SectionHeading title="Escoge una y edítala" />
           <div className="grid gap-3 sm:grid-cols-3">
             {gen.opciones.map((o, i) => (
@@ -251,12 +282,16 @@ export function PostsVista({
                 type="button"
                 onClick={() => abrir(gen, i)}
                 aria-pressed={elegida === i}
-                className={`rounded-2xl p-4 text-left text-sm leading-relaxed ring-1 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
-                  elegida === i ? 'bg-surface ring-2 ring-primary' : 'bg-paper ring-border hover:bg-surface'
+                className={`overflow-hidden rounded-3xl bg-surface text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
+                  elegida === i ? 'shadow-md ring-[3px] ring-primary' : 'ring-1 ring-border hover:shadow-md'
                 }`}
               >
-                <span className="block font-semibold text-ink">Opción {i + 1}</span>
-                <span className="mt-1 line-clamp-5 whitespace-pre-line text-muted">{o.texto}</span>
+                <MiniPost slug={slug} g={gen} i={i} />
+                <span className="flex items-center justify-between gap-2 px-4 pt-3 text-[16px] font-semibold text-ink">
+                  Opción {i + 1}
+                  {elegida === i && <span className="rounded-full bg-primary px-2.5 py-0.5 text-[13px] text-[rgb(var(--color-cta-fg))]">La que editas</span>}
+                </span>
+                <span className="line-clamp-3 whitespace-pre-line px-4 pb-4 pt-1 text-[15px] leading-relaxed text-muted">{o.texto}</span>
               </button>
             ))}
           </div>
@@ -380,22 +415,25 @@ export function PostsVista({
       )}
 
       <section>
-        <SectionHeading title="Lo que has generado" />
+        <SectionHeading title="Tus posts" meta={historial.length || undefined} />
         {historial.length === 0 ? (
-          <p className="rounded-2xl border border-dashed border-border px-5 py-8 text-center text-[15px] leading-relaxed text-muted">
-            Aquí se guardan los posts que generes, para que puedas volver a copiarlos o cambiarlos otro día.
+          <p className="rounded-3xl border border-dashed border-border px-5 py-8 text-center text-[15px] leading-relaxed text-muted">
+            Aquí se guardan tus posts, con su imagen, para volver a copiarlos o cambiarlos otro día.
           </p>
         ) : (
-          <ul className="flex flex-col divide-y divide-border rounded-2xl bg-surface ring-1 ring-border">
+          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {historial.map((g) => (
               <li key={g.id}>
                 <button
                   type="button"
-                  onClick={() => abrir(g)}
-                  className="flex min-h-[3rem] w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm hover:bg-ink/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                  onClick={() => abrirDeGaleria(g)}
+                  className={`flex h-full w-full flex-col overflow-hidden rounded-3xl bg-surface text-left transition hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
+                    gen?.id === g.id ? 'ring-[3px] ring-primary' : 'ring-1 ring-border'
+                  }`}
                 >
-                  <span className="min-w-0 truncate font-medium text-ink">{g.resumen}</span>
-                  <span className="shrink-0 text-muted">
+                  <MiniPost slug={slug} g={g} />
+                  <span className="line-clamp-2 px-3 pt-2.5 text-[15px] font-semibold leading-snug text-ink">{g.resumen}</span>
+                  <span className="mt-auto px-3 pb-3 pt-1 text-[13px] text-muted">
                     {FORMATO_LABEL[g.formato]} · {new Date(g.cuando).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })}
                   </span>
                 </button>

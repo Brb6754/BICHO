@@ -10,7 +10,7 @@ import { Bloqueado } from '../plan/Bloqueado';
 
 export const dynamic = 'force-dynamic';
 
-const DESCRIPCION = 'Pregúntale a tu negocio en español: citas, clientes, cotizaciones. Solo lee, no cambia nada.';
+const DESCRIPCION = 'Pregúntale a tu negocio como a una persona. Solo lee, no cambia nada.';
 
 export default async function CopilotoPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;

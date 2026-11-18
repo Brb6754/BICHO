@@ -3,7 +3,8 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { planPermiteAgente } from '@/lib/whatsapp/agente/ruteo';
 import { PageHeader, SectionHeading } from '@/components/tenant-dash/PageHeader';
-import { ActionForm, SubmitButton } from '@/components/tenant-dash/ui/ActionForm';
+import { ActionForm } from '@/components/tenant-dash/ui/ActionForm';
+import { Interruptor } from '@/components/tenant-dash/crecer/ui';
 import { HelpTip } from '@/components/tenant-dash/ui/HelpTip';
 import { Card } from '@/components/ui/Card';
 import { PLANES } from '@/lib/billing/planes';
@@ -62,10 +63,18 @@ export default async function WhatsappPage({
   // Sin token de Meta o sin número (propio o el de bicho) la recepcionista no puede contestar nada.
   const numeroListo = Boolean(process.env.WHATSAPP_ACCESS_TOKEN) && (numeroPropio || Boolean(process.env.WHATSAPP_PHONE_NUMBER_ID));
 
+  const cotizaMigrada = tenant != null && 'cotiza_whatsapp_enabled' in tenant;
+  const cotizaPrendida = tenant?.cotiza_whatsapp_enabled === true;
+  // Mismas condiciones que deciden "Próximamente" en cada vista.
+  const estados = {
+    recepcionista: !migrada || (!numeroListo && !prendido) ? { texto: 'Por activar', prendido: null } : { texto: prendido ? 'Prendida' : 'Apagada', prendido },
+    cotiza: !cotizaMigrada || (!numeroPropio && !cotizaPrendida) ? { texto: 'Por activar', prendido: null } : { texto: cotizaPrendida ? 'Prendido' : 'Apagado', prendido: cotizaPrendida },
+  };
+
   const encabezado = (
     <>
       <PageHeader title={TITULO} description={DESCRIPCION} />
-      <Pestanas actual={vista} />
+      <Pestanas actual={vista} estados={estados} />
       <Intro vista={vista} />
     </>
   );
@@ -103,14 +112,8 @@ export default async function WhatsappPage({
               </p>
             </div>
             {puedeCambiar ? (
-              <ActionForm
-                action={cambiarAgente.bind(null, slug, !prendido)}
-                success={prendido ? 'Recepcionista apagada' : 'Recepcionista prendida'}
-                className="max-sm:w-full"
-              >
-                <SubmitButton variant={prendido ? 'outline' : 'primary'} className="max-sm:w-full" pending={prendido ? 'Apagando…' : 'Prendiendo…'}>
-                  {prendido ? 'Apagar recepcionista' : 'Prender recepcionista'}
-                </SubmitButton>
+              <ActionForm action={cambiarAgente.bind(null, slug, !prendido)} success={prendido ? 'Recepcionista apagada' : 'Recepcionista prendida'}>
+                <Interruptor type="submit" prendido={prendido} etiqueta="Recepcionista" textos={['Prendida', 'Apagada']} />
               </ActionForm>
             ) : (
               <p className="text-sm text-muted">Solo el dueño o un administrador la prende o la apaga.</p>
@@ -121,7 +124,7 @@ export default async function WhatsappPage({
         {(conversaciones.length > 0 || (migrada && (numeroListo || prendido))) && (
           <section className="mt-10">
             <h2 className="mb-3 flex min-h-[2.75rem] items-center gap-1 text-[17px] font-semibold tracking-tight text-ink">
-              Pláticas
+              Conversaciones
               <HelpTip title="¿Cuándo conviene contestar yo?">
                 Cuando piden algo que la recepcionista no sabe (un precio especial, una queja, un grupo grande). Toca la
                 plática y luego «Contestar yo». Cuando termines, regrésasela para que siga agendando.
@@ -145,8 +148,6 @@ export default async function WhatsappPage({
   // ── Cotiza por WhatsApp ──
   // `quotes` no tiene policies (db/027): se lee con service_role después de
   // requireTenantStaff, filtrando por este negocio.
-  const cotizaMigrada = tenant != null && 'cotiza_whatsapp_enabled' in tenant;
-  const cotizaPrendida = tenant?.cotiza_whatsapp_enabled === true;
   const confirmar = tenant?.cotiza_confirmar_facturas !== false;
   const requisitos = [
     { ok: tenant?.quotes_enabled === true, texto: 'Cotizaciones prendidas en tu panel' },
@@ -207,14 +208,8 @@ export default async function WhatsappPage({
                 </p>
               </div>
               {puedeCambiar && (
-                <ActionForm
-                  action={cambiarCotiza.bind(null, slug, !cotizaPrendida)}
-                  success={cotizaPrendida ? 'Cotiza apagado' : 'Cotiza prendido'}
-                  className="max-sm:w-full"
-                >
-                  <SubmitButton variant={cotizaPrendida ? 'outline' : 'primary'} className="max-sm:w-full">
-                    {cotizaPrendida ? 'Apagar Cotiza' : 'Prender Cotiza'}
-                  </SubmitButton>
+                <ActionForm action={cambiarCotiza.bind(null, slug, !cotizaPrendida)} success={cotizaPrendida ? 'Cotiza apagado' : 'Cotiza prendido'}>
+                  <Interruptor type="submit" prendido={cotizaPrendida} etiqueta="Cotiza" />
                 </ActionForm>
               )}
             </div>
@@ -228,14 +223,8 @@ export default async function WhatsappPage({
                 </p>
               </div>
               {puedeCambiar && (
-                <ActionForm
-                  action={cambiarConfirmarFacturas.bind(null, slug, !confirmar)}
-                  success={confirmar ? 'Las facturas se harán solas' : 'Vas a revisar cada factura'}
-                  className="max-sm:w-full"
-                >
-                  <SubmitButton variant="outline" className="max-sm:w-full">
-                    {confirmar ? 'Que se hagan solas' : 'Quiero revisarlas'}
-                  </SubmitButton>
+                <ActionForm action={cambiarConfirmarFacturas.bind(null, slug, !confirmar)} success={confirmar ? 'Las facturas se harán solas' : 'Vas a revisar cada factura'}>
+                  <Interruptor type="submit" prendido={confirmar} etiqueta="Revisar cada factura antes de hacerla" textos={['Sí', 'No']} />
                 </ActionForm>
               )}
             </div>

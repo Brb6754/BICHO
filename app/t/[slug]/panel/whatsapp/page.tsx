@@ -82,13 +82,16 @@ export default async function WhatsappDemoPage({
   return (
     <div>
       <PageHeader title="WhatsApp" description="Que tus clientas agenden y pidan precio por WhatsApp aunque tú estés ocupada." />
-      <Pestanas actual={vista} />
+      <Pestanas
+        actual={vista}
+        estados={{ recepcionista: { texto: 'Prendida', prendido: true }, cotiza: { texto: 'Prendido', prendido: true } }}
+      />
       <Intro vista={vista} />
       {vista === 'recepcionista' ? (
         <section className="mt-10">
-          <SectionHeading title="Pláticas" />
+          <SectionHeading title="Conversaciones" />
           <Conversaciones conversaciones={ejemplo} timezone={tenant.timezone} />
-          <DemoNote>Pláticas de ejemplo: los teléfonos y mensajes son inventados y los botones no envían nada.</DemoNote>
+          <DemoNote>Conversaciones de ejemplo: los teléfonos y mensajes son inventados y los botones no envían nada.</DemoNote>
         </section>
       ) : (
         <section className="mt-10">

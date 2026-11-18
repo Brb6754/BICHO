@@ -6,6 +6,7 @@ import { cargarPanelDemo } from '@/lib/demo/panelData';
 import { lealtadDemo, TOKEN_DEMO } from '@/lib/lealtad/demo';
 import { waTarjetaHref } from '@/lib/lealtad/tarjeta';
 import { dayKey } from '@/lib/dates/tenantTime';
+import { tenantLoyaltyCardUrl } from '@/lib/urls';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,17 +19,18 @@ export default async function LealtadDemoPage({ params }: { params: Promise<{ sl
 
   const { tenant, now } = datos;
   const lealtad = lealtadDemo(now, tenant.timezone);
-  const url = `/t/${slug}/tarjeta/${TOKEN_DEMO}`;
+  // URL completa, como en el panel real: el link viaja por WhatsApp.
+  const url = tenantLoyaltyCardUrl(slug, TOKEN_DEMO);
   const tarjetas = lealtad.tarjetas.map((t) => ({ ...t, url, wa: waTarjetaHref(null, tenant.name, t.nombre, url) }));
 
   return (
     <div>
       <PageHeader
         title="Lealtad"
-        description="La tarjeta de sellos de siempre, en el teléfono de tus clientas, y promociones con fecha."
+        description="La tarjeta de sellos de siempre, ahora en el teléfono de tus clientas."
       />
-      <LealtadVista slug={slug} datos={lealtad} tarjetas={tarjetas} hoy={dayKey(now, tenant.timezone)} soloLectura />
-      <DemoNote>Clientas, sellos y promociones de ejemplo. En la demo los botones no guardan nada.</DemoNote>
+      <LealtadVista slug={slug} negocio={tenant.name} datos={lealtad} tarjetas={tarjetas} hoy={dayKey(now, tenant.timezone)} soloLectura />
+      <DemoNote>Clientas, sellos y promociones de ejemplo. Prueba ponerle un sello: en la demo no se guarda nada.</DemoNote>
     </div>
   );
 }

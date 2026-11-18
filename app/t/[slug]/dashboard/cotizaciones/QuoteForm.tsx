@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronDown, Plus, Trash2 } from 'lucide-react';
+import { ChevronDown, Minus, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { FormField } from '@/components/tenant-dash/ui/FormField';
@@ -35,12 +35,15 @@ export function QuoteForm({
   taxRateDefault,
   taxLabel,
   preciosConIvaDefault,
+  catalogo = [],
 }: {
   slug: string;
   taxRateDefault: number;
   taxLabel: string;
   /** El ajuste del negocio (db/059). */
   preciosConIvaDefault: boolean;
+  /** Sus servicios, para agregarlos con un toque. */
+  catalogo?: { name: string; priceCents: number }[];
 }) {
   const router = useRouter();
   const [cliente, setCliente] = useState({ name: '', email: '', phone: '' });
@@ -118,13 +121,26 @@ export function QuoteForm({
     router.refresh();
   }
 
+  // Tocar un servicio: si ya está, suma uno; si el único renglón está
+  // vacío, lo ocupa; si no, agrega uno nuevo.
+  function agregarDelCatalogo(c: { name: string; priceCents: number }) {
+    setError(null);
+    setPartidas((prev) => {
+      const i = prev.findIndex((p) => p.description === c.name);
+      if (i >= 0) return prev.map((p, j) => (j === i ? { ...p, quantity: String((Number(p.quantity) || 0) + 1) } : p));
+      const nueva = { ...PARTIDA_VACIA, description: c.name, unitPriceMxn: String(c.priceCents / 100) };
+      const vacia = prev.length === 1 && !prev[0].description.trim() && !prev[0].unitPriceMxn.trim();
+      return vacia ? [nueva] : [...prev, nueva];
+    });
+  }
+
   const precioLabel = `Precio c/u (${conIva ? 'con' : 'sin'} ${taxLabel})`;
 
   return (
     <form onSubmit={guardar} noValidate className="mt-8 flex flex-col gap-10">
       <section>
-        <h2 className="text-[17px] font-semibold tracking-tight text-ink">1. ¿Para quién es?</h2>
-        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+        <h2 className="text-[19px] font-semibold tracking-tight text-ink">1. ¿Para quién es?</h2>
+        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
           <FormField label="Nombre" error={errorNombre}>
             <Input
               id="q-name"
@@ -159,7 +175,7 @@ export function QuoteForm({
 
       <section>
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
-          <h2 className="text-[17px] font-semibold tracking-tight text-ink">2. ¿Qué incluye?</h2>
+          <h2 className="text-[19px] font-semibold tracking-tight text-ink">2. ¿Qué incluye?</h2>
           <div className="flex items-center">
             <label className="flex min-h-11 items-center gap-2.5 text-[15px] text-ink">
               <input
@@ -178,75 +194,133 @@ export function QuoteForm({
           </div>
         </div>
 
-        <div className="mt-4 flex flex-col gap-3">
-          {partidas.map((p, i) => (
-            <div key={i} className="rounded-2xl bg-surface p-4 ring-1 ring-border">
-              <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_5.5rem_9.5rem_auto] sm:items-end">
+        {catalogo.length > 0 && (
+          <div className="mt-3">
+            <p className="text-[15px] font-medium text-muted">Toca tus servicios para agregarlos:</p>
+            <div className="-mx-4 mt-2 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0">
+              {catalogo.map((c) => {
+                const cuantos = partidas.filter((p) => p.description === c.name).reduce((n, p) => n + (Number(p.quantity) || 0), 0);
+                return (
+                  <button
+                    key={c.name}
+                    type="button"
+                    onClick={() => agregarDelCatalogo(c)}
+                    className={`inline-flex min-h-12 shrink-0 items-center gap-2 rounded-2xl px-4 text-left ring-1 transition active:scale-[0.97] motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
+                      cuantos > 0 ? 'bg-primary/[0.08] ring-primary/40' : 'bg-surface ring-border hover:bg-ink/[0.03]'
+                    }`}
+                  >
+                    {cuantos > 0 ? (
+                      <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-primary px-1.5 text-[13px] font-bold tabular-nums text-[rgb(var(--color-cta-fg))]">
+                        {cuantos}
+                      </span>
+                    ) : (
+                      <Plus className="h-4 w-4 text-muted" aria-hidden="true" />
+                    )}
+                    <span className="text-[15px] font-medium text-ink">{c.name}</span>
+                    <span className="text-[15px] tabular-nums text-muted">{formatMoney(c.priceCents)}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        <ul className="mt-4 flex flex-col gap-3">
+          {partidas.map((p, i) => {
+            const cant = Number(p.quantity) || 0;
+            return (
+              <li key={i} className="animate-fade-in rounded-3xl bg-surface p-4 ring-1 ring-border sm:p-5">
                 <FormField label="Qué es">
                   <Input
                     id={`d-${i}`}
-                    className="w-full"
+                    className="h-12 w-full text-[16px]"
                     value={p.description}
                     onChange={(e) => cambiar(i, 'description', e.target.value)}
                     placeholder="Ej. Peinado y maquillaje de novia"
                   />
                 </FormField>
-                <div className="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-3 sm:contents">
-                  <FormField label="Cantidad">
-                    <Input
-                      className="w-full tabular-nums"
-                      inputMode="decimal"
-                      value={p.quantity}
-                      onChange={(e) => cambiar(i, 'quantity', e.target.value)}
-                    />
-                  </FormField>
+                <div className="mt-3 grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
                   <FormField label={precioLabel}>
                     <Input
-                      className="w-full tabular-nums"
+                      className="h-12 w-full text-[16px] tabular-nums"
                       inputMode="decimal"
                       value={p.unitPriceMxn}
                       onChange={(e) => cambiar(i, 'unitPriceMxn', e.target.value)}
                       placeholder="$0"
                     />
                   </FormField>
+                  <div>
+                    <p className="mb-1.5 text-[13px] font-medium text-ink" id={`c-${i}`}>
+                      Cantidad
+                    </p>
+                    <div className="flex items-center rounded-2xl ring-1 ring-border" role="group" aria-labelledby={`c-${i}`}>
+                      <button
+                        type="button"
+                        onClick={() => cambiar(i, 'quantity', String(Math.max(1, cant - 1)))}
+                        disabled={cant <= 1}
+                        aria-label="Quitar uno"
+                        className="flex h-12 w-12 items-center justify-center rounded-l-2xl text-ink transition hover:bg-ink/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/40 disabled:opacity-30"
+                      >
+                        <Minus className="h-5 w-5" aria-hidden="true" />
+                      </button>
+                      <input
+                        inputMode="decimal"
+                        value={p.quantity}
+                        onChange={(e) => cambiar(i, 'quantity', e.target.value)}
+                        aria-label="Cantidad"
+                        className="h-12 w-12 bg-transparent text-center text-[17px] font-semibold tabular-nums text-ink outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => cambiar(i, 'quantity', String(cant + 1))}
+                        aria-label="Agregar uno"
+                        className="flex h-12 w-12 items-center justify-center rounded-r-2xl text-ink transition hover:bg-ink/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/40"
+                      >
+                        <Plus className="h-5 w-5" aria-hidden="true" />
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex min-h-11 items-center justify-between gap-3 sm:flex-col sm:items-end">
-                  <span className="text-sm font-semibold tabular-nums text-ink">
+                <div className="mt-3 flex min-h-11 items-center justify-between gap-3 border-t border-border pt-3">
+                  {partidas.length > 1 ? (
+                    <button
+                      type="button"
+                      onClick={() => setPartidas((prev) => prev.filter((_, j) => j !== i))}
+                      className="inline-flex min-h-11 items-center gap-1.5 rounded-full px-3 text-[15px] font-medium text-muted transition-colors hover:bg-error-soft hover:text-error focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                    >
+                      <Trash2 className="h-4 w-4" aria-hidden="true" />
+                      Quitar
+                      <span className="sr-only"> {p.description.trim() || `renglón ${i + 1}`}</span>
+                    </button>
+                  ) : (
+                    <span />
+                  )}
+                  <span className="text-[19px] font-bold tabular-nums text-ink">
                     {formatMoney(
                       lineTotalCents({
                         description: p.description,
-                        quantity: Number(p.quantity) || 0,
+                        quantity: cant,
                         unitPriceCents: Math.round((Number(p.unitPriceMxn) || 0) * 100),
                       })
                     )}
                   </span>
-                  {partidas.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => setPartidas((prev) => prev.filter((_, j) => j !== i))}
-                      className="inline-flex h-11 w-11 items-center justify-center rounded-full text-muted transition-colors hover:bg-ink/[0.06] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-                      aria-label={`Quitar ${p.description.trim() || `renglón ${i + 1}`}`}
-                    >
-                      <Trash2 className="h-4 w-4" aria-hidden="true" />
-                    </button>
-                  )}
                 </div>
-              </div>
-            </div>
-          ))}
-        </div>
+              </li>
+            );
+          })}
+        </ul>
 
         <button
           type="button"
           onClick={() => setPartidas((prev) => [...prev, { ...PARTIDA_VACIA }])}
-          className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-full border border-border px-4 text-sm font-medium text-ink transition-colors hover:bg-ink/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+          className="mt-3 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-border px-4 text-[15px] font-medium text-ink transition-colors hover:bg-ink/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
         >
           <Plus className="h-4 w-4" aria-hidden="true" />
-          Agregar otra cosa
+          Agregar otra cosa a mano
         </button>
       </section>
 
-      <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+      <section className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
         {/* Lo que casi nunca se toca, plegado. */}
         <details className="group h-fit rounded-2xl ring-1 ring-border" open={Boolean(descuento || vigencia || notas)}>
           <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 px-4 text-[15px] font-medium text-ink">
@@ -256,7 +330,7 @@ export function QuoteForm({
               aria-hidden="true"
             />
           </summary>
-          <div className="grid gap-4 px-4 pb-4 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 px-4 pb-4 sm:grid-cols-3">
             <FormField label="Descuento" hint="En pesos.">
               <Input
                 className="w-full tabular-nums"
@@ -289,10 +363,10 @@ export function QuoteForm({
           </div>
         </details>
 
-        {/* El total, siempre a la vista. Es el número que va a decir en
-            voz alta por teléfono mientras llena esto. */}
-        <aside className="h-fit rounded-2xl bg-surface p-5 ring-1 ring-border">
-          <dl className="flex flex-col gap-2 text-sm">
+        {/* El desglose. En escritorio también lleva el botón y se queda a
+            la vista al bajar; en el teléfono el botón vive en la barra fija. */}
+        <aside className="h-fit rounded-3xl bg-surface p-5 ring-1 ring-border lg:sticky lg:top-6">
+          <dl className="flex flex-col gap-2 text-[15px]">
             {(!conIva || totales.discountCents > 0) && (
               <div className="flex justify-between">
                 <dt className="text-muted">{conIva ? 'Importe' : 'Subtotal'}</dt>
@@ -319,24 +393,41 @@ export function QuoteForm({
             </div>
             <div className="mt-2 flex items-baseline justify-between border-t border-border pt-3">
               <dt className="font-semibold text-ink">Total</dt>
-              <dd className="text-xl font-bold tabular-nums text-ink">{formatMoney(totales.totalCents)}</dd>
+              <dd className="text-[1.75rem] font-bold leading-none tabular-nums text-ink">{formatMoney(totales.totalCents)}</dd>
             </div>
           </dl>
 
           {error && (
-            <p role="alert" className="mt-4 rounded-xl bg-error-soft px-3.5 py-2.5 text-sm text-error">
+            <p role="alert" className="mt-4 rounded-xl bg-error-soft px-3.5 py-2.5 text-[15px] text-error">
               {error}
             </p>
           )}
 
-          <Button type="submit" className="mt-5 min-h-11 w-full" isLoading={guardando}>
+          <Button type="submit" className="mt-5 min-h-12 w-full text-[15px] font-semibold max-lg:hidden" isLoading={guardando}>
             {guardando ? 'Guardando…' : 'Guardar cotización'}
           </Button>
-          <p className="mt-2 text-[13px] leading-snug text-muted">
+          <p className="mt-2 text-[13px] leading-snug text-muted max-lg:hidden">
             Después, desde la lista se la mandas por WhatsApp o por correo.
           </p>
         </aside>
       </section>
+
+      {/* Teléfono: el total siempre a la vista, encima de la barra de abajo. */}
+      <div className="sticky bottom-[calc(4.25rem+env(safe-area-inset-bottom))] z-20 -mx-4 -mt-6 border-t border-border bg-surface/95 px-4 py-3 shadow-[0_-8px_24px_-12px_rgb(0_0_0/0.18)] backdrop-blur-md sm:-mx-8 sm:px-8 lg:hidden">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[13px] font-medium text-muted">
+              Total{conIva ? '' : ` con ${taxLabel}`}
+            </p>
+            <p key={totales.totalCents} className="animate-fade-in text-[1.6rem] font-bold leading-none tabular-nums text-ink">
+              {formatMoney(totales.totalCents)}
+            </p>
+          </div>
+          <Button type="submit" className="min-h-12 shrink-0 text-[15px] font-semibold" isLoading={guardando}>
+            {guardando ? 'Guardando…' : 'Guardar'}
+          </Button>
+        </div>
+      </div>
     </form>
   );
 }

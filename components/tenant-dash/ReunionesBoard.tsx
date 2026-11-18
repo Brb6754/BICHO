@@ -7,6 +7,7 @@ import { buildEmbudo, type MeetingEntry } from '@/lib/meetings/pipeline';
 import { RESULTADOS, modalidadLabel } from '@/lib/meetings/kinds';
 import { PageHeader } from '@/components/tenant-dash/PageHeader';
 import { HelpTip } from '@/components/tenant-dash/ui/HelpTip';
+import { Avatar, Chip } from '@/components/tenant-dash/dinero/Visual';
 import { OutcomeButtons } from '@/app/t/[slug]/dashboard/reuniones/OutcomeButtons';
 import { NuevaReunion } from '@/app/t/[slug]/dashboard/reuniones/NuevaReunion';
 import { cancelMeeting } from '@/app/t/[slug]/dashboard/reuniones/actions';
@@ -24,6 +25,8 @@ import { cancelMeeting } from '@/app/t/[slug]/dashboard/reuniones/actions';
 // taparlos es la que está viendo esta pantalla.
 
 const ICONO_MODALIDAD = { video: Video, sitio: MapPin, oficina: Users } as const;
+
+const TONO_CHIP = { info: 'info', primary: 'primary', success: 'success', muted: 'muted' } as const;
 
 const BOTON_PRIMARIO =
   'inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-[rgb(var(--color-cta-fg))] shadow-sm transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2';
@@ -109,7 +112,7 @@ export function ReunionesBoard({
     <div>
       <PageHeader
         title="Reuniones"
-        description="Con quién vas a hablar, con quién ya hablaste y en qué quedaron."
+        description="Con quién vas a hablar y en qué quedaron."
         action={accion}
         actions={
           !sinTipos && (
@@ -252,15 +255,15 @@ function Grupo({
       <div className="mb-2 flex flex-wrap items-center justify-between gap-x-4 px-1">
         <h2
           className={
-            'flex items-center text-[17px] font-semibold tracking-tight ' + (destacado ? 'text-ink' : 'text-ink/80')
+            'flex items-center text-[19px] font-semibold tracking-tight ' + (destacado ? 'text-ink' : 'text-ink/80')
           }
         >
           {titulo}
           {ayuda}
         </h2>
-        {detalle && <span className="text-[13px] text-muted">{detalle}</span>}
+        {detalle && <span className="text-[15px] text-muted">{detalle}</span>}
       </div>
-      <ul className="overflow-hidden rounded-2xl border border-border bg-surface">{children}</ul>
+      <ul className="grid grid-cols-1 gap-3 lg:grid-cols-2">{children}</ul>
     </section>
   );
 }
@@ -288,9 +291,21 @@ function Fila({
     : `${dayLabel(dayKey(m.startsAt, timezone), now, timezone)}, ${formatTime(m.startsAt, timezone)}`;
 
   return (
-    <li className={i > 0 ? 'border-t border-border' : ''}>
-      <div className="px-4 py-4 sm:px-5">
-        <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
+    <li
+      className={`animate-fade-in flex flex-col rounded-3xl bg-surface p-5 ${capturar && !m.outcome ? 'ring-2 ring-warning/40' : 'ring-1 ring-border'}`}
+      style={{ animationDelay: `${Math.min(i, 6) * 40}ms` }}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <span
+          className={`inline-flex items-center rounded-full px-3 py-1 text-[13px] font-semibold ${capturar ? 'bg-warning-soft text-warning' : 'bg-info-soft text-info'}`}
+        >
+          {cuando}
+        </span>
+        {m.status === 'no_show' ? <Chip tono="warning">No llegó</Chip> : <span className="text-[13px] font-medium text-muted">{m.tipo}</span>}
+      </div>
+      <div className="mt-3 flex items-start gap-3">
+        <Avatar nombre={m.company ?? m.contactName} />
+        <div className="min-w-0 flex-1">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
               {/* El nombre es el enlace, no la fila: adentro va un tel:,
@@ -299,31 +314,22 @@ function Fila({
               {m.contactId ? (
                 <Link
                   href={`/dashboard/customers/${m.contactId}`}
-                  className="rounded-sm text-[15px] font-medium text-ink underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                  className="rounded-sm text-[17px] font-semibold text-ink underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                 >
                   {m.contactName}
                 </Link>
               ) : (
-                <span className="text-[15px] font-medium text-ink">{m.contactName}</span>
+                <span className="text-[17px] font-semibold text-ink">{m.contactName}</span>
               )}
               {m.company && (
-                <span className="inline-flex items-center gap-1 text-sm text-muted">
+                <span className="inline-flex items-center gap-1 text-[15px] text-muted">
                   <Building2 className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                   {m.company}
                 </span>
               )}
-              {m.status === 'no_show' && (
-                <span className="rounded-full bg-warning-soft px-2 py-0.5 text-[13px] font-medium text-warning">
-                  No llegó
-                </span>
-              )}
             </div>
 
-            <p className="mt-1 text-sm text-muted">
-              <span className="font-medium text-ink">{cuando}</span> · {m.tipo}
-            </p>
-
-            <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted">
+            <div className="mt-1 flex flex-wrap items-center gap-x-4 text-[15px] text-muted">
               <span className="inline-flex items-center gap-1.5">
                 <Icono className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                 {modalidadLabel(m.modality)}
@@ -351,19 +357,23 @@ function Fila({
             {/* La dirección solo existe en la visita a sitio, y ahí es el
                 dato sin el cual no se puede salir. */}
             {m.address && (
-              <p className="mt-1.5 text-sm text-muted">
+              <p className="text-[15px] text-muted">
                 <a
                   href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(m.address)}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="underline-offset-4 hover:text-ink hover:underline"
+                  className="inline-flex min-h-11 items-center rounded-sm underline underline-offset-4 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                 >
                   {m.address}
                 </a>
               </p>
             )}
           </div>
+        </div>
+      </div>
 
+      {(cancelable || capturar) && (
+        <div className="mt-4 border-t border-border pt-4">
           {cancelable && (
             <ConfirmForm
               action={cancelMeeting.bind(null, m.id, slug)}
@@ -372,19 +382,19 @@ function Fila({
               confirmLabel="Sí, cancelarla"
               dismissLabel="No, conservarla"
               triggerVariant="outline"
-              triggerClassName="min-h-11 px-4 text-sm"
+              triggerClassName="min-h-11 px-4 text-[15px]"
             >
               Cancelar reunión
             </ConfirmForm>
           )}
+          {capturar && (
+            <>
+              <p className="mb-2.5 text-[15px] font-semibold text-ink">¿En qué quedaron?</p>
+              <OutcomeButtons slug={slug} bookingId={m.id} outcome={m.outcome} />
+            </>
+          )}
         </div>
-
-        {capturar && (
-          <div className="mt-3">
-            <OutcomeButtons slug={slug} bookingId={m.id} outcome={m.outcome} />
-          </div>
-        )}
-      </div>
+      )}
     </li>
   );
 }
@@ -417,16 +427,16 @@ function Embudo({
         )}
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {RESULTADOS.map((r) => {
           const lista = embudo.porResultado[r.value];
           return (
-            <div key={r.value} className="rounded-2xl border border-border bg-surface p-4">
-              <div className="flex items-baseline justify-between gap-2">
-                <p className="text-[15px] font-medium text-ink">{r.label}</p>
-                <p className="text-lg font-semibold tabular-nums text-ink">{lista.length}</p>
+            <div key={r.value} className="rounded-3xl bg-surface p-5 ring-1 ring-border">
+              <div className="flex items-center justify-between gap-2">
+                <Chip tono={TONO_CHIP[r.tono]}>{r.label}</Chip>
+                <p className="text-[2rem] font-bold leading-none tabular-nums text-ink">{lista.length}</p>
               </div>
-              <p className="mt-0.5 text-[13px] text-muted">{SIGUIENTE[r.value]}</p>
+              <p className="mt-2 text-[15px] text-muted">{SIGUIENTE[r.value]}</p>
 
               <ul className="mt-3 space-y-2">
                 {lista.slice(0, 4).map((m) => (

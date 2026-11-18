@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import { PageHeader } from '@/components/tenant-dash/PageHeader';
 import { ResicoGuia } from '@/components/tenant-dash/ResicoGuia';
 import { cargarPanelDemo } from '@/lib/demo/panelData';
-import { demoCaja } from '@/lib/caja/demo';
+import { ventasDemo } from '@/lib/comisiones/demo';
 import { rangoDe, resumir } from '@/lib/caja/resumen';
 import { dayKey } from '@/lib/dates/tenantTime';
 
@@ -18,14 +18,15 @@ export default async function ResicoDemoPage({ params }: { params: Promise<{ slu
 
   const { timezone } = datos.tenant;
   const hoy = dayKey(datos.now, timezone);
-  const movs = demoCaja(slug, datos.services, timezone, datos.now);
+  // Las mismas ventas que enseña la Caja demo: todo cuenta la misma historia.
+  const movs = ventasDemo(slug, datos.services, timezone, datos.now, datos.citas);
   const ventasCajaCents = resumir(movs, rangoDe('mes', hoy).desde, hoy).vendidoCents;
 
   return (
     <div>
       <PageHeader
         title="Impuestos (RESICO)"
-        description="Cuánto pagarías de impuestos y qué trámites te faltan, sin enredos."
+        description="Calcula tu ISR y palomea los trámites que te faltan."
       />
       <ResicoGuia slug={slug} hechos={['rfc', 'efirma']} ventasCajaCents={ventasCajaCents} soloLectura />
     </div>

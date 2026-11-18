@@ -1,12 +1,12 @@
 import Link from 'next/link';
-import { Plus, Eye, Send, FileText } from 'lucide-react';
+import { Plus, Send, FileText } from 'lucide-react';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireTenantStaff } from '@/lib/auth/tenantStaff';
 import { PageHeader } from '@/components/tenant-dash/PageHeader';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { cotizacionesConIva } from '@/lib/quotes/preciosIva';
-import { computeTotals, formatMoney, formatFolio, isExpired } from '@/lib/quotes/totals';
-import { QuoteRowActions } from './QuoteRowActions';
+import { computeTotals, formatFolio, isExpired } from '@/lib/quotes/totals';
+import { CotizacionesLista } from './CotizacionesLista';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,15 +25,6 @@ export const dynamic = 'force-dynamic';
 // en vez de confiar en el layout: el layout protege la navegación, pero
 // una pantalla que lee con service_role tiene que poder defenderse sola.
 
-
-const ESTADOS: Record<string, { texto: string; clase: string }> = {
-  draft: { texto: 'Sin enviar', clase: 'bg-ink/[0.07] text-muted' },
-  sent: { texto: 'Enviada', clase: 'bg-info-soft text-info' },
-  viewed: { texto: 'La abrió', clase: 'bg-warning-soft text-warning' },
-  accepted: { texto: 'Aceptada', clase: 'bg-success-soft text-success' },
-  declined: { texto: 'Rechazada', clase: 'bg-error-soft text-error' },
-  expired: { texto: 'Vencida', clase: 'bg-ink/[0.07] text-muted' },
-};
 
 export default async function CotizacionesPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -76,7 +67,7 @@ export default async function CotizacionesPage({ params }: { params: Promise<{ s
     <div>
       <PageHeader
         title="Cotizaciones"
-        description="Arma un presupuesto en un minuto, mándalo por WhatsApp y entérate cuándo lo abrió."
+        description="Arma un presupuesto, mándalo por WhatsApp y ve si lo aceptó."
         action={<BotonNueva texto="Nueva cotización" />}
       />
 
@@ -91,54 +82,26 @@ export default async function CotizacionesPage({ params }: { params: Promise<{ s
           />
         </div>
       ) : (
-        <ul className="mt-8 flex flex-col gap-3">
-          {quotes.map((q) => {
-            const suyas = (items ?? []).filter((i) => i.quote_id === q.id);
+        <CotizacionesLista
+          slug={slug}
+          cotizaciones={quotes.map((q) => {
             const totals = computeTotals(
-              suyas.map((i) => ({
-                description: '',
-                quantity: Number(i.quantity),
-                unitPriceCents: i.unit_price_cents,
-              })),
+              (items ?? [])
+                .filter((i) => i.quote_id === q.id)
+                .map((i) => ({ description: '', quantity: Number(i.quantity), unitPriceCents: i.unit_price_cents })),
               { discountCents: q.discount_cents, taxRate: Number(q.tax_rate), pricesIncludeTax: conIva.has(q.id) }
             );
-            // "Vencida" se decide al leer, no con un proceso a medianoche.
-            const estado =
-              q.status !== 'accepted' && isExpired(q.valid_until, ahora) ? 'expired' : q.status;
-            const badge = ESTADOS[estado] ?? ESTADOS.draft;
-
-            return (
-              <li key={q.id} className="rounded-2xl bg-surface p-4 ring-1 ring-border sm:p-5">
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-[15px] font-medium text-ink">{q.customer_name}</p>
-                    <p className="mt-0.5 flex flex-wrap items-center gap-x-3 text-[13px] text-muted">
-                      <span className="font-semibold tabular-nums text-ink">{formatMoney(totals.totalCents)}</span>
-                      <span className="tabular-nums">#{formatFolio(q.folio)}</span>
-                      {q.viewed_at && estado !== 'viewed' && estado !== 'accepted' && (
-                        <span className="inline-flex items-center gap-1">
-                          <Eye className="h-3.5 w-3.5" aria-hidden="true" />
-                          la abrió
-                        </span>
-                      )}
-                    </p>
-                  </div>
-
-                  <span className={`rounded-full px-2.5 py-1 text-[13px] font-semibold ${badge.clase}`}>
-                    {badge.texto}
-                  </span>
-
-                  <QuoteRowActions
-                    slug={slug}
-                    quoteId={q.id}
-                    folio={formatFolio(q.folio)}
-                    customerName={q.customer_name}
-                  />
-                </div>
-              </li>
-            );
+            return {
+              id: q.id,
+              folio: formatFolio(q.folio),
+              cliente: q.customer_name,
+              // "Vencida" se decide al leer, no con un proceso a medianoche.
+              estado: q.status !== 'accepted' && isExpired(q.valid_until, ahora) ? 'expired' : q.status,
+              totalCents: totals.totalCents,
+              laAbrio: Boolean(q.viewed_at),
+            };
           })}
-        </ul>
+        />
       )}
 
       <p className="mt-10 max-w-xl text-[13px] leading-relaxed text-muted">

@@ -9,7 +9,8 @@ export const dynamic = 'force-dynamic';
 
 // Comisiones del panel de demostración: la MISMA pantalla que ve la
 // dueña, con citas inventadas a partir de su equipo y catálogo reales
-// (lib/comisiones/demo.ts). Solo lectura.
+// (lib/comisiones/demo.ts), que cuadran con la Caja y la Agenda demo.
+// Solo lectura.
 export default async function ComisionesDemoPage({
   params,
   searchParams,
@@ -27,7 +28,12 @@ export default async function ComisionesDemoPage({
     ? (sp.periodo as PeriodoComision)
     : 'quincena';
   const rango = periodoDe(periodo, hoy, sp.desde, sp.hasta);
-  const { filas, pagos } = demoComisiones(slug, datos.resources, datos.services, hoy, rango);
+  const { filas, pagos, detalle } = demoComisiones(
+    slug,
+    { ...datos, timezone: datos.tenant.timezone },
+    rango,
+    hoy
+  );
 
   return (
     <div>
@@ -39,6 +45,7 @@ export default async function ComisionesDemoPage({
         hoy={hoy}
         filas={filas}
         pagos={pagos}
+        detalle={detalle}
         cajaActiva
         soloLectura
       />

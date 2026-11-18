@@ -35,7 +35,7 @@ export default async function ResicoPage({ params }: { params: Promise<{ slug: s
     <div>
       <PageHeader
         title="Impuestos (RESICO)"
-        description="Cuánto pagarías de impuestos y qué trámites te faltan, sin enredos."
+        description="Calcula tu ISR y palomea los trámites que te faltan."
       />
       {error ? (
         <div className="mt-8 rounded-2xl bg-surface p-6 ring-1 ring-border">

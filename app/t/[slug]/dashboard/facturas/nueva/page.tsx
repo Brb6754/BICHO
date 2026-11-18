@@ -87,7 +87,7 @@ export default async function NuevaFacturaPage({
       <div className="mt-2">
         <PageHeader
           title="Hacer una factura"
-          description="Elige la cotización que tu cliente aceptó y copia sus datos de su constancia del SAT."
+          description="Tres pasos y queda registrada en el SAT."
         />
       </div>
 

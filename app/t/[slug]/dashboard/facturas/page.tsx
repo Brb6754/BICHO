@@ -7,7 +7,7 @@ import { productosDe } from '@/lib/products';
 import { PageHeader } from '@/components/tenant-dash/PageHeader';
 import { HelpTip } from '@/components/tenant-dash/ui/HelpTip';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { formatMoney } from '@/lib/quotes/totals';
+import { FacturasLista } from './FacturasLista';
 import { longDate } from '@/lib/dates/tenantTime';
 
 export const dynamic = 'force-dynamic';
@@ -55,7 +55,6 @@ export default async function FacturasPage({ params }: { params: Promise<{ slug:
     .eq('tenant_id', tenantId)
     .maybeSingle();
 
-  const hechas = (facturas ?? []).filter((f) => f.status === 'stamped').length;
   const conectado = Boolean(enlace?.organization_id);
   const botonNueva = (texto: string) => (
     <Link
@@ -71,7 +70,7 @@ export default async function FacturasPage({ params }: { params: Promise<{ slug:
     <div>
       <PageHeader
         title="Facturas"
-        description="Las facturas del SAT que le haces a tus clientes, sin entrar al portal del SAT."
+        description="Haz facturas del SAT sin entrar a su portal."
         help={
           <HelpTip title="¿Qué es una factura del SAT?">
             Es el comprobante oficial de una venta (también le dicen CFDI). Tu cliente la pide para deducir el gasto.
@@ -90,12 +89,9 @@ export default async function FacturasPage({ params }: { params: Promise<{ slug:
           </h2>
           <ol className="mt-4 flex flex-col gap-4">
             {[
-              ['Tu RFC', 'La clave con la que el SAT te tiene registrada. Viene en tu constancia de situación fiscal.'],
-              [
-                'Tu sello digital (CSD)',
-                'Es lo que te deja hacer facturas. Se pide gratis en el portal del SAT con tu e.firma. Si no sabes cómo, en Impuestos (RESICO) está el paso a paso.',
-              ],
-              ['Firmar la carta manifiesto', 'Un permiso para que bicho le mande tus facturas al SAT. Se firma en línea.'],
+              ['Tu RFC', 'Viene en tu constancia de situación fiscal.'],
+              ['Tu sello digital (CSD)', 'Se pide gratis en el SAT con tu e.firma. El paso a paso está en Impuestos (RESICO).'],
+              ['Firmar la carta manifiesto', 'Un permiso en línea para que bicho mande tus facturas al SAT.'],
             ].map(([titulo, texto], i) => (
               <li key={titulo} className="flex gap-3">
                 <span
@@ -123,35 +119,18 @@ export default async function FacturasPage({ params }: { params: Promise<{ slug:
       ) : null}
 
       {facturas && facturas.length > 0 ? (
-        <>
-          <p className="mb-3 mt-8 px-1 text-sm text-muted">
-            {hechas} {hechas === 1 ? 'factura hecha' : 'facturas hechas'}
-            {hechas !== facturas.length && ` de ${facturas.length}`}
-          </p>
-          <ul className="flex flex-col gap-2">
-            {facturas.map((f) => (
-              <li
-                key={f.id}
-                className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-2xl bg-surface px-5 py-4 ring-1 ring-border"
-              >
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[15px] text-ink">{f.receptor_nombre ?? 'Sin cliente'}</span>
-                  <span className="block truncate text-[13px] text-muted">
-                    {[
-                      f.serie || f.folio ? `Folio ${f.serie ?? ''}${f.folio ?? ''}` : null,
-                      f.receptor_rfc,
-                      f.stamped_at ? longDate(f.stamped_at, timezone) : null,
-                    ]
-                      .filter(Boolean)
-                      .join(' · ')}
-                  </span>
-                </span>
-                <span className="tabular-nums text-[15px] font-semibold text-ink">{formatMoney(f.total_cents)}</span>
-                <EstadoFactura status={f.status} />
-              </li>
-            ))}
-          </ul>
-        </>
+        <FacturasLista
+          facturas={facturas.map((f) => ({
+            id: f.id,
+            uuid: f.uuid_fiscal,
+            folio: f.serie || f.folio ? `${f.serie ?? ''}${f.folio ?? ''}` : null,
+            cliente: f.receptor_nombre ?? 'Sin cliente',
+            rfc: f.receptor_rfc,
+            fecha: f.stamped_at ? longDate(f.stamped_at, timezone) : null,
+            totalCents: f.total_cents,
+            status: f.status,
+          }))}
+        />
       ) : (
         conectado && (
           <div className="mt-8 rounded-3xl bg-surface ring-1 ring-border">
@@ -167,24 +146,4 @@ export default async function FacturasPage({ params }: { params: Promise<{ slug:
       )}
     </div>
   );
-}
-
-function EstadoFactura({ status }: { status: string }) {
-  const tono =
-    status === 'stamped'
-      ? 'bg-success-soft text-success'
-      : status === 'cancelled'
-        ? 'bg-ink/[0.06] text-muted'
-        : status === 'error'
-          ? 'bg-error-soft text-error'
-          : 'bg-ink/[0.06] text-muted';
-  const texto =
-    status === 'stamped'
-      ? 'Hecha'
-      : status === 'cancelled'
-        ? 'Cancelada'
-        : status === 'error'
-          ? 'No se pudo hacer'
-          : 'Pendiente';
-  return <span className={`rounded-full px-2.5 py-1 text-[13px] font-medium ${tono}`}>{texto}</span>;
 }

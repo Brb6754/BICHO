@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { AlertTriangle, Package, PackagePlus, Pencil, Plus } from 'lucide-react';
+import { AlertTriangle, Minus, Package, PackagePlus, Pencil, Plus } from 'lucide-react';
+import { Barra, Chip } from '@/components/tenant-dash/dinero/Visual';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
@@ -94,7 +95,12 @@ export function InventarioBoard({
   const [producto, setProducto] = useState<Producto | 'nuevo' | null>(null);
   const [mover, setMover] = useState<{ p: Producto; tipo: TipoMovimiento } | null>(null);
 
-  const ordenados = ordenarProductos(productos);
+  // En la demo nada se guarda: lo que "llega" o se "usa" se suma aquí,
+  // para que se vea moverse como en el panel de verdad.
+  const [ajusteDemo, setAjusteDemo] = useState<Record<string, number>>({});
+  const vistos = soloLectura ? productos.map((p) => ({ ...p, stock: Math.max(0, p.stock + (ajusteDemo[p.id] ?? 0)) })) : productos;
+  const simular = (id: string, cambio: number) => setAjusteDemo((a) => ({ ...a, [id]: (a[id] ?? 0) + cambio }));
+  const ordenados = ordenarProductos(vistos);
   const acabandose = ordenados.filter(seAcaba);
   const nombreDe = new Map(productos.map((p) => [p.id, p]));
   const hay = ordenados.length > 0;
@@ -106,13 +112,13 @@ export function InventarioBoard({
     <div>
       <PageHeader
         title="Inventario"
-        description="Lo que usas y vendes, y lo que se te está acabando."
+        description="Cuánto te queda de cada producto y qué pedir."
         action={
-          soloLectura ? undefined : hay ? (
+          hay ? (
             <Button type="button" onClick={llego} className="min-h-11">
               <PackagePlus className="h-4 w-4" aria-hidden="true" /> Llegó producto
             </Button>
-          ) : (
+          ) : soloLectura ? undefined : (
             <Button type="button" onClick={agregar} className="min-h-11">
               <Plus className="h-4 w-4" aria-hidden="true" /> Agregar producto
             </Button>
@@ -128,100 +134,74 @@ export function InventarioBoard({
         }
       />
 
-      {acabandose.length > 0 && (
-        <section
-          role="status"
-          className="mt-6 rounded-2xl border border-warning/30 bg-warning-soft px-5 py-4"
-          aria-label="Productos que se están acabando"
-        >
-          <p className="flex items-center gap-2 font-semibold text-ink">
-            <AlertTriangle className="h-4 w-4 shrink-0 text-warning" aria-hidden="true" />
-            {acabandose.length === 1
-              ? 'Se te está acabando 1 producto'
-              : `Se te están acabando ${acabandose.length} productos`}
-          </p>
-          <p className="mt-1 text-sm text-ink/80">
-            {acabandose
-              .map((p) => `${p.nombre}: ${p.stock === 1 ? 'queda' : 'quedan'} ${conUnidad(p.stock, p.unidad)}`)
-              .join(' · ')}
-          </p>
-          <p className="mt-1 text-[13px] text-muted">Cuando llegue el pedido, anótalo con «Llegó producto».</p>
-        </section>
+      {!hay ? (
+        <div className="mt-6 rounded-3xl bg-surface ring-1 ring-border">
+          <EmptyState
+            icon={Package}
+            title="Todavía no tienes productos"
+            description="Agrega los esmaltes, tintes o cremas que usas o vendes, y cuántos tienes hoy."
+            why="Te avisamos antes de que se te acaben, para que no le quedes mal a una clienta."
+            action={
+              !soloLectura && (
+                <Button type="button" onClick={agregar} className="min-h-11">
+                  <Plus className="h-4 w-4" aria-hidden="true" /> Agregar mi primer producto
+                </Button>
+              )
+            }
+          />
+        </div>
+      ) : (
+        <>
+          {acabandose.length > 0 && (
+            <section className="mt-6" aria-labelledby="inv-acaban">
+              <h2 id="inv-acaban" role="status" className="flex items-center gap-2 text-[17px] font-semibold tracking-tight text-ink">
+                <AlertTriangle className="h-5 w-5 shrink-0 text-error" aria-hidden="true" />
+                {acabandose.length === 1 ? 'Se te está acabando 1 producto' : `Se te están acabando ${acabandose.length} productos`}
+              </h2>
+              <p className="mt-1 text-[15px] text-muted">Cuando llegue el pedido, súmalo con «+» o con «Llegó producto».</p>
+              <ul className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                {acabandose.map((p) => (
+                  <TarjetaProducto
+                    key={p.id}
+                    slug={slug}
+                    hoy={hoy}
+                    p={p}
+                    soloLectura={soloLectura}
+                    onAnotar={() => setMover({ p, tipo: p.precioCents != null ? 'venta' : 'uso' })}
+                    onEditar={() => setProducto(p)}
+                    onDemo={(cambio) => simular(p.id, cambio)}
+                  />
+                ))}
+              </ul>
+            </section>
+          )}
+          {ordenados.length > acabandose.length && (
+            <section className="mt-8" aria-labelledby="inv-bien">
+              <h2 id="inv-bien" className="text-[17px] font-semibold tracking-tight text-ink">
+                {acabandose.length > 0 ? 'Bien surtidos' : 'Tus productos'}
+              </h2>
+              <p className="mt-1 text-[15px] text-muted">Toca «+» o «−» para sumar o restar uno al momento.</p>
+              <ul className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                {ordenados.filter((p) => !seAcaba(p)).map((p) => (
+                  <TarjetaProducto
+                    key={p.id}
+                    slug={slug}
+                    hoy={hoy}
+                    p={p}
+                    soloLectura={soloLectura}
+                    onAnotar={() => setMover({ p, tipo: p.precioCents != null ? 'venta' : 'uso' })}
+                    onEditar={() => setProducto(p)}
+                    onDemo={(cambio) => simular(p.id, cambio)}
+                  />
+                ))}
+              </ul>
+            </section>
+          )}
+        </>
       )}
 
-      <section className="mt-6">
-        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-          <h2 className="text-[17px] font-semibold tracking-tight text-ink">Tus productos</h2>
-          {!soloLectura && hay && (
-            <p className="text-[13px] text-muted">Toca uno para anotar que llegó, lo usaste o lo vendiste.</p>
-          )}
-        </div>
-        {!hay ? (
-          <div className="mt-3 rounded-3xl bg-surface ring-1 ring-border">
-            <EmptyState
-              icon={Package}
-              title="Todavía no tienes productos"
-              description="Agrega los esmaltes, tintes o cremas que usas o vendes, y cuántos tienes hoy."
-              why="Te avisamos antes de que se te acaben, para que no le quedes mal a una clienta."
-              action={
-                !soloLectura && (
-                  <Button type="button" onClick={agregar} className="min-h-11">
-                    <Plus className="h-4 w-4" aria-hidden="true" /> Agregar mi primer producto
-                  </Button>
-                )
-              }
-            />
-          </div>
-        ) : (
-          <ul className="mt-3 divide-y divide-border overflow-hidden rounded-2xl bg-surface ring-1 ring-border">
-            {ordenados.map((p) => {
-              const bajo = seAcaba(p);
-              return (
-                <li key={p.id} className="flex items-center gap-2 pl-4 pr-2">
-                  <button
-                    type="button"
-                    disabled={soloLectura}
-                    onClick={() => setMover({ p, tipo: p.precioCents != null ? 'venta' : 'uso' })}
-                    className="flex min-h-16 min-w-0 flex-1 items-center gap-3 py-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/40 disabled:cursor-default"
-                    aria-label={soloLectura ? undefined : `Anotar qué pasó con ${p.nombre}`}
-                  >
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[15px] text-ink">{p.nombre}</span>
-                      <span className="mt-0.5 block text-[13px] text-muted">
-                        Aviso cuando {p.stockMinimo === 1 ? 'quede' : 'queden'} {conUnidad(p.stockMinimo, p.unidad)}
-                        {p.precioCents != null && ` · lo vendes a ${formatoPesos(p.precioCents)}`}
-                      </span>
-                    </span>
-                    <span className="shrink-0 text-right">
-                      <span
-                        className={`block text-lg font-bold leading-none tabular-nums ${bajo ? 'text-warning' : 'text-ink'}`}
-                      >
-                        {formatoCantidad(p.stock)}
-                      </span>
-                      <span className={`mt-1 block text-[13px] ${bajo ? 'font-semibold text-warning' : 'text-muted'}`}>
-                        {bajo ? 'pide más' : p.unidad ? conUnidad(p.stock, p.unidad).replace(/^\S+\s/, '') : ''}
-                      </span>
-                    </span>
-                  </button>
-                  {!soloLectura && (
-                    <button
-                      type="button"
-                      onClick={() => setProducto(p)}
-                      className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted transition hover:bg-ink/[0.05] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-                      aria-label={`Editar ${p.nombre}`}
-                    >
-                      <Pencil className="h-4 w-4" aria-hidden="true" />
-                    </button>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </section>
-
       {movimientos.length > 0 && (
-        <section className="mt-8">
+        <section className="mt-10">
           <h2 className="text-[17px] font-semibold tracking-tight text-ink">Lo último que anotaste</h2>
           <ul className="mt-3 divide-y divide-border overflow-hidden rounded-2xl bg-surface ring-1 ring-border">
             {movimientos.map((m) => {
@@ -263,9 +243,147 @@ export function InventarioBoard({
           tipoInicial={mover.tipo}
           cajaActiva={cajaActiva}
           onClose={() => setMover(null)}
+          onDemo={soloLectura ? simular : undefined}
         />
       )}
     </div>
+  );
+}
+
+// El medidor: verde = bien surtido, amarillo = queda poco, rojo = pide más.
+// Siempre con su texto: el color solo no le dice nada a quien no lo distingue.
+function nivelDe(p: Pick<Producto, 'stock' | 'stockMinimo'>): { tono: 'success' | 'warning' | 'error'; texto: string } {
+  if (seAcaba(p)) return { tono: 'error', texto: 'Pide más' };
+  if (p.stock <= p.stockMinimo * 2) return { tono: 'warning', texto: 'Queda poco' };
+  return { tono: 'success', texto: 'Bien surtido' };
+}
+
+const BOTON_PASO =
+  'inline-flex min-h-14 flex-1 items-center justify-center gap-1.5 rounded-2xl text-[17px] font-semibold ring-1 transition active:scale-[0.97] motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:opacity-40';
+
+function TarjetaProducto({
+  slug,
+  hoy,
+  p,
+  soloLectura,
+  onAnotar,
+  onEditar,
+  onDemo,
+}: {
+  slug: string;
+  hoy: string;
+  p: Producto;
+  soloLectura: boolean;
+  onAnotar: () => void;
+  onEditar: () => void;
+  /** Demo: el tablero suma el cambio en pantalla, sin guardar. */
+  onDemo: (cambio: number) => void;
+}) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  // Lo que se ve al instante mientras el servidor confirma (+/- optimista).
+  // Al llegar el stock nuevo del servidor, el ajuste local vuelve a cero.
+  const [delta, setDelta] = useState(0);
+  const [base, setBase] = useState(p.stock);
+  if (base !== p.stock) {
+    setBase(p.stock);
+    setDelta(0);
+  }
+
+  const stock = p.stock + delta;
+  const nivel = nivelDe({ stock, stockMinimo: p.stockMinimo });
+  const tope = Math.max(p.stockMinimo * 3, stock, 1);
+
+  function mover(signo: 1 | -1) {
+    if (pending || (signo < 0 && stock < 1)) return;
+    const nuevo = stock + signo;
+    if (soloLectura) {
+      onDemo(signo);
+      return toast(`${signo > 0 ? 'Sumaste' : 'Restaste'} 1: ahora tienes ${conUnidad(nuevo, p.unidad)} (demo, no se guarda)`);
+    }
+    setDelta((d) => d + signo);
+    startTransition(async () => {
+      const r = await registrarMovimiento(slug, {
+        productoId: p.id,
+        tipo: signo > 0 ? 'entrada' : 'uso',
+        cantidad: '1',
+        dia: hoy,
+        nota: '',
+      });
+      if (!r.ok) {
+        setDelta((d) => d - signo);
+        toast(r.error, 'error');
+        return;
+      }
+      toast(`${signo > 0 ? 'Sumaste' : 'Restaste'} 1: ahora tienes ${conUnidad(nuevo, p.unidad)}`);
+      router.refresh();
+    });
+  }
+
+  const unidad = p.unidad ? conUnidad(stock, p.unidad).replace(/^\S+\s?/, '') : '';
+
+  return (
+    <li
+      className={`flex flex-col rounded-3xl bg-surface p-5 ${nivel.tono === 'error' ? 'ring-2 ring-error/40' : 'ring-1 ring-border'}`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate text-[17px] font-semibold text-ink">{p.nombre}</p>
+          <p className="mt-0.5 text-[13px] text-muted">
+            Aviso cuando {p.stockMinimo === 1 ? 'quede' : 'queden'} {conUnidad(p.stockMinimo, p.unidad)}
+          </p>
+        </div>
+        <Chip tono={nivel.tono}>{nivel.texto}</Chip>
+      </div>
+
+      <p className="mt-4 flex items-baseline gap-2" aria-live="polite">
+        <span className="text-[2.75rem] font-bold leading-none tracking-tight tabular-nums text-ink">{formatoCantidad(stock)}</span>
+        <span className="text-[15px] font-medium text-muted">{unidad || (stock === 1 ? 'queda' : 'quedan')}</span>
+      </p>
+      <div className="mt-3">
+        <Barra pct={(stock / tope) * 100} tono={nivel.tono} label={`Cuánto queda de ${p.nombre}`} grueso />
+      </div>
+
+      <div className="mt-4 flex gap-2">
+        <button
+          type="button"
+          onClick={() => mover(-1)}
+          disabled={stock < 1 || pending}
+          aria-label={`Restar 1 a ${p.nombre}`}
+          className={`${BOTON_PASO} bg-surface text-ink ring-border hover:bg-ink/[0.04]`}
+        >
+          <Minus className="h-5 w-5" strokeWidth={2.5} aria-hidden="true" /> 1
+        </button>
+        <button
+          type="button"
+          onClick={() => mover(1)}
+          disabled={pending}
+          aria-label={`Sumar 1 a ${p.nombre}`}
+          className={`${BOTON_PASO} bg-primary/10 text-ink ring-primary/30 hover:bg-primary/15`}
+        >
+          <Plus className="h-5 w-5" strokeWidth={2.5} aria-hidden="true" /> 1
+        </button>
+      </div>
+
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-x-2">
+          <button
+            type="button"
+            onClick={onAnotar}
+            className="inline-flex min-h-11 items-center text-[15px] font-medium text-ink underline decoration-ink/30 underline-offset-4 hover:decoration-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+          >
+            Lo vendí, llegó o lo conté
+          </button>
+          {!soloLectura && (
+            <button
+              type="button"
+              onClick={onEditar}
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-full px-3 text-[15px] font-medium text-muted hover:bg-ink/[0.05] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+            >
+              <Pencil className="h-4 w-4" aria-hidden="true" /> Editar
+            </button>
+          )}
+        </div>
+    </li>
   );
 }
 
@@ -440,6 +558,7 @@ function FormMovimiento({
   tipoInicial,
   cajaActiva,
   onClose,
+  onDemo,
 }: {
   slug: string;
   hoy: string;
@@ -448,6 +567,8 @@ function FormMovimiento({
   tipoInicial: TipoMovimiento;
   cajaActiva: boolean;
   onClose: () => void;
+  /** Demo: suma el cambio en pantalla en vez de guardarlo. */
+  onDemo?: (productoId: string, cambio: number) => void;
 }) {
   const [productoId, setProductoId] = useState(inicial.id);
   const [tipo, setTipo] = useState<TipoMovimiento>(tipoInicial);
@@ -469,6 +590,12 @@ function FormMovimiento({
 
   function guardar(e: React.FormEvent) {
     e.preventDefault();
+    if (onDemo) {
+      if (quedara === null || quedara < 0) return;
+      onDemo(productoId, quedara - p.stock);
+      toast(`Anotado: ahora tienes ${conUnidad(quedara, p.unidad)} (demo, no se guarda)`);
+      return onClose();
+    }
     correr(
       () =>
         registrarMovimiento(slug, {
@@ -501,7 +628,7 @@ function FormMovimiento({
           </Select>
         </FormField>
 
-        <fieldset>
+        <fieldset className="min-w-0">
           <legend className="mb-1.5 block text-[13px] font-medium text-ink">¿Qué pasó?</legend>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             {TIPOS_MOVIMIENTO.map((t) => (
@@ -562,7 +689,7 @@ function FormMovimiento({
                     required
                   />
                 </FormField>
-                <fieldset>
+                <fieldset className="min-w-0">
                   <legend className="mb-1.5 block text-[13px] font-medium text-ink">¿Cómo te pagaron?</legend>
                   <div className="grid grid-cols-3 gap-2">
                     {METODOS.map((m) => (
@@ -587,7 +714,7 @@ function FormMovimiento({
           <summary className="inline-flex min-h-11 cursor-pointer list-none items-center text-sm font-medium text-muted underline decoration-dotted underline-offset-4 hover:text-ink">
             Agregar una nota o cambiar el día
           </summary>
-          <div className="mt-2 grid gap-3 sm:grid-cols-2">
+          <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
             <FormField label="¿Qué día fue?">
               <Input type="date" value={dia} max={hoy} onChange={(e) => setDia(e.target.value)} className="w-full" />
             </FormField>

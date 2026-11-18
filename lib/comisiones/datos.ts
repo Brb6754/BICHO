@@ -1,5 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/admin';
-import { addDaysKey, dayKey, instantFromLocal } from '@/lib/dates/tenantTime';
+import { addDaysKey, dayKey, formatTime, instantFromLocal } from '@/lib/dates/tenantTime';
 import { calcularComisiones, type CitaComisionable, type FilaComision, type Persona, type Rango } from '@/lib/comisiones/calculo';
 
 // Lo que la pantalla de Comisiones necesita de la base para un periodo.
@@ -23,8 +23,19 @@ export type PagoComision = {
   creado: string;
 };
 
+/** Una cita que entra en la comisión, para enseñar de dónde sale cada importe. */
+export type CitaDetalle = {
+  id: string;
+  resourceId: string;
+  dia: string;
+  hora: string | null;
+  servicio: string;
+  cliente: string | null;
+  precioCents: number;
+};
+
 export type DatosComisiones =
-  | { hoy: string; filas: FilaComision[]; pagos: PagoComision[] }
+  | { hoy: string; filas: FilaComision[]; pagos: PagoComision[]; detalle: CitaDetalle[] }
   | { faltaMigracion: true };
 
 export async function cargarComisiones(
@@ -39,7 +50,7 @@ export async function cargarComisiones(
     db.from('resources').select('id, name, active').eq('tenant_id', tenantId).order('name'),
     db
       .from('bookings')
-      .select('*, service_types(price_cents)')
+      .select('*, service_types(name, price_cents), customers(name)')
       .eq('tenant_id', tenantId)
       .eq('status', 'completed')
       .gte('starts_at', instantFromLocal(rango.desde, '00:00', timezone))
@@ -66,15 +77,30 @@ export async function cargarComisiones(
   }));
   const nombres = new Map(personas.map((p) => [p.id, p.nombre]));
 
-  type Fila = { resource_id: string; starts_at: string; kind?: string | null; service_types: { price_cents: number } | null };
-  const citas: CitaComisionable[] = ((citasRes.data ?? []) as unknown as Fila[])
-    // Una reunión de ventas (db/039) no es un servicio vendido, igual que en Caja.
-    .filter((b) => b.kind !== 'reunion')
-    .map((b) => ({
-      resourceId: b.resource_id,
-      dia: dayKey(b.starts_at, timezone),
-      precioCents: b.service_types?.price_cents ?? 0,
-    }));
+  type Fila = {
+    id: string;
+    resource_id: string;
+    starts_at: string;
+    kind?: string | null;
+    service_types: { name: string; price_cents: number } | null;
+    customers: { name: string } | null;
+  };
+  // Una reunión de ventas (db/039) no es un servicio vendido, igual que en Caja.
+  const vendidas = ((citasRes.data ?? []) as unknown as Fila[]).filter((b) => b.kind !== 'reunion');
+  const citas: CitaComisionable[] = vendidas.map((b) => ({
+    resourceId: b.resource_id,
+    dia: dayKey(b.starts_at, timezone),
+    precioCents: b.service_types?.price_cents ?? 0,
+  }));
+  const detalle: CitaDetalle[] = vendidas.map((b) => ({
+    id: b.id,
+    resourceId: b.resource_id,
+    dia: dayKey(b.starts_at, timezone),
+    hora: formatTime(b.starts_at, timezone),
+    servicio: b.service_types?.name ?? 'Cita',
+    cliente: b.customers?.name ?? null,
+    precioCents: b.service_types?.price_cents ?? 0,
+  }));
 
   const pagos: PagoComision[] = (pagosRes.data ?? []).map((p) => ({
     id: p.id,
@@ -90,5 +116,5 @@ export async function cargarComisiones(
     creado: p.created_at,
   }));
 
-  return { hoy: dayKey(now, timezone), filas: calcularComisiones(personas, citas, rango), pagos };
+  return { hoy: dayKey(now, timezone), filas: calcularComisiones(personas, citas, rango), pagos, detalle };
 }

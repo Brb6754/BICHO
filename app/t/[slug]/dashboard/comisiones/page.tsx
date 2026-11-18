@@ -52,6 +52,7 @@ export default async function ComisionesPage({
           hoy={datos.hoy}
           filas={datos.filas}
           pagos={datos.pagos}
+          detalle={datos.detalle}
           cajaActiva={productos.caja}
         />
       )}

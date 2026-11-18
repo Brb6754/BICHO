@@ -1,69 +1,105 @@
 import { addDaysKey } from '@/lib/dates/tenantTime';
+import { demoCaja } from '@/lib/caja/demo';
+import type { Movimiento as MovimientoCaja } from '@/lib/caja/resumen';
+
+// `hora` y `porCobrar` llegan con la Caja nueva; opcionales para no depender de ella.
+type Movimiento = MovimientoCaja & { hora?: string | null; porCobrar?: boolean };
 import { calcularComisiones, comisionCents, periodoDe, type CitaComisionable, type FilaComision, type Rango } from '@/lib/comisiones/calculo';
-import type { PagoComision } from '@/lib/comisiones/datos';
+import type { CitaDetalle, PagoComision } from '@/lib/comisiones/datos';
 
-// Comisiones del panel de demostración: citas completadas inventadas a
-// partir del equipo y el catálogo reales del negocio, igual que
-// lib/caja/demo.ts. Deterministas por slug (dos visitantes ven lo mismo)
-// y relativas a hoy.
+// Comisiones del panel de demostración. Cuentan la MISMA historia que la
+// Caja y la Agenda demo: cada cobro de cita de lib/caja/demo.ts es una
+// cita de comisión con el mismo servicio, día y precio, y las de la
+// agenda demo (lib/demo/panelFixtures.ts) conservan a quien atendió y a
+// la clienta. Así "vendió $X" aquí es lo mismo que la Caja suma por citas.
 
-type Servicio = { price_cents: number };
+type Servicio = { id: string; name: string; price_cents: number };
 type Recurso = { id: string; name: string };
+type CitaAgenda = {
+  id: string;
+  starts_at: string;
+  status: string;
+  resource_id?: string;
+  service_type_id?: string;
+  service_types: { name: string } | null;
+  customers: { name: string } | null;
+};
 
-function aleatorio(slug: string): () => number {
-  let a = 2166136261;
-  for (let i = 0; i < slug.length; i++) a = Math.imul(a ^ slug.charCodeAt(i), 16777619);
-  a >>>= 0;
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = Math.imul(a ^ (a >>> 15), a | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
+function hash(s: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619);
+  return h >>> 0;
 }
 
 const PCTS = [4000, 3500, 3000, 4500];
 
+// shortcut: lib/caja/demo.ts lo está rehaciendo otro grupo y su versión
+// nueva recibe la agenda como 5º argumento; la vieja la ignora. Cuando las
+// dos estén en master, quitar el cast y llamar demoCaja(...) directo.
+const cajaDemo = demoCaja as unknown as (
+  slug: string,
+  servicios: Servicio[],
+  timezone: string,
+  now: Date,
+  agenda: CitaAgenda[]
+) => Movimiento[];
+
+/** Las ventas demo del negocio (lo mismo que enseña la Caja demo). */
+export function ventasDemo(slug: string, servicios: Servicio[], timezone: string, now: Date, agenda: CitaAgenda[]): Movimiento[] {
+  return cajaDemo(slug, servicios, timezone, now, agenda);
+}
+
 export function demoComisiones(
   slug: string,
-  recursos: Recurso[],
-  servicios: Servicio[],
-  hoy: string,
-  rango: Rango
-): { filas: FilaComision[]; pagos: PagoComision[] } {
-  const rnd = aleatorio(`comisiones:${slug}`);
-  const equipo = recursos.length ? recursos : [{ id: 'demo-1', name: 'Equipo' }];
-  const precios = servicios.map((s) => s.price_cents).filter((p) => p > 0);
-  const catalogo = precios.length ? precios : [25000];
+  demo: { resources: Recurso[]; services: Servicio[]; citas: CitaAgenda[]; timezone: string; now: Date },
+  rango: Rango,
+  hoy: string
+): { filas: FilaComision[]; pagos: PagoComision[]; detalle: CitaDetalle[] } {
+  const equipo = demo.resources.length ? demo.resources : [{ id: 'demo-1', name: 'Equipo' }];
   const personas = equipo.map((r, i) => ({ id: r.id, nombre: r.name, activo: true, pctBp: PCTS[i % PCTS.length] }));
+  const agenda = new Map(demo.citas.map((c) => [c.id, c]));
 
-  // Desde el inicio del mes pasado: alcanza para la quincena anterior pagada.
-  const citas: CitaComisionable[] = [];
-  const inicio = periodoDe('mes', addDaysKey(`${hoy.slice(0, 8)}01`, -1)).desde;
-  for (let dia = inicio; dia <= hoy; dia = addDaysKey(dia, 1)) {
-    for (const p of personas) {
-      const n = Math.floor(rnd() * 4);
-      for (let i = 0; i < n; i++) {
-        citas.push({ resourceId: p.id, dia, precioCents: catalogo[Math.floor(rnd() * catalogo.length)] });
-      }
-    }
-  }
+  // Solo los cobros que salen de una cita (las ventas sueltas, como un
+  // shampoo, no dan comisión). La cita de la agenda dice quién atendió;
+  // las de días anteriores se reparten fijo por su id.
+  const detalle: CitaDetalle[] = ventasDemo(slug, demo.services, demo.timezone, demo.now, demo.citas)
+    .filter((m) => m.tipo === 'venta' && m.bookingId && !m.porCobrar)
+    .map((m) => {
+      const cita = agenda.get(m.bookingId!);
+      return {
+        id: m.id,
+        resourceId: cita?.resource_id ?? equipo[hash(m.id) % equipo.length].id,
+        dia: m.dia,
+        hora: m.hora ?? null,
+        servicio: m.servicio ?? m.concepto,
+        cliente: cita?.customers?.name ?? null,
+        precioCents: m.montoCents,
+      };
+    })
+    .filter((c) => c.dia <= hoy);
+  const citas: CitaComisionable[] = detalle.map((c) => ({ resourceId: c.resourceId, dia: c.dia, precioCents: c.precioCents }));
 
   // La quincena anterior ya está pagada, para que el historial no salga vacío.
   const anterior = periodoDe('quincena', addDaysKey(periodoDe('quincena', hoy).desde, -1));
-  const pagos: PagoComision[] = calcularComisiones(personas, citas, anterior).map((f, i) => ({
-    id: `demo-pago-${i}`,
-    resourceId: f.resourceId,
-    nombre: f.nombre,
-    desde: anterior.desde,
-    hasta: anterior.hasta,
-    citas: f.citas,
-    vendidoCents: f.vendidoCents,
-    pctBp: f.pctBp,
-    comisionCents: comisionCents(f.vendidoCents, f.pctBp),
-    enCaja: true,
-    creado: `${anterior.hasta}T20:00:00Z`,
-  }));
+  const pagos: PagoComision[] = calcularComisiones(personas, citas, anterior)
+    .filter((f) => f.citas > 0)
+    .map((f, i) => ({
+      id: `demo-pago-${i}`,
+      resourceId: f.resourceId,
+      nombre: f.nombre,
+      desde: anterior.desde,
+      hasta: anterior.hasta,
+      citas: f.citas,
+      vendidoCents: f.vendidoCents,
+      pctBp: f.pctBp,
+      comisionCents: comisionCents(f.vendidoCents, f.pctBp),
+      enCaja: true,
+      creado: `${anterior.hasta}T20:00:00Z`,
+    }));
 
-  return { filas: calcularComisiones(personas, citas, rango), pagos };
+  return {
+    filas: calcularComisiones(personas, citas, rango),
+    pagos,
+    detalle: detalle.filter((c) => c.dia >= rango.desde && c.dia <= rango.hasta),
+  };
 }

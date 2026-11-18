@@ -16,7 +16,9 @@ import { sendQuote, deleteQuote } from './actions';
 // que no ocurre.
 
 const BOTON =
-  'inline-flex min-h-11 items-center gap-1.5 rounded-full border border-border px-4 text-[13px] font-medium text-ink transition-colors hover:bg-ink/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:opacity-60';
+  'inline-flex min-h-11 items-center justify-center gap-1.5 rounded-full border border-border px-4 text-[15px] font-medium text-ink transition-colors hover:bg-ink/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:opacity-60';
+const BOTON_WHATSAPP =
+  'inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-primary px-5 text-[15px] font-semibold text-[rgb(var(--color-cta-fg))] transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2';
 
 export function QuoteRowActions({
   slug,
@@ -68,10 +70,10 @@ export function QuoteRowActions({
   }
 
   return (
-    <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
-      <button type="button" onClick={porWhatsApp} className={BOTON}>
-        <MessageCircle className="h-3.5 w-3.5" aria-hidden="true" />
-        WhatsApp
+    <div className="flex w-full flex-wrap items-center gap-2">
+      <button type="button" onClick={porWhatsApp} className={BOTON_WHATSAPP}>
+        <MessageCircle className="h-4 w-4" aria-hidden="true" />
+        Mandar por WhatsApp
       </button>
 
       <button type="button" onClick={copiar} className={BOTON}>
@@ -107,10 +109,11 @@ export function QuoteRowActions({
         confirmLabel="Sí, borrarla"
         dismissLabel="No, conservarla"
         triggerVariant="ghost"
-        triggerClassName="ml-auto h-11 w-11 !border-0 !p-0 !text-muted hover:!bg-error-soft hover:!text-error sm:ml-2"
+        triggerClassName="ml-auto min-h-11 !border-0 px-3 text-[15px] !text-muted hover:!bg-error-soft hover:!text-error"
       >
         <Trash2 className="h-4 w-4" aria-hidden="true" />
-        <span className="sr-only">Borrar cotización de {customerName}</span>
+        Borrar
+        <span className="sr-only"> la cotización de {customerName}</span>
       </ConfirmForm>
     </div>
   );

@@ -22,6 +22,13 @@ export default async function NuevaCotizacionPage({ params }: { params: Promise<
     .maybeSingle();
   const { tenantId } = await requireTenantStaff(slug);
   const conIva = await preciosIncluyenIva(supabase, tenantId);
+  // Sus servicios (lectura pública del catálogo), para tocarlos y agregarlos.
+  const { data: servicios } = await supabase
+    .from('service_types')
+    .select('name, price_cents, kind')
+    .eq('tenant_id', tenantId)
+    .eq('active', true)
+    .order('name');
 
   return (
     <div>
@@ -36,7 +43,7 @@ export default async function NuevaCotizacionPage({ params }: { params: Promise<
       <div className="mt-2">
         <PageHeader
           title="Nueva cotización"
-          description="Para quién es, qué incluye y cuánto cuesta. Lo demás es opcional."
+          description="Para quién es y qué incluye. El total se arma solo."
         />
       </div>
 
@@ -45,6 +52,9 @@ export default async function NuevaCotizacionPage({ params }: { params: Promise<
         taxRateDefault={Number(tenant?.tax_rate ?? 16)}
         taxLabel={tenant?.tax_label ?? 'IVA'}
         preciosConIvaDefault={conIva}
+        catalogo={(servicios ?? [])
+          .filter((s) => s.kind !== 'reunion' && s.price_cents > 0)
+          .map((s) => ({ name: s.name, priceCents: s.price_cents }))}
       />
     </div>
   );

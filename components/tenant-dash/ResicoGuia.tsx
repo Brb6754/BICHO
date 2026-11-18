@@ -10,6 +10,7 @@ import { FormField } from '@/components/tenant-dash/ui/FormField';
 import { HelpTip } from '@/components/tenant-dash/ui/HelpTip';
 import { toast } from '@/components/tenant-dash/ui/Toast';
 import { formatoPesos, pesosACentavos } from '@/lib/caja/resumen';
+import { Anillo, CheckAnimado } from '@/components/tenant-dash/dinero/Visual';
 import { REVISADO, TABLA_MENSUAL, formatoTasa, isrMensualResico } from '@/lib/resico/isr';
 import { PASOS_RESICO, type PasoResico } from '@/lib/resico/pasos';
 import { marcarPasoResico } from '@/app/t/[slug]/dashboard/resico/actions';
@@ -67,185 +68,193 @@ export function ResicoGuia({
 
   return (
     <div className="mt-6 flex flex-col gap-6">
-      {/* 1. La calculadora: lo que viene a ver. */}
+      {/* 1. La calculadora: lo que viene a ver. Dice desde el título que es
+          solo el ISR, y lo que NO incluye se ve siempre, no solo al calcular. */}
       <section id="calculadora" className="scroll-mt-24 rounded-3xl bg-surface p-5 ring-1 ring-border sm:p-7">
-        <div className="flex items-center gap-2">
-          <Calculator className="h-5 w-5 text-ink/70" aria-hidden="true" />
-          <h2 className="text-[17px] font-semibold tracking-tight text-ink">¿Cuánto pagaría de impuestos este mes?</h2>
+        <div className="flex items-center gap-2.5">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-ink">
+            <Calculator className="h-5 w-5" aria-hidden="true" />
+          </span>
+          <h2 className="flex items-center text-[19px] font-semibold tracking-tight text-ink">
+            Calcula tu ISR del mes
+            <HelpTip title="¿Qué es el ISR?">
+              El Impuesto Sobre la Renta: lo que pagas por lo que ganas con tu negocio. En RESICO es un porcentaje chiquito
+              (del 1% al 2.5%) de lo que cobraste con factura, y no restas gastos.
+            </HelpTip>
+          </h2>
         </div>
 
-        <div className="mt-4 grid gap-5 lg:grid-cols-2 lg:items-start">
+        <div className="mt-5 grid grid-cols-1 gap-6 lg:grid-cols-2 lg:items-start">
           <div className="flex flex-col gap-3">
-            <div>
-                <FormField
-                  label="¿Cuánto cobraste este mes con factura?"
-                  hint="Sin contar el IVA. Incluye la factura global de lo que vendiste sin factura."
-                  className="flex-1"
-                >
-                  <Input
-                    inputMode="decimal"
-                    placeholder="Ej. 32,000"
-                    value={ingresos}
-                    onChange={(e) => setIngresos(e.target.value)}
-                    className="w-full text-lg tabular-nums"
-                  />
-                </FormField>
-              <div className="mt-1 flex flex-wrap items-center">
-                <HelpTip title="¿Qué es el IVA?" label="¿Qué es el IVA?">
-                  Es el 16% que se le suma al precio en la factura. No es tuyo: lo cobras y se lo pasas al SAT. Por eso
-                  aquí se escribe lo que cobraste sin ese 16%. Ejemplo: si la factura dice $1,160, aquí van $1,000.
-                </HelpTip>
-                <HelpTip title="¿Qué es la factura global?" label="¿Y la factura global?">
-                  Es una sola factura al mes (o a la semana) por todo lo que vendiste a clientas que no te pidieron
-                  factura. Con eso, todo lo que cobras queda facturado.
-                </HelpTip>
+            <FormField label="¿Cuánto cobraste este mes con factura, sin IVA?">
+              <div className="relative">
+                <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-xl font-semibold text-muted" aria-hidden="true">
+                  $
+                </span>
+                <Input
+                  inputMode="decimal"
+                  placeholder="32,000"
+                  value={ingresos}
+                  onChange={(e) => setIngresos(e.target.value)}
+                  className="h-14 w-full pl-9 text-xl font-semibold tabular-nums"
+                />
               </div>
+            </FormField>
+            <div className="-mt-1 flex flex-wrap items-center">
+              <HelpTip title="¿Por qué sin IVA?" label="¿Por qué sin IVA?">
+                El IVA es el 16% que se le suma al precio en la factura. No es tuyo: lo cobras y se lo pasas al SAT. Si la
+                factura dice $1,160, aquí van $1,000. Incluye también la factura global de lo que vendiste sin factura.
+              </HelpTip>
             </div>
             {ventasCajaCents !== null && ventasCajaCents > 0 && (
-              <div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="min-h-11"
-                  onClick={() => setIngresos(String(ventasCajaCents / 100))}
-                >
-                  Usar mis ventas del mes en Caja ({formatoPesos(ventasCajaCents)})
-                </Button>
-                <p className="mt-1.5 text-[13px] text-muted">
-                  Caja cuenta todo lo vendido. Ajusta la cantidad si incluye IVA.
-                </p>
-              </div>
+              <Button
+                type="button"
+                variant="outline"
+                className="min-h-12 self-start"
+                onClick={() => setIngresos(String(ventasCajaCents / 100))}
+              >
+                Usar mis ventas del mes en Caja ({formatoPesos(ventasCajaCents)})
+              </Button>
             )}
+
+            <div className="rounded-2xl bg-warning-soft px-4 py-3.5">
+              <p className="text-[15px] font-semibold text-ink">Esta cuenta NO incluye:</p>
+              <ul className="mt-1.5 space-y-1 text-[15px] text-ink/85">
+                <li className="flex gap-2">
+                  <span aria-hidden="true">·</span> El IVA (el 16%), que se declara aparte.
+                </li>
+                <li className="flex gap-2">
+                  <span aria-hidden="true">·</span> Lo que retienes a tus empleados, si tienes.
+                </li>
+                <li className="flex gap-2">
+                  <span aria-hidden="true">·</span> Multas, recargos ni otros impuestos.
+                </li>
+              </ul>
+            </div>
           </div>
 
           <div aria-live="polite">
             {ingresos.trim() !== '' && cents === null ? (
-              <p className="rounded-2xl bg-error-soft p-4 text-sm text-error">
+              <p className="rounded-2xl bg-error-soft p-4 text-[15px] text-error">
                 Escribe solo la cantidad, por ejemplo 32000 o 32,000.50.
               </p>
             ) : calculo && !calculo.ok ? (
-              <p className="rounded-2xl bg-warning-soft p-4 text-sm leading-relaxed text-ink">
+              <p className="rounded-2xl bg-warning-soft p-4 text-[15px] leading-relaxed text-ink">
                 Con más de $3,500,000 ya no te toca el RESICO. En ese caso habla con un contador para ver qué te conviene.
               </p>
             ) : calculo?.ok && cents !== null ? (
-              <div className="rounded-2xl bg-paper p-5 ring-1 ring-border">
-                <p className="text-sm text-muted">Pagarías más o menos</p>
-                <p className="mt-1 text-[2.5rem] font-bold leading-none tracking-tight tabular-nums text-ink">
+              <div key={calculo.tasaBps} className="animate-fade-in rounded-2xl bg-primary/[0.06] p-5 ring-1 ring-primary/20">
+                <p className="text-[15px] font-medium text-muted">Tu ISR de este mes, más o menos</p>
+                <p className="mt-1 text-[3rem] font-bold leading-none tracking-tight tabular-nums text-ink">
                   {formatoPesos(calculo.isrCents)}
                 </p>
-                <p className="mt-3 text-[15px] leading-relaxed text-muted">
-                  Es el {formatoTasa(calculo.tasaBps)} de {formatoPesos(cents)}. Se paga a más tardar el{' '}
-                  <span className="font-medium text-ink">día 17 del mes siguiente</span>.
+                <p className="mt-2 text-[15px] text-ink">
+                  Se paga a más tardar el <span className="font-semibold">día 17 del mes siguiente</span>.
                 </p>
-                <p className="mt-3 flex items-center text-[13px] leading-relaxed text-muted">
-                  Es el impuesto sobre lo que ganas (ISR).
-                  <HelpTip title="¿Qué es el ISR?">
-                    El Impuesto Sobre la Renta: lo que pagas por lo que ganas con tu negocio. En RESICO es un porcentaje
-                    chiquito (del 1% al 2.5%) de lo que cobraste con factura, y no restas gastos.
-                  </HelpTip>
-                </p>
+                <Tramos ingresosCents={cents} tasaBps={calculo.tasaBps} />
               </div>
             ) : (
-              <p className="rounded-2xl border border-dashed border-border p-5 text-[15px] leading-relaxed text-muted">
-                Escribe cuánto cobraste y aquí te decimos, en pesos, cuánto pagarías. En RESICO casi siempre es poco: del 1%
-                al 2.5%.
-              </p>
+              <div className="rounded-2xl border-2 border-dashed border-border p-5">
+                <p className="text-[15px] leading-relaxed text-muted">
+                  Escribe cuánto cobraste y aquí sale, en pesos, tu ISR. En RESICO casi siempre es poco: del 1% al 2.5%.
+                </p>
+                <Tramos ingresosCents={null} tasaBps={null} />
+              </div>
             )}
             <p className="mt-3 text-[13px] leading-relaxed text-muted">
-              Es un estimado para que sepas más o menos cuánto apartar. No incluye el IVA ni otras obligaciones y no es
-              asesoría fiscal: antes de decidir, confírmalo con un contador.
+              Es un estimado para apartar el dinero, no asesoría fiscal. Confírmalo con un contador.
             </p>
           </div>
         </div>
       </section>
 
-      {/* 2. Los trámites. */}
+      {/* 2. Los trámites: anillo de avance y una lista que se palomea. */}
       <section className="rounded-3xl bg-surface p-5 ring-1 ring-border sm:p-7" aria-labelledby="tramites-titulo">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 id="tramites-titulo" className="text-[17px] font-semibold tracking-tight text-ink">
-            Tus trámites para estar en regla
-          </h2>
-          <p className="text-sm font-medium tabular-nums text-muted">
-            {listos} de {total} listos
-          </p>
+        <div className="flex items-center gap-5">
+          <Anillo hechos={listos} total={total}>
+            <span className="text-[1.6rem] font-bold leading-none tabular-nums text-ink">
+              {listos}/{total}
+            </span>
+            <span className="mt-1 text-[12px] font-medium text-muted">listos</span>
+          </Anillo>
+          <div className="min-w-0">
+            <h2 id="tramites-titulo" className="text-[19px] font-semibold tracking-tight text-ink">
+              Tus trámites para estar en regla
+            </h2>
+            <p className="mt-1 text-[15px] text-muted">
+              {siguiente ? (
+                <>
+                  Lo que sigue: <span className="font-medium text-ink">{siguiente.titulo.toLowerCase()}</span>.
+                </>
+              ) : (
+                <span className="font-semibold text-success">¡Todo listo! Ya estás en regla.</span>
+              )}
+            </p>
+            {soloLectura && <p className="mt-1 text-[13px] text-muted">Demo: puedes palomear, pero no se guarda.</p>}
+          </div>
         </div>
-        <div
-          className="mt-3 h-2 overflow-hidden rounded-full bg-ink/[0.08]"
-          role="progressbar"
-          aria-valuemin={0}
-          aria-valuemax={total}
-          aria-valuenow={listos}
-          aria-label="Trámites listos"
-        >
-          <div
-            className="h-full rounded-full bg-primary transition-all motion-reduce:transition-none"
-            style={{ width: `${(listos / total) * 100}%` }}
-          />
-        </div>
-        <p className="mt-2 text-[13px] text-muted">
-          {siguiente ? `Lo que sigue: ${siguiente.titulo.toLowerCase()}.` : '¡Todo listo! Ya estás en regla.'}
-          {soloLectura && ' (Demo: puedes marcar, pero no se guarda.)'}
-        </p>
 
-        <ol className="mt-5 flex flex-col gap-3">
+        <ol className="mt-6 flex flex-col gap-2.5">
           {PASOS_RESICO.map((p, i) => {
             const hecho = marcados.has(p.id);
             const esSiguiente = siguiente?.id === p.id;
             return (
               <li
                 key={p.id}
-                className={`rounded-2xl p-4 ring-1 ${esSiguiente ? 'bg-paper ring-primary/40' : 'bg-paper ring-border'}`}
+                className={`rounded-2xl ring-1 transition-colors motion-reduce:transition-none ${
+                  hecho ? 'bg-success-soft ring-success/25' : esSiguiente ? 'bg-surface ring-2 ring-primary/40' : 'bg-surface ring-border'
+                }`}
               >
-                <details open={esSiguiente} className="group">
-                  <summary className="flex min-h-11 cursor-pointer list-none items-center gap-3">
-                    <span
-                      aria-hidden="true"
-                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[13px] font-semibold tabular-nums ${
-                        hecho ? 'bg-success text-white' : 'bg-ink/[0.07] text-ink'
-                      }`}
-                    >
-                      {hecho ? <Check className="h-4 w-4" strokeWidth={3} /> : i + 1}
-                    </span>
-                    <span className={`flex-1 text-[15px] font-medium ${hecho ? 'text-muted line-through decoration-ink/30' : 'text-ink'}`}>
-                      {p.titulo}
-                    </span>
-                    <ChevronDown
-                      className="h-4 w-4 shrink-0 text-muted transition-transform group-open:rotate-180 motion-reduce:transition-none"
-                      aria-hidden="true"
-                    />
-                  </summary>
-                  <p className="mt-2 pl-10 text-sm leading-relaxed text-muted">{p.texto}</p>
-                  {p.id === 'csd' && facturacion && (
-                    <Link
-                      href="/dashboard/facturas"
-                      className="ml-10 mt-2 inline-flex min-h-11 items-center text-sm font-medium text-ink underline underline-offset-4"
-                    >
-                      Con tu sello digital ya puedes hacer facturas aquí
-                    </Link>
-                  )}
-                  <div className="pl-10">
-                    <button
-                      type="button"
-                      role="checkbox"
-                      aria-checked={hecho}
-                      disabled={guardando === p.id}
-                      onClick={() => alternar(p.id)}
-                      className={`mt-3 inline-flex min-h-11 items-center gap-2 rounded-full px-4 text-sm font-medium ring-1 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:opacity-60 ${
-                        hecho ? 'bg-primary/10 text-ink ring-primary/40' : 'text-ink ring-border hover:bg-ink/[0.04]'
-                      }`}
-                    >
+                <div className="flex items-center gap-3 p-3 pr-4">
+                  <button
+                    type="button"
+                    role="checkbox"
+                    aria-checked={hecho}
+                    aria-label={`${p.hecho}: ${p.titulo}`}
+                    disabled={guardando === p.id}
+                    onClick={() => alternar(p.id)}
+                    className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:opacity-60"
+                  >
+                    {hecho ? (
+                      <CheckAnimado />
+                    ) : (
                       <span
                         aria-hidden="true"
-                        className={`flex h-5 w-5 items-center justify-center rounded-md ring-1 ${
-                          hecho ? 'bg-primary text-[rgb(var(--color-cta-fg))] ring-primary' : 'ring-border'
-                        }`}
+                        className="flex h-8 w-8 items-center justify-center rounded-full text-[13px] font-semibold tabular-nums text-muted ring-2 ring-ink/20"
                       >
-                        {hecho && <Check className="h-3.5 w-3.5" />}
+                        {i + 1}
                       </span>
-                      {p.hecho}
-                    </button>
-                  </div>
-                </details>
+                    )}
+                  </button>
+                  <details open={esSiguiente} className="group min-w-0 flex-1">
+                    <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
+                      <span className={`flex-1 text-[16px] font-medium ${hecho ? 'text-ink/70' : 'text-ink'}`}>{p.titulo}</span>
+                      <ChevronDown
+                        className="h-4 w-4 shrink-0 text-muted transition-transform group-open:rotate-180 motion-reduce:transition-none"
+                        aria-hidden="true"
+                      />
+                    </summary>
+                    <p className="pb-1 pt-1 text-[15px] leading-relaxed text-muted">{p.texto}</p>
+                    {p.id === 'csd' && facturacion && (
+                      <Link
+                        href="/dashboard/facturas"
+                        className="inline-flex min-h-11 items-center text-[15px] font-medium text-ink underline underline-offset-4"
+                      >
+                        Con tu sello digital ya puedes hacer facturas aquí
+                      </Link>
+                    )}
+                    {!hecho && (
+                      <button
+                        type="button"
+                        onClick={() => alternar(p.id)}
+                        disabled={guardando === p.id}
+                        className="mb-1 mt-2 inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-4 text-[15px] font-semibold text-[rgb(var(--color-cta-fg))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:opacity-60"
+                      >
+                        <Check className="h-4 w-4" strokeWidth={2.5} aria-hidden="true" /> {p.hecho}
+                      </button>
+                    )}
+                  </details>
+                </div>
               </li>
             );
           })}
@@ -322,6 +331,45 @@ export function ResicoGuia({
           reglas y el límite pueden cambiar cada año; para 2027 hay una propuesta de reforma en trámite.
         </span>
       </p>
+    </div>
+  );
+}
+
+// En qué tramo de la tabla vas: cinco escalones iguales (el último es
+// enorme y a escala real se comería la barra), el tuyo pintado y un
+// marcador de cuánto llevas dentro de él.
+function Tramos({ ingresosCents, tasaBps }: { ingresosCents: number | null; tasaBps: number | null }) {
+  const i = tasaBps === null ? -1 : TABLA_MENSUAL.findIndex((t) => t.tasaBps === tasaBps);
+  const desde = i > 0 ? TABLA_MENSUAL[i - 1].hastaCents : 0;
+  const dentro =
+    i < 0 || ingresosCents === null ? 0 : Math.min(1, Math.max(0, (ingresosCents - desde) / (TABLA_MENSUAL[i].hastaCents - desde)));
+  return (
+    <div className="mt-5">
+      <p className="text-[13px] font-semibold text-muted">
+        {i < 0 ? 'Lo que pagas según cuánto cobres' : `Vas en el escalón de hasta ${formatoPesos(TABLA_MENSUAL[i].hastaCents)}`}
+      </p>
+      <div className="mt-2 grid grid-cols-5 gap-1" aria-hidden="true">
+        {TABLA_MENSUAL.map((t, j) => (
+          <div key={t.hastaCents}>
+            <div className={`relative h-3 rounded-full ${j < i ? 'bg-primary/35' : j === i ? 'bg-primary/20' : 'bg-ink/[0.08]'}`}>
+              {j === i && (
+                <span
+                  className="absolute inset-y-0 left-0 rounded-full bg-primary transition-[width] duration-700 ease-out motion-reduce:transition-none"
+                  style={{ width: `${Math.max(12, dentro * 100)}%` }}
+                />
+              )}
+            </div>
+            <p className={`mt-1.5 text-center text-[13px] tabular-nums ${j === i ? 'font-bold text-ink' : 'text-muted'}`}>
+              {formatoTasa(t.tasaBps).replace('.00', '')}
+            </p>
+          </div>
+        ))}
+      </div>
+      {i >= 0 && (
+        <p className="mt-2 text-[15px] text-ink">
+          Pagas el <span className="font-semibold">{formatoTasa(TABLA_MENSUAL[i].tasaBps)}</span> de todo lo del mes.
+        </p>
+      )}
     </div>
   );
 }

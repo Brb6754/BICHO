@@ -211,7 +211,7 @@ quitar el filtro) y **error** (qué pasó + Reintentar). Prohibido el
 - Íconos sin texto con `aria-label`. Decorativos con `aria-hidden`.
 - Animaciones con `motion-reduce:transition-none` o `.animate-fade-in`, que ya respeta `prefers-reduced-motion`.
 - Colores del negocio solo por tokens (`bg-primary`, `--color-cta-fg`).
-  Nunca hex de marca fijos. Funciona en los 4 estilos (`data-estilo`).
+  Nunca hex de marca fijos. Un solo estilo claro (los 4 estilos y el modo oscuro del panel se quitaron en el cierre).
 
 ---
 
@@ -400,3 +400,16 @@ mandaba a una pantalla que dice "Primero agrega quién atiende".
 4. **Sin pedido de ActionForm**: los formularios del grupo B guardan con estado del
    cliente (`onClick` / `onSubmit`), así que el P0 del grupo A no les borra lo escrito.
    **Sin acción.**
+
+## Cierre: los 5 recorridos de una dueña nueva (demo, teléfono 360–414 px)
+
+Un solo estilo claro, sin modo oscuro. Probados en `casa-luma.localhost/panel` como alguien que lo abre por primera vez.
+
+1. **Agendar una cita.** Abajo, **Agenda** → botón grande **Agendar cita** → nombre de la clienta, servicio, quién atiende, día y hora → **Agendar cita**. La cita sale en la columna de esa persona (o toca una hora libre de la agenda para empezar con esa hora ya puesta). En la semana, si hay más de 2 citas encimadas en un día, sale un **+N**: al tocarlo se abre ese día.
+2. **Encontrar a una clienta.** Abajo, **Clientes** → buscador **Nombre o teléfono** (sirven pedazos del nombre o los últimos números) → su tarjeta con **WhatsApp** y **Llamar**. Si nadie coincide: «Nadie se llama así» y **Ver a todos**.
+3. **Registrar un cobro.** En la Agenda toca la cita → **Vino** → **Cobrar** (en el panel real, **Cobrar en Caja** abre la Caja con esa cita lista: `?cita=<id>`) → **Efectivo / Tarjeta / Transferencia**. Desde Caja: **Cobrar una cita** → la cita → cómo te pagaron. **Cambiar monto** si hubo descuento.
+4. **Revisar una comisión.** **Más** → **Comisiones** → Semana, Quincena o Mes → la tarjeta de cada persona dice **Le toca** → **Ver sus N citas** (día, hora, clienta y lo que le toca de cada una) → **Ya le pagué** cuando le das su dinero.
+5. **Reponer inventario.** **Más** → **Inventario** → arriba, «Se te están acabando N productos» → **+1** en la tarjeta, o **Llegó producto** → producto → «Llegó / compré» → cuántos → guardar. La tarjeta dice cuánto te va a quedar antes de guardar.
+
+Arreglado en el recorrido: «Pide más» ya no se parte en dos renglones, los botones de pago caben a 360 px, el monto de la cita no se corta, los botones de Comisiones se apilan en pantallas angostas, «Ver su cita» en singular, «Asistió» → «Vino» (como el botón de la Agenda), buscador de Clientes sin texto cortado, texto secundario del panel a ≥4.5:1 sobre el gris del fondo, y las hojas de abajo llevan al centro el campo que tocas cuando sube el teclado.
+Pendiente: en «Cobrar una cita» la lista dice servicio y hora pero no el nombre de la clienta.

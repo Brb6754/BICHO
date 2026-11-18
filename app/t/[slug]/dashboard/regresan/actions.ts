@@ -46,3 +46,30 @@ export async function guardarAjustesRegresan(
     throw e;
   }
 }
+
+/**
+ * "Ya le escribiste" (db/060): cualquiera del equipo puede marcarlo. Si
+ * la tabla aún no existe, `faltaTabla` y la pantalla lo guarda en el teléfono.
+ */
+export async function marcarContactada(
+  slug: string,
+  clave: string
+): Promise<{ ok: true } | { ok: false; faltaTabla?: true; error?: string }> {
+  try {
+    const { tenantId } = await requireTenantStaff(slug);
+    const limpia = String(clave ?? '').slice(0, 200);
+    if (!limpia) return { ok: false, error: 'Falta la clienta.' };
+    const { error } = await createAdminClient()
+      .from('regresan_contactos')
+      .upsert({ tenant_id: tenantId, clave: limpia, contactado_at: new Date().toISOString() }, { onConflict: 'tenant_id,clave' });
+    if (error) {
+      if (error.code === '42P01' || error.code === 'PGRST205') return { ok: false, faltaTabla: true };
+      console.error('marcarContactada', slug, error);
+      return { ok: false, error: 'No se pudo guardar que ya le escribiste.' };
+    }
+    return { ok: true };
+  } catch (err) {
+    if (err instanceof StaffAccessError) return { ok: false, error: err.message };
+    throw err;
+  }
+}

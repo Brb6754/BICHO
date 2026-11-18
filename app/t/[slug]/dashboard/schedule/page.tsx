@@ -8,6 +8,7 @@ import {
   createScheduleSlot,
   deleteScheduleBlock,
   deleteScheduleSlot,
+  updateScheduleSlot,
 } from './actions';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { HelpTip } from '@/components/tenant-dash/ui/HelpTip';
@@ -142,7 +143,7 @@ export default async function SchedulePage({ params }: { params: Promise<{ slug:
           bloqueos={blocks}
           timezone={tz}
           hoyKey={hoy}
-          acciones={{ slug, crear: createScheduleSlot, quitar: deleteScheduleSlot, quitarBloqueo: deleteScheduleBlock }}
+          acciones={{ slug, crear: createScheduleSlot, cambiar: updateScheduleSlot, quitar: deleteScheduleSlot, quitarBloqueo: deleteScheduleBlock }}
         />
       </div>
 

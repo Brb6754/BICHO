@@ -99,7 +99,7 @@ export default async function PanelDemoPage({ params }: { params: Promise<{ slug
         timezone={tz}
         today={hoy}
         upcoming={proximas}
-        dinero={dineroDe(demoCaja(slug, services, tz, now), hoyKey)}
+        dinero={dineroDe(demoCaja(slug, services, tz, now, citas), hoyKey)}
         alertas={alertas}
         base="/panel"
         modulos={tilesDe(PRODUCTOS_DEMO, '/panel', null, false)}

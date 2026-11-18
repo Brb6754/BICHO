@@ -44,7 +44,7 @@ const DESCRIPCION_COMISIONES = 'Cuánto le toca a cada quien y a quién ya le pa
 function AyudaComisiones() {
   return (
     <HelpTip title="¿Cómo se calcula?">
-      A cada persona le toca su porcentaje de lo que cobró en citas que marcaste como «Asistió». Ejemplo: vendió $5,000 y
+      A cada persona le toca su porcentaje de lo que cobró en citas que marcaste como «Vino». Ejemplo: vendió $5,000 y
       su comisión es 30% → le toca $1,500.
     </HelpTip>
   );
@@ -201,7 +201,7 @@ export function ComisionesBoard({
             icon={HandCoins}
             title="Todavía no tienes a nadie en tu equipo"
             description="Da de alta a quien atiende y aquí verás cuánto le toca a cada quien."
-            why="Se calcula solo con las citas que marcas como «Asistió»: se acabaron las cuentas en la libreta."
+            why="Se calcula solo con las citas que marcas como «Vino»: se acabaron las cuentas en la libreta."
             action={
               !soloLectura && (
                 <Link
@@ -322,15 +322,15 @@ export function ComisionesBoard({
                           <CheckAnimado /> Ya le pagaste
                         </span>
                       ) : f.comisionCents > 0 ? (
-                        <Button type="button" onClick={() => setPagando(f)} disabled={pending} className="min-h-12 text-[15px] font-semibold max-sm:flex-1">
+                        <Button type="button" onClick={() => setPagando(f)} disabled={pending} className="min-h-12 text-[15px] font-semibold max-sm:flex-1 max-sm:basis-36">
                           <Check className="h-5 w-5" strokeWidth={2.5} aria-hidden="true" /> Ya le pagué
                         </Button>
                       ) : (
                         <span />
                       )}
                       {!sinCitas && (
-                        <Button type="button" variant="outline" onClick={() => setViendo(f)} className="min-h-11 max-sm:flex-1">
-                          Ver sus {f.citas} {f.citas === 1 ? 'cita' : 'citas'}
+                        <Button type="button" variant="outline" onClick={() => setViendo(f)} className="min-h-11 max-sm:flex-1 max-sm:basis-36">
+                          {f.citas === 1 ? 'Ver su cita' : `Ver sus ${f.citas} citas`}
                         </Button>
                       )}
                       {!soloLectura && (
@@ -444,7 +444,7 @@ function CitasDePersona({
   return (
     <Modal open onClose={onClose} title={`Citas de ${fila.nombre}`} size="lg">
       <p className="text-[15px] text-muted">
-        Del {fecha(rango.desde)} al {fecha(rango.hasta)}, solo las que marcaste como «Asistió».
+        Del {fecha(rango.desde)} al {fecha(rango.hasta)}, solo las que marcaste como «Vino».
       </p>
       {ordenadas.length === 0 ? (
         <p className="mt-4 rounded-2xl bg-ink/[0.04] px-4 py-3 text-[15px] text-ink">No hay citas en estas fechas.</p>

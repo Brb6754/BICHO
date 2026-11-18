@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mergeRanges, mismosRangos, hhmm } from './merge';
+import { mergeRanges, mismosRangos, hhmm, planDia } from './merge';
 
 const r = (a: string, b: string) => ({ starts_at: a, ends_at: b });
 
@@ -76,5 +76,40 @@ describe('hhmm', () => {
   it('recorta los segundos y los espacios', () => {
     expect(hhmm(' 09:00:00 ')).toBe('09:00');
     expect(hhmm('09:00')).toBe('09:00');
+  });
+});
+
+describe('planDia (cambiar horas sin dejar el día vacío)', () => {
+  const f = (id: string, a: string, b: string) => ({ id, starts_at: `${a}:00`, ends_at: `${b}:00` });
+
+  it('cambiar 09–18 por 10–17 inserta la nueva y borra la vieja (en ese orden lo aplica el servidor)', () => {
+    expect(planDia([f('a', '09:00', '18:00')], [r('10:00', '17:00')])).toEqual({
+      insertar: [r('10:00', '17:00')],
+      borrarIds: ['a'],
+    });
+  });
+
+  it('no toca la franja que no cambió en un turno partido', () => {
+    const plan = planDia([f('m', '09:00', '14:00'), f('t', '16:00', '20:00')], [r('09:00', '14:00'), r('16:00', '19:00')]);
+    expect(plan).toEqual({ insertar: [r('16:00', '19:00')], borrarIds: ['t'] });
+  });
+
+  it('sin cambios no escribe nada', () => {
+    expect(planDia([f('a', '09:00', '18:00')], [r('09:00', '18:00')])).toEqual({ insertar: [], borrarIds: [] });
+  });
+
+  it('un duplicado exacto se borra y el original se queda', () => {
+    expect(planDia([f('a', '09:00', '18:00'), f('b', '09:00', '18:00')], [r('09:00', '18:00')])).toEqual({
+      insertar: [],
+      borrarIds: ['b'],
+    });
+  });
+
+  it('nunca deja el día sin horario si hay rangos deseados: lo que se borra ya está cubierto por lo insertado o lo que queda', () => {
+    const existentes = [f('a', '09:00', '13:00'), f('b', '12:00', '18:00')];
+    const deseados = mergeRanges([...existentes]);
+    const { insertar, borrarIds } = planDia(existentes, deseados);
+    const quedan = existentes.filter((e) => !borrarIds.includes(e.id));
+    expect(mismosRangos([...quedan, ...insertar], deseados)).toBe(true);
   });
 });

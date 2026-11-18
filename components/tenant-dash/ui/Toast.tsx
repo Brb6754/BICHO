@@ -11,8 +11,8 @@ import { Check, CircleAlert } from 'lucide-react';
 // barra de color en el teléfono (abajo-centro en la computadora).
 //
 // Por qué arriba en el teléfono: abajo ya viven la barra de pestañas, las
-// barras de acción fijas de algunas pantallas y el selector de estilos de
-// la demo; un aviso ahí queda tapado.
+// barras de acción fijas de algunas pantallas;
+// un aviso ahí queda tapado.
 
 export type Tono = 'ok' | 'error';
 type Aviso = { id: number; texto: string; tono: Tono };

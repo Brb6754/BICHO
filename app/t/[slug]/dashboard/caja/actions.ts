@@ -45,7 +45,10 @@ function listo(slug: string): Resultado {
 }
 
 function fallo(e: unknown): Resultado {
-  return { ok: false, error: e instanceof Error ? e.message : 'No se pudo guardar.' };
+  return {
+    ok: false,
+    error: e instanceof Error ? e.message : 'No se pudo guardar.',
+  };
 }
 
 function validarDia(dia: string, hoy: string): string | null {
@@ -60,7 +63,11 @@ export async function guardarMovimiento(slug: string, input: MovimientoInput): P
 
     if (input.tipo !== 'venta' && input.tipo !== 'gasto') return { ok: false, error: 'Tipo inválido.' };
     const montoCents = pesosACentavos(input.monto ?? '');
-    if (montoCents === null) return { ok: false, error: 'Escribe un monto válido, por ejemplo 250 o 1,250.50.' };
+    if (montoCents === null)
+      return {
+        ok: false,
+        error: 'Escribe un monto válido, por ejemplo 250 o 1,250.50.',
+      };
     if (!METODOS.includes(input.metodo)) return { ok: false, error: 'Elige cómo se pagó.' };
     const categoria = input.tipo === 'gasto' ? input.categoria : null;
     if (input.tipo === 'gasto' && (!categoria || !CATEGORIAS_GASTO.includes(categoria))) {
@@ -171,7 +178,11 @@ export async function ajustarVentaDeCita(
     const montoCents = limpio === '0' ? 0 : pesosACentavos(input.monto ?? '');
     if (montoCents === null) return { ok: false, error: 'Escribe un monto válido, por ejemplo 250.' };
     if (!METODOS.includes(input.metodo)) return { ok: false, error: 'Elige cómo se pagó.' };
-    return await ajustarCita(slug, bookingId, { monto_cents: montoCents, metodo: input.metodo, anulada: false });
+    return await ajustarCita(slug, bookingId, {
+      monto_cents: montoCents,
+      metodo: input.metodo,
+      anulada: false,
+    });
   } catch (e) {
     return fallo(e);
   }
@@ -179,7 +190,54 @@ export async function ajustarVentaDeCita(
 
 export async function quitarVentaDeCita(slug: string, bookingId: string): Promise<Resultado> {
   try {
-    return await ajustarCita(slug, bookingId, { monto_cents: 0, metodo: 'efectivo', anulada: true });
+    return await ajustarCita(slug, bookingId, {
+      monto_cents: 0,
+      metodo: 'efectivo',
+      anulada: true,
+    });
+  } catch (e) {
+    return fallo(e);
+  }
+}
+
+/**
+ * El corte del día (db/060): con qué abrió el cajón o cuánto contó.
+ * `faltaTabla` le dice a la pantalla que siga guardándolo en el teléfono.
+ */
+export async function guardarCorte(
+  slug: string,
+  input: { campo: 'fondo' | 'contado'; valor: string },
+): Promise<Resultado | { ok: false; faltaTabla: true }> {
+  try {
+    const { tenantId, timezone } = await acceso(slug);
+    const valor = (input.valor ?? '').trim();
+    let cents: number | null = null;
+    if (valor) {
+      cents = input.campo === 'fondo' ? pesosACentavos(valor) : Number(valor);
+      if (cents === null || !Number.isInteger(cents) || cents < 0 || cents > 1_000_000_000) {
+        return {
+          ok: false,
+          error: 'Escribe un monto válido, por ejemplo 500.',
+        };
+      }
+    }
+    const columna = input.campo === 'fondo' ? 'fondo_cents' : 'contado_cents';
+    const { error } = await createAdminClient()
+      .from('caja_cortes')
+      .upsert(
+        {
+          tenant_id: tenantId,
+          dia: dayKey(new Date(), timezone),
+          [columna]: cents,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'tenant_id,dia' },
+      );
+    if (error) {
+      if (error.code === '42P01' || error.code === 'PGRST205') return { ok: false, faltaTabla: true };
+      throw new Error(aviso('No se pudo guardar el corte', error));
+    }
+    return { ok: true };
   } catch (e) {
     return fallo(e);
   }

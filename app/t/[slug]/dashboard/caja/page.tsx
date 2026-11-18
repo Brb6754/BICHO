@@ -30,7 +30,7 @@ export default async function CajaPage({ params }: { params: Promise<{ slug: str
         </>
       ) : (
         // El encabezado vive dentro de CajaBoard: sus botones abren el formulario.
-        <CajaBoard slug={slug} hoy={datos.hoy} movimientos={datos.movimientos} />
+        <CajaBoard slug={slug} hoy={datos.hoy} movimientos={datos.movimientos} corteBase={datos.corte} />
       )}
     </div>
   );

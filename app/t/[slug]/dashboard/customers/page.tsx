@@ -235,7 +235,7 @@ export default async function CustomersPage({ params }: { params: Promise<{ slug
                           'Sin visitas todavía'
                         )}
                         {c.favouriteService && (
-                          <span className="text-muted/70"> &middot; {c.favouriteService}</span>
+                          <span className="text-muted"> &middot; {c.favouriteService}</span>
                         )}
                       </p>
                     </div>

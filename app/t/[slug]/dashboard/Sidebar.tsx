@@ -33,7 +33,6 @@ import {
   Settings2,
   ChevronRight,
 } from 'lucide-react';
-import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { BusinessMark } from '@/components/tenant-dash/BusinessMark';
 import { tenantBookingPageUrl, tenantMeetingsPageUrl } from '@/lib/urls';
 import SignOutButton from './SignOutButton';
@@ -461,18 +460,6 @@ export function Sidebar({
           )}
         </nav>
 
-        {/* Solo se ve en el estilo Suave (globals.css: .dash-upgrade). */}
-        {role === 'owner' && !navBase && (
-          <Link href="/dashboard/plan" className="dash-upgrade mx-3 mb-3 rounded-[22px] p-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
-            <span className="block text-[15px] font-semibold leading-snug">Mejora tu plan</span>
-            <span className="mt-1 block text-[13px] leading-snug opacity-80">Suma módulos como Caja, Lealtad o Inventario.</span>
-            <span className="mt-3 inline-flex min-h-[2.5rem] items-center gap-1.5 rounded-full px-4 text-[13px] font-semibold dash-upgrade-btn">
-              Ver planes
-              <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
-            </span>
-          </Link>
-        )}
-
         {linkPublico && (
           // En el teléfono ya está en la barra de arriba; en el cajón solo estorbaría.
           <div className="mx-3 mb-3 hidden rounded-2xl border border-border p-3 lg:block">
@@ -510,7 +497,6 @@ export function Sidebar({
               <p className="truncate text-[13px] font-medium text-ink">{email}</p>
               <p className="truncate text-xs text-muted">{ROLE_LABELS[role] ?? role}</p>
             </div>
-            <ThemeToggle className="text-muted hover:bg-ink/[0.06] hover:text-ink" />
           </div>
           {footer ?? <SignOutButton />}
         </div>

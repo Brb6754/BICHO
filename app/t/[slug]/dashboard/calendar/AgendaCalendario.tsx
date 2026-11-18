@@ -17,6 +17,7 @@ import {
   mismoMes,
   moverFecha,
   posicionar,
+  recortarCarriles,
   semanaDe,
   tituloPeriodo,
   ESTADOS,
@@ -82,7 +83,9 @@ export function AgendaCalendario({
   /** null si el negocio no tiene Caja. */
   cajaHref: string | null;
   /** Demo: los servicios para el formulario de ejemplo. Nada se guarda. */
-  demo?: { servicios: { id: string; name: string; duration_minutes: number }[] };
+  demo?: {
+    servicios: { id: string; name: string; duration_minutes: number }[];
+  };
 }) {
   const router = useRouter();
   const search = useSearchParams();
@@ -444,6 +447,11 @@ export function AgendaCalendario({
                   onHueco={onHueco}
                   onCita={setCitaId}
                   personaDe={personaDe}
+                  maxCarriles={2}
+                  onMas={(dia) => {
+                    setFecha(dia);
+                    cambiarVista('dia');
+                  }}
                 />
               </div>
             </>
@@ -495,7 +503,9 @@ export function AgendaCalendario({
                             <span key={c.id} className="flex min-w-0 items-center gap-1.5 text-[13px] leading-5 text-ink">
                               <span
                                 className="h-2 w-2 shrink-0 rounded-full"
-                                style={{ backgroundColor: personaDe(c.resource_id)?.color ?? '#9CA3AF' }}
+                                style={{
+                                  backgroundColor: personaDe(c.resource_id)?.color ?? '#9CA3AF',
+                                }}
                                 aria-hidden="true"
                               />
                               <span className="tabular-nums text-muted">{formatTime(c.starts_at, tz)}</span>
@@ -594,6 +604,8 @@ function Linea({
   onHueco,
   onCita,
   personaDe,
+  maxCarriles,
+  onMas,
 }: {
   columnas: Columna[];
   pxHora: number;
@@ -604,6 +616,9 @@ function Linea({
   onHueco?: (dia: string, hora: string, quien?: string) => void;
   onCita: (id: string) => void;
   personaDe: (id?: string) => Persona | null;
+  /** Columna angosta: más encimadas que esto se juntan en un "+N" que abre el día. */
+  maxCarriles?: number;
+  onMas?: (dia: string) => void;
 }) {
   const { desde, hasta } = horasVisibles(columnas.flatMap((c) => c.citas), tz);
   const alto = (hasta - desde) * pxHora;
@@ -666,51 +681,91 @@ function Linea({
                 );
               })}
 
-            {posicionar(c.citas, tz, desde).map((b) => {
-              const cita = b.cita;
-              const persona = personaDe(cita.resource_id);
-              const color = persona?.color ?? '#9CA3AF';
-              const cancelada = cita.status === 'cancelled';
-              // Encimadas en una columna angosta: solo el nombre de pila,
-              // que cabe entero (el completo está al tocarla), sin partir
-              // palabras a la mitad.
-              const angosta = b.carriles > 1;
-              const nombre = cita.customers?.name ?? 'Clienta';
+            {(() => {
+              const bloques = posicionar(c.citas, tz, desde);
+              const { visibles, mas } = maxCarriles
+                ? recortarCarriles(bloques, maxCarriles)
+                : { visibles: bloques, mas: [] };
               return (
-                <button
-                  key={cita.id}
-                  type="button"
-                  onClick={() => onCita(cita.id)}
-                  aria-label={`${nombre}, ${formatTime(cita.starts_at, tz)}, ${cita.service_types?.name ?? 'Servicio'}${persona ? `, con ${persona.name}` : ''}${cita.status !== 'confirmed' ? `, ${ESTADOS[cita.status] ?? ''}` : ''}`}
-                  className={`absolute flex flex-col items-start gap-0.5 overflow-hidden rounded-xl border py-1.5 text-left ${angosta ? 'px-1' : 'px-2.5'} shadow-[0_1px_2px_rgb(0_0_0/0.06)] transition-[box-shadow,transform] duration-200 hover:z-[5] hover:shadow-[0_6px_16px_-6px_rgb(0_0_0/0.25)] active:scale-[0.99] focus-visible:z-[5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 ${
-                    cancelada ? 'z-[1] border-dashed border-border-strong bg-surface' : 'z-[2]'
-                  }`}
-                  style={{
-                    top: (b.inicio / 60) * pxHora + 1,
-                    minHeight: Math.max(44, (b.duracion / 60) * pxHora - 2),
-                    left: `calc(${(b.carril * 100) / b.carriles}% + 3px)`,
-                    width: `calc(${100 / b.carriles}% - 6px)`,
-                    ...(cancelada ? {} : { backgroundColor: fondoPersona(color), borderColor: bordePersona(color) }),
-                  }}
-                >
-                  <span
-                    className={`w-full font-bold leading-5 break-words ${angosta ? 'text-[15px] [hyphens:auto]' : 'text-base'} ${cancelada ? 'text-muted line-through decoration-ink/40' : 'text-ink'}`}
-                  >
-                    {angosta ? primerNombre(nombre) : nombre}
-                  </span>
-                  <span className="w-full truncate text-sm leading-5 text-ink/80">
-                    <span className="tabular-nums">{formatTime(cita.starts_at, tz)}</span> · {cita.service_types?.name ?? 'Servicio'}
-                  </span>
-                  {persona && !angosta && (
-                    <span className="flex max-w-full items-center gap-1.5 text-[13px] font-medium leading-5 text-ink/75">
-                      <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: color }} aria-hidden="true" />
-                      <span className="truncate">con {persona.name}</span>
-                    </span>
-                  )}
-                  {cita.status !== 'confirmed' && <EtiquetaEstado status={cita.status} chica />}
-                </button>
+                <>
+                  {mas.map((m) => (
+                    <button
+                      key={`mas-${m.inicio}`}
+                      type="button"
+                      onClick={() => onMas?.(c.dia)}
+                      title={m.ocultas
+                        .map((o) => `${formatTime(o.starts_at, tz)} ${o.customers?.name ?? 'Clienta'}`)
+                        .join(', ')}
+                      aria-label={`${m.ocultas.length} citas más a esta hora. Ver el día`}
+                      className="absolute z-[3] flex min-h-[44px] items-center justify-center rounded-xl border border-border-strong bg-surface text-[15px] font-bold text-ink shadow-[0_1px_2px_rgb(0_0_0/0.06)] transition-colors hover:bg-ink/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+                      style={{
+                        top: (m.inicio / 60) * pxHora + 1,
+                        left: `calc(${(m.carril * 100) / m.carriles}% + 3px)`,
+                        width: `calc(${100 / m.carriles}% - 6px)`,
+                      }}
+                    >
+                      +{m.ocultas.length}
+                    </button>
+                  ))}
+                  {visibles.map((b) => {
+                    const cita = b.cita;
+                    const persona = personaDe(cita.resource_id);
+                    const color = persona?.color ?? '#9CA3AF';
+                    const cancelada = cita.status === 'cancelled';
+                    // Encimadas en una columna angosta: solo el nombre de pila en
+                    // una línea (el completo en el tooltip y al tocarla), nunca
+                    // partido con guiones.
+                    const angosta = b.carriles > 1;
+                    const nombre = cita.customers?.name ?? 'Clienta';
+                    return (
+                      <button
+                        key={cita.id}
+                        type="button"
+                        onClick={() => onCita(cita.id)}
+                        title={`${nombre} · ${formatTime(cita.starts_at, tz)} · ${cita.service_types?.name ?? 'Servicio'}`}
+                        aria-label={`${nombre}, ${formatTime(cita.starts_at, tz)}, ${cita.service_types?.name ?? 'Servicio'}${persona ? `, con ${persona.name}` : ''}${cita.status !== 'confirmed' ? `, ${ESTADOS[cita.status] ?? ''}` : ''}`}
+                        className={`absolute flex flex-col items-start gap-0.5 overflow-hidden rounded-xl border py-1.5 text-left ${angosta ? 'px-1' : 'px-2.5'} shadow-[0_1px_2px_rgb(0_0_0/0.06)] transition-[box-shadow,transform] duration-200 hover:z-[5] hover:shadow-[0_6px_16px_-6px_rgb(0_0_0/0.25)] active:scale-[0.99] focus-visible:z-[5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 ${
+                          cancelada ? 'z-[1] border-dashed border-border-strong bg-surface' : 'z-[2]'
+                        }`}
+                        style={{
+                          top: (b.inicio / 60) * pxHora + 1,
+                          minHeight: Math.max(44, (b.duracion / 60) * pxHora - 2),
+                          left: `calc(${(b.carril * 100) / b.carriles}% + 3px)`,
+                          width: `calc(${100 / b.carriles}% - 6px)`,
+                          ...(cancelada
+                            ? {}
+                            : {
+                                backgroundColor: fondoPersona(color),
+                                borderColor: bordePersona(color),
+                              }),
+                        }}
+                      >
+                        <span
+                          className={`w-full font-bold leading-5 break-words ${angosta ? 'truncate text-[15px]' : 'text-base'} ${cancelada ? 'text-muted line-through decoration-ink/40' : 'text-ink'}`}
+                        >
+                          {angosta ? primerNombre(nombre) : nombre}
+                        </span>
+                        <span className="w-full truncate text-sm leading-5 text-ink/80">
+                          <span className="tabular-nums">{formatTime(cita.starts_at, tz)}</span> ·{' '}
+                          {cita.service_types?.name ?? 'Servicio'}
+                        </span>
+                        {persona && !angosta && (
+                          <span className="flex max-w-full items-center gap-1.5 text-[13px] font-medium leading-5 text-ink/75">
+                            <span
+                              className="h-2 w-2 shrink-0 rounded-full"
+                              style={{ backgroundColor: color }}
+                              aria-hidden="true"
+                            />
+                            <span className="truncate">con {persona.name}</span>
+                          </span>
+                        )}
+                        {cita.status !== 'confirmed' && <EtiquetaEstado status={cita.status} chica />}
+                      </button>
+                    );
+                  })}
+                </>
               );
-            })}
+            })()}
 
             {c.dia === hoy && hayHoy && (
               <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 z-[4] h-0.5 bg-error" style={{ top: yAhora }}>

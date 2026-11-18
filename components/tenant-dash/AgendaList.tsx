@@ -138,7 +138,7 @@ export function AgendaList({
                         </p>
                         <p className="truncate text-sm text-muted">
                           {b.customers?.name ?? 'Clienta'}
-                          {b.resources?.name && <span className="text-muted/70"> &middot; {b.resources.name}</span>}
+                          {b.resources?.name && <span className="text-muted"> &middot; {b.resources.name}</span>}
                         </p>
                       </div>
 

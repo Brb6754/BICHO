@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -31,9 +31,11 @@ import {
 import {
   ajustarVentaDeCita,
   borrarMovimiento,
+  guardarCorte,
   guardarMovimiento,
   quitarVentaDeCita,
 } from '@/app/t/[slug]/dashboard/caja/actions';
+import type { CorteGuardado } from '@/lib/caja/datos';
 import { CATEGORIA_INFO, FOCO, METODO_INFO, useConteo } from './caja/piezas';
 import { HojaMovimiento, etiquetaDia, type Guardado, type Modo } from './caja/HojaMovimiento';
 import { HojaCorte, RESULTADO_INFO } from './caja/HojaCorte';
@@ -59,28 +61,46 @@ function horaAhora(): string {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
-// El cambio con que abrió y el corte guardado se recuerdan por día en este
-// teléfono: hoy no existe una tabla de cortes y lo que importa es el total.
-// Si el navegador no deja guardar, simplemente no se recuerda.
-function useRecordado(clave: string): [string, (v: string) => void] {
-  const [valor, setValor] = useState('');
+// El cambio con que abrió y el corte guardado, por día. Con db/060 viven
+// en la base (`desdeBase` trae lo guardado y `aBase` escribe, con una
+// pausa corta porque el fondo se teclea); sin ella, o si la base dice que
+// falta la tabla, en este teléfono como antes. Si el navegador no deja
+// guardar, simplemente no se recuerda.
+function useRecordado(
+  clave: string,
+  desdeBase?: string,
+  aBase?: (v: string) => Promise<boolean>,
+): [string, (v: string) => void] {
+  const [valor, setValor] = useState(desdeBase ?? '');
+  const [conBase, setConBase] = useState(desdeBase !== undefined && Boolean(aBase));
+  const pausa = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
+    if (conBase) return;
     try {
       setValor(localStorage.getItem(clave) ?? '');
     } catch {
       /* sin almacenamiento: se queda vacío */
     }
-  }, [clave]);
+  }, [clave, conBase]);
+  const enTelefono = (v: string) => {
+    try {
+      if (v) localStorage.setItem(clave, v);
+      else localStorage.removeItem(clave);
+    } catch {
+      /* idem */
+    }
+  };
   return [
     valor,
     (v: string) => {
       setValor(v);
-      try {
-        if (v) localStorage.setItem(clave, v);
-        else localStorage.removeItem(clave);
-      } catch {
-        /* idem */
-      }
+      if (!conBase || !aBase) return enTelefono(v);
+      if (pausa.current) clearTimeout(pausa.current);
+      pausa.current = setTimeout(async () => {
+        if (await aBase(v)) return;
+        setConBase(false);
+        enTelefono(v);
+      }, 600);
     },
   ];
 }
@@ -92,11 +112,14 @@ export function CajaBoard({
   hoy,
   movimientos,
   porCobrarDemo,
+  corteBase = null,
   demo = false,
 }: {
   slug: string;
   hoy: string;
   movimientos: Movimiento[];
+  /** El corte de hoy guardado en la base (db/060); null = sin tabla, se usa el teléfono. */
+  corteBase?: CorteGuardado;
   /** Demo: citas de hoy de la agenda demo que ya empezaron (fuera de los totales hasta cobrarlas). */
   porCobrarDemo?: Movimiento[];
   /** El panel de demostración: todo se puede tocar y nada se guarda. */
@@ -111,8 +134,24 @@ export function CajaBoard({
   const [conCorte, setConCorte] = useState(false);
   const [diaSel, setDiaSel] = useState(hoy);
 
-  const [fondo, setFondo] = useRecordado(`caja-fondo:${slug}:${hoy}`);
-  const [corteGuardado, setCorteGuardado] = useRecordado(`caja-corte:${slug}:${hoy}`);
+  // La demo nunca escribe en la base.
+  const base = !demo && corteBase ? corteBase : null;
+  const aBase = (campo: 'fondo' | 'contado') => async (valor: string) => {
+    const r = await guardarCorte(slug, { campo, valor });
+    if (r.ok) return true;
+    if (!('faltaTabla' in r)) toast(r.error, 'error');
+    return false;
+  };
+  const [fondo, setFondo] = useRecordado(
+    `caja-fondo:${slug}:${hoy}`,
+    base ? (base.fondoCents === null ? '' : String(base.fondoCents / 100)) : undefined,
+    base ? aBase('fondo') : undefined,
+  );
+  const [corteGuardado, setCorteGuardado] = useRecordado(
+    `caja-corte:${slug}:${hoy}`,
+    base ? (base.contadoCents === null ? '' : String(base.contadoCents)) : undefined,
+    base ? aBase('contado') : undefined,
+  );
 
   const deHoy = useMemo(() => resumir(movs, hoy, hoy), [movs, hoy]);
   const deAyer = useMemo(() => resumir(movs, addDaysKey(hoy, -1), addDaysKey(hoy, -1)), [movs, hoy]);
@@ -123,6 +162,20 @@ export function CajaBoard({
 
   const corte = corteDeCaja(movs, hoy, pesosACentavos(fondo) ?? 0);
   const porCobrar = demo ? pendientesDemo : movs.filter((m) => m.porCobrar && m.dia === hoy);
+
+  // "Cobrar en Caja" desde la Agenda llega con ?cita=<id>: abre directo el
+  // cobro de esa cita. Se quita de la URL para que recargar no lo reabra.
+  const citaParam = useSearchParams().get('cita');
+  const pathname = usePathname();
+  useEffect(() => {
+    if (!citaParam) return;
+    const mov = [...pendientesDemo, ...movs].find((m) => m.bookingId === citaParam);
+    if (mov) setHoja({ modo: 'editar', mov });
+    else toast('Esa cita ya no está por cobrar. Revisa tus movimientos de abajo.', 'error');
+    router.replace(pathname, { scroll: false });
+    // Solo al llegar con el parámetro.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [citaParam]);
   const llevas = useConteo(deHoy.vendidoCents);
 
   const delDia = movs
@@ -135,7 +188,10 @@ export function CajaBoard({
     if (!demo) {
       const monto = String(d.montoCents / 100);
       const r = d.mov?.bookingId
-        ? await ajustarVentaDeCita(slug, d.mov.bookingId, { monto, metodo: d.metodo })
+        ? await ajustarVentaDeCita(slug, d.mov.bookingId, {
+            monto,
+            metodo: d.metodo,
+          })
         : await guardarMovimiento(slug, {
             id: d.mov?.id,
             tipo: d.tipo,
@@ -147,7 +203,11 @@ export function CajaBoard({
           });
       if (!r.ok) return r.error;
     }
-    const campos = { montoCents: d.montoCents, metodo: d.metodo, porCobrar: false };
+    const campos = {
+      montoCents: d.montoCents,
+      metodo: d.metodo,
+      porCobrar: false,
+    };
     const nuevo: Movimiento = d.mov
       ? { ...d.mov, ...campos, ...(d.mov.bookingId ? {} : { concepto: d.concepto, categoria: d.categoria, dia: d.dia }) }
       : {
@@ -440,7 +500,9 @@ export function CajaBoard({
                       <div className="mt-1 h-2 rounded-full bg-ink/[0.06]">
                         <div
                           className="h-full rounded-full bg-primary"
-                          style={{ width: `${Math.max(4, (s.cents / delMes.porServicio[0].cents) * 100)}%` }}
+                          style={{
+                            width: `${Math.max(4, (s.cents / delMes.porServicio[0].cents) * 100)}%`,
+                          }}
                         />
                       </div>
                     </li>
@@ -491,7 +553,9 @@ function FilaMovimiento({ m, onClick }: { m: Movimiento; onClick: () => void }) 
     >
       <span
         className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full"
-        style={{ backgroundColor: gasto ? 'rgb(255 138 0 / 0.16)' : 'rgb(0 184 92 / 0.14)' }}
+        style={{
+          backgroundColor: gasto ? 'rgb(255 138 0 / 0.16)' : 'rgb(0 184 92 / 0.14)',
+        }}
       >
         <Icono className={`h-5 w-5 ${gasto ? 'text-orange-700' : 'text-success'}`} aria-hidden="true" />
       </span>

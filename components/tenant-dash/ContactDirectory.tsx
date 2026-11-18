@@ -156,7 +156,7 @@ export function ContactDirectory({
           autoComplete="off"
           value={consulta}
           onChange={(e) => setConsulta(e.target.value)}
-          placeholder="Busca por nombre o teléfono"
+          placeholder="Nombre o teléfono"
           className="min-h-14 w-full rounded-full border border-border bg-surface py-3 pl-14 pr-14 text-[17px] text-ink shadow-xs placeholder:text-muted focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/15 [&::-webkit-search-cancel-button]:hidden"
         />
         {consulta && (

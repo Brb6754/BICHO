@@ -72,7 +72,18 @@ export function Modal({
             <X className="h-5 w-5" aria-hidden="true" />
           </button>
         </div>
-        <div className="min-h-0 overflow-y-auto overscroll-contain px-6 pb-6 pt-2">{children}</div>
+        <div
+          className="min-h-0 overflow-y-auto overscroll-contain px-6 pb-6 pt-2"
+          onFocus={(e) => {
+            // Con el teclado del teléfono abierto, el campo que se toca puede
+            // quedar debajo del teclado: se trae al centro cuando éste ya subió.
+            const el = e.target;
+            if (!(el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement)) return;
+            setTimeout(() => el.scrollIntoView({ block: 'center', behavior: 'smooth' }), 300);
+          }}
+        >
+          {children}
+        </div>
       </div>
     </div>,
     // Dentro del panel, a su raíz (.tenant-shell): ahí viven los colores

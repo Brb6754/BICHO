@@ -1,10 +1,15 @@
 import { addDaysKey } from '@/lib/dates/tenantTime';
 import { demoCaja } from '@/lib/caja/demo';
-import type { Movimiento as MovimientoCaja } from '@/lib/caja/resumen';
-
-// `hora` y `porCobrar` llegan con la Caja nueva; opcionales para no depender de ella.
-type Movimiento = MovimientoCaja & { hora?: string | null; porCobrar?: boolean };
-import { calcularComisiones, comisionCents, periodoDe, type CitaComisionable, type FilaComision, type Rango } from '@/lib/comisiones/calculo';
+import type { Movimiento } from '@/lib/caja/resumen';
+import { NOMBRES } from '@/lib/demo/panelFixtures';
+import {
+  calcularComisiones,
+  comisionCents,
+  periodoDe,
+  type CitaComisionable,
+  type FilaComision,
+  type Rango,
+} from '@/lib/comisiones/calculo';
 import type { CitaDetalle, PagoComision } from '@/lib/comisiones/datos';
 
 // Comisiones del panel de demostración. Cuentan la MISMA historia que la
@@ -33,30 +38,36 @@ function hash(s: string): number {
 
 const PCTS = [4000, 3500, 3000, 4500];
 
-// shortcut: lib/caja/demo.ts lo está rehaciendo otro grupo y su versión
-// nueva recibe la agenda como 5º argumento; la vieja la ignora. Cuando las
-// dos estén en master, quitar el cast y llamar demoCaja(...) directo.
-const cajaDemo = demoCaja as unknown as (
+/** Las ventas demo del negocio (lo mismo que enseña la Caja demo). */
+export function ventasDemo(
   slug: string,
   servicios: Servicio[],
   timezone: string,
   now: Date,
-  agenda: CitaAgenda[]
-) => Movimiento[];
-
-/** Las ventas demo del negocio (lo mismo que enseña la Caja demo). */
-export function ventasDemo(slug: string, servicios: Servicio[], timezone: string, now: Date, agenda: CitaAgenda[]): Movimiento[] {
-  return cajaDemo(slug, servicios, timezone, now, agenda);
+  agenda: CitaAgenda[],
+): Movimiento[] {
+  return demoCaja(slug, servicios, timezone, now, agenda);
 }
 
 export function demoComisiones(
   slug: string,
-  demo: { resources: Recurso[]; services: Servicio[]; citas: CitaAgenda[]; timezone: string; now: Date },
+  demo: {
+    resources: Recurso[];
+    services: Servicio[];
+    citas: CitaAgenda[];
+    timezone: string;
+    now: Date;
+  },
   rango: Rango,
   hoy: string
 ): { filas: FilaComision[]; pagos: PagoComision[]; detalle: CitaDetalle[] } {
   const equipo = demo.resources.length ? demo.resources : [{ id: 'demo-1', name: 'Equipo' }];
-  const personas = equipo.map((r, i) => ({ id: r.id, nombre: r.name, activo: true, pctBp: PCTS[i % PCTS.length] }));
+  const personas = equipo.map((r, i) => ({
+    id: r.id,
+    nombre: r.name,
+    activo: true,
+    pctBp: PCTS[i % PCTS.length],
+  }));
   const agenda = new Map(demo.citas.map((c) => [c.id, c]));
 
   // Solo los cobros que salen de una cita (las ventas sueltas, como un
@@ -72,7 +83,9 @@ export function demoComisiones(
         dia: m.dia,
         hora: m.hora ?? null,
         servicio: m.servicio ?? m.concepto,
-        cliente: cita?.customers?.name ?? null,
+        // Los días que la agenda demo no enseña también llevan clienta: una
+        // cita sin nombre en Comisiones se lee como dato roto.
+        cliente: cita?.customers?.name ?? NOMBRES[hash(`${m.id}:cliente`) % NOMBRES.length],
         precioCents: m.montoCents,
       };
     })

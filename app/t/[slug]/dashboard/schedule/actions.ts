@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { addDaysKey, instantFromLocal } from '@/lib/dates/tenantTime';
-import { mergeRanges, mismosRangos } from '@/lib/schedule/merge';
+import { mergeRanges, mismosRangos, planDia, type Rango } from '@/lib/schedule/merge';
 
 // Un horario se captura en bloque, no renglón por renglón.
 //
@@ -85,36 +85,90 @@ export async function createScheduleSlot(slug: string, formData: FormData) {
 
       if (mismosRangos(delDia, unidos)) continue;
 
-      // Se borran por id y no por (recurso, día) para no tocar ninguna
-      // fila que esta consulta no haya visto.
-      const ids = delDia.map((e) => e.id);
-      if (ids.length > 0) {
-        const { error } = await supabase
-          .from('resource_schedules')
-          .delete()
-          .eq('tenant_id', tenant.id)
-          .in('id', ids);
-        if (error) {
-    console.error('No se pudo actualizar el horario', error);
-    throw new Error('No se pudo guardar el horario. Inténtalo otra vez.');
-  }
-      }
-
-      const { error } = await supabase.from('resource_schedules').insert(
-        unidos.map((r) => ({
-          tenant_id: tenant.id,
-          resource_id: rid,
-          day_of_week: d,
-          starts_at: r.starts_at,
-          ends_at: r.ends_at,
-        }))
-      );
-      if (error) {
-    console.error('No se pudo crear el horario', error);
-    throw new Error('No se pudo guardar el horario. Inténtalo otra vez.');
-  }
+      await reescribirDia(supabase, tenant.id, rid, d, delDia, unidos);
     }
   }
+
+  revalidatePath(`/t/${slug}/dashboard/schedule`);
+}
+
+type Supa = Awaited<ReturnType<typeof createClient>>;
+type FilaHorario = Rango & { id: string };
+
+/**
+ * Deja las filas de (recurso, día) iguales a `deseados`. Primero inserta
+ * lo que falta y luego borra lo que sobra (lib/schedule/merge.ts →
+ * planDia): si la segunda llamada falla, el día conserva horario. Se
+ * borra por id para no tocar ninguna fila que la consulta no haya visto.
+ */
+async function reescribirDia(
+  supabase: Supa,
+  tenantId: string,
+  resourceId: string,
+  dia: number,
+  existentes: FilaHorario[],
+  deseados: Rango[],
+) {
+  const { insertar, borrarIds } = planDia(existentes, deseados);
+  if (insertar.length > 0) {
+    const { error } = await supabase.from('resource_schedules').insert(
+      insertar.map((r) => ({
+        tenant_id: tenantId,
+        resource_id: resourceId,
+        day_of_week: dia,
+        starts_at: r.starts_at,
+        ends_at: r.ends_at,
+      })),
+    );
+    if (error) {
+      console.error('No se pudo crear el horario', error);
+      throw new Error('No se pudo guardar el horario. Inténtalo otra vez.');
+    }
+  }
+  if (borrarIds.length > 0) {
+    const { error } = await supabase.from('resource_schedules').delete().eq('tenant_id', tenantId).in('id', borrarIds);
+    if (error) {
+      console.error('No se pudo actualizar el horario', error);
+      throw new Error('El horario nuevo quedó guardado, pero no se pudo quitar el anterior. Revisa ese día.');
+    }
+  }
+}
+
+/**
+ * Cambiar las horas de UNA franja. Antes la pantalla borraba la franja y
+ * luego creaba la nueva; si fallaba la segunda llamada, ese día se quedaba
+ * sin horario. Ahora el día completo se recalcula (las otras franjas + la
+ * nueva, unidas) y se escribe con reescribirDia: crear primero, borrar después.
+ */
+export async function updateScheduleSlot(scheduleId: string, slug: string, formData: FormData) {
+  const startsAt = (formData.get('starts_at') as string)?.trim();
+  const endsAt = (formData.get('ends_at') as string)?.trim();
+  if (!startsAt || !endsAt) throw new Error('Pon a qué hora abres y a qué hora cierras.');
+  if (startsAt >= endsAt)
+    throw new Error('La hora de cierre tiene que ser después de la de apertura, por ejemplo de 9:00 a 18:00.');
+
+  const supabase = await createClient();
+  const { data: tenant } = await supabase.from('tenants').select('id').eq('slug', slug).single();
+  if (!tenant) return;
+
+  const { data: fila } = await supabase
+    .from('resource_schedules')
+    .select('id, resource_id, day_of_week')
+    .eq('id', scheduleId)
+    .eq('tenant_id', tenant.id)
+    .maybeSingle();
+  if (!fila) throw new Error('Ese horario ya no existe. Recarga la página.');
+
+  const { data: delDia } = await supabase
+    .from('resource_schedules')
+    .select('id, starts_at, ends_at')
+    .eq('tenant_id', tenant.id)
+    .eq('resource_id', fila.resource_id)
+    .eq('day_of_week', fila.day_of_week);
+
+  const otras = (delDia ?? []).filter((e) => e.id !== scheduleId);
+  const deseados = mergeRanges([...otras, { starts_at: startsAt, ends_at: endsAt }]);
+  await reescribirDia(supabase, tenant.id, fila.resource_id, fila.day_of_week, delDia ?? [], deseados);
 
   revalidatePath(`/t/${slug}/dashboard/schedule`);
 }

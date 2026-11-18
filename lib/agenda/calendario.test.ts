@@ -8,6 +8,7 @@ import {
   mesDe,
   moverFecha,
   posicionar,
+  recortarCarriles,
   rangoDeCarga,
   semanaDe,
   tituloPeriodo,
@@ -86,6 +87,30 @@ describe('línea de tiempo', () => {
     // c empieza cuando a termina: reusa su carril.
     expect(de('c')).toMatchObject({ carril: 0, carriles: 2 });
     expect(de('d')).toMatchObject({ carril: 0, carriles: 1 });
+  });
+
+  it('en columna angosta, más de 2 encimadas se juntan en un "+N" que no tapa a las demás', () => {
+    const bs = posicionar(
+      [
+        cita('2026-11-17', '10:00', '11:00', 'a'),
+        cita('2026-11-17', '10:00', '11:00', 'b'),
+        cita('2026-11-17', '10:15', '11:00', 'c'),
+        cita('2026-11-17', '10:30', '11:00', 'd'),
+        cita('2026-11-17', '13:00', '14:00', 'e'),
+      ],
+      TZ,
+      9
+    );
+    const { visibles, mas } = recortarCarriles(bs, 2);
+    expect(visibles.map((b) => b.cita.id).sort()).toEqual(['a', 'e']);
+    expect(visibles.find((b) => b.cita.id === 'a')).toMatchObject({ carril: 0, carriles: 2 });
+    expect(visibles.find((b) => b.cita.id === 'e')).toMatchObject({ carril: 0, carriles: 1 });
+    expect(mas).toHaveLength(1);
+    expect(mas[0]).toMatchObject({ inicio: 60, carril: 1, carriles: 2 });
+    expect(mas[0].ocultas.map((c) => c.id).sort()).toEqual(['b', 'c', 'd']);
+    // Con 2 encimadas caben las dos: nada se esconde.
+    const dos = posicionar([cita('2026-11-17', '10:00', '11:00', 'x'), cita('2026-11-17', '10:00', '11:00', 'y')], TZ, 9);
+    expect(recortarCarriles(dos, 2)).toEqual({ visibles: dos, mas: [] });
   });
 
   it('un toque cae en su media hora', () => {

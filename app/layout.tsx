@@ -63,10 +63,13 @@ export const metadata: Metadata = {
 
 // Applied before paint so switching themes never flashes the wrong one
 // on load — reads the stored preference; light is the default (ignores the OS setting).
+// El panel del negocio (/dashboard, /panel) ya no tiene modo oscuro: aunque
+// quede 'dark' guardado de antes, ahí siempre se pinta claro.
 const THEME_INIT_SCRIPT = `
 (function () {
   try {
-    if (localStorage.getItem('theme') === 'dark') document.documentElement.classList.add('dark');
+    var panel = /^\\/(t\\/[^/]+\\/)?(dashboard|panel)(\\/|$)/.test(location.pathname);
+    if (!panel && localStorage.getItem('theme') === 'dark') document.documentElement.classList.add('dark');
   } catch (e) {}
 })();
 `;

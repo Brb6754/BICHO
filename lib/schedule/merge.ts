@@ -58,3 +58,29 @@ export function mismosRangos(a: Rango[], b: Rango[]): boolean {
   const ordB = b.map(clave).sort();
   return ordA.every((x, i) => x === ordB[i]);
 }
+
+/**
+ * Cómo pasar las filas de un día a los rangos deseados sin dejar el día
+ * vacío si algo falla a medias: primero se insertan los rangos que faltan
+ * y DESPUÉS se borran las filas que sobran. Las filas que ya coinciden con
+ * un rango deseado no se tocan. Si falla el insert, el horario viejo sigue
+ * completo; si falla el borrado, queda el nuevo con un sobrante que unir
+ * después, nunca un día sin horario.
+ */
+export function planDia<T extends Rango & { id: string }>(
+  existentes: T[],
+  deseados: Rango[],
+): { insertar: Rango[]; borrarIds: string[] } {
+  const clave = (r: Rango) => `${hhmm(r.starts_at)}-${hhmm(r.ends_at)}`;
+  const quedan = new Set<string>();
+  const borrarIds: string[] = [];
+  for (const e of existentes) {
+    const k = clave(e);
+    if (deseados.some((d) => clave(d) === k) && !quedan.has(k)) quedan.add(k);
+    else borrarIds.push(e.id);
+  }
+  const insertar = deseados
+    .filter((d) => !quedan.has(clave(d)))
+    .map((d) => ({ starts_at: hhmm(d.starts_at), ends_at: hhmm(d.ends_at) }));
+  return { insertar, borrarIds };
+}

@@ -114,6 +114,8 @@ export type Bloque<T> = {
   /** Carril que ocupa y cuántos carriles tiene su grupo de encimadas. */
   carril: number;
   carriles: number;
+  /** Índice del grupo de citas encimadas al que pertenece. */
+  grupo: number;
 };
 
 /**
@@ -128,9 +130,11 @@ export function posicionar<T extends ConHoras>(citas: T[], tz: string | null, de
   let grupo: Bloque<T>[] = [];
   let finGrupo = -1;
   let finCarril: number[] = [];
+  let nGrupo = 0;
 
   const cerrar = () => {
     for (const b of grupo) b.carriles = finCarril.length;
+    if (grupo.length) nGrupo++;
     grupo = [];
     finCarril = [];
   };
@@ -146,12 +150,56 @@ export function posicionar<T extends ConHoras>(citas: T[], tz: string | null, de
     }
     finCarril[carril] = ini + dur;
     finGrupo = Math.max(finGrupo, ini + dur);
-    const b = { cita, inicio: ini, duracion: dur, carril, carriles: 1 };
+    const b = {
+      cita,
+      inicio: ini,
+      duracion: dur,
+      carril,
+      carriles: 1,
+      grupo: nGrupo,
+    };
     grupo.push(b);
     bloques.push(b);
   }
   cerrar();
   return bloques;
+}
+
+/** Un "+N" que junta las citas que no caben a lo ancho de una columna. */
+export type Mas<T> = {
+  inicio: number;
+  carril: number;
+  carriles: number;
+  ocultas: T[];
+};
+
+/**
+ * En una columna angosta (la Semana en la compu) más de `max` citas
+ * encimadas no se leen: cada una quedaría de 30 px con el nombre partido.
+ * Se enseñan las primeras `max - 1` carriles y el último lo ocupa un
+ * "+N" que abre el día.
+ */
+export function recortarCarriles<T>(bloques: Bloque<T>[], max: number): { visibles: Bloque<T>[]; mas: Mas<T>[] } {
+  const visibles: Bloque<T>[] = [];
+  const porGrupo = new Map<number, Mas<T>>();
+  for (const b of bloques) {
+    if (b.carriles <= max) {
+      visibles.push(b);
+    } else if (b.carril < max - 1) {
+      visibles.push({ ...b, carriles: max });
+    } else {
+      const m = porGrupo.get(b.grupo) ?? {
+        inicio: b.inicio,
+        carril: max - 1,
+        carriles: max,
+        ocultas: [],
+      };
+      m.inicio = Math.min(m.inicio, b.inicio);
+      m.ocultas.push(b.cita);
+      porGrupo.set(b.grupo, m);
+    }
+  }
+  return { visibles, mas: [...porGrupo.values()] };
 }
 
 /** La media hora en la que cae un toque a `px` del tope de la línea de tiempo. */
@@ -198,5 +246,8 @@ export function tituloPeriodo(k: string, vista: 'semana' | 'mes'): string {
 /** "lun", "mar"… y el número del día, para encabezados de columna. */
 export function diaCorto(k: string): { semana: string; numero: string } {
   const d = desdeLlave(k);
-  return { semana: format(d, 'EEE', { locale: es }).replace('.', ''), numero: format(d, 'd') };
+  return {
+    semana: format(d, 'EEE', { locale: es }).replace('.', ''),
+    numero: format(d, 'd'),
+  };
 }

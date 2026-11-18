@@ -32,18 +32,39 @@ function mensajeWhatsapp(url: string, negocio?: string) {
   return `Ya puedes agendar tu cita${negocio ? ` en ${negocio}` : ''} desde aquí, a cualquier hora: ${url}`;
 }
 
-async function copiar(url: string, slug?: string) {
+/** Portapapeles moderno y, si el navegador lo bloquea (navegador de
+ *  Instagram/Facebook, origen inseguro), el viejo execCommand. */
+async function alPortapapeles(texto: string): Promise<boolean> {
   try {
-    await navigator.clipboard.writeText(url);
-    marcar(slug);
-    toast('Link copiado. Pégalo en tu bio o en un chat.');
+    await navigator.clipboard.writeText(texto);
     return true;
   } catch {
-    // Portapapeles bloqueado (origen inseguro, permisos): se abre la
-    // página para copiarlo de la barra de direcciones.
-    window.open(url, '_blank', 'noreferrer');
-    return false;
+    try {
+      const area = document.createElement('textarea');
+      area.value = texto;
+      area.setAttribute('readonly', '');
+      area.style.position = 'fixed';
+      area.style.opacity = '0';
+      document.body.appendChild(area);
+      area.select();
+      const ok = document.execCommand('copy');
+      area.remove();
+      return ok;
+    } catch {
+      return false;
+    }
   }
+}
+
+async function copiar(url: string, slug?: string) {
+  if (await alPortapapeles(url)) {
+    marcar(slug);
+    toast('Enlace copiado');
+    return true;
+  }
+  // Ni así: se lo enseñamos para que lo copie a mano.
+  toast(`No se pudo copiar. Tu link es ${url}`, 'error');
+  return false;
 }
 
 /**
@@ -111,7 +132,11 @@ export function ShareLinkCompact({ url, slug, negocio }: { url: string; slug?: s
       onClick={async () => {
         if (typeof navigator.share === 'function') {
           try {
-            await navigator.share({ title: negocio, text: mensajeWhatsapp(url, negocio), url });
+            await navigator.share({
+              title: negocio,
+              text: mensajeWhatsapp(url, negocio),
+              url,
+            });
             marcar(slug);
             return;
           } catch (e) {

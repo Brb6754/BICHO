@@ -5,7 +5,7 @@ import { PageHeader } from '@/components/tenant-dash/PageHeader';
 import { AjustesRegresan, AyudaRegresan, RegresanBoard } from '@/components/tenant-dash/RegresanBoard';
 import { ajustesDe, armarRegresan, type CitaRegresan } from '@/lib/regresan/armar';
 import { tenantBookingPageUrl } from '@/lib/urls';
-import { guardarAjustesRegresan } from './actions';
+import { guardarAjustesRegresan, marcarContactada } from './actions';
 import { Bloqueado } from '../plan/Bloqueado';
 
 const TITULO = 'Clientes que regresan';
@@ -47,7 +47,7 @@ export default async function RegresanPage({ params }: { params: Promise<{ slug:
     );
   }
 
-  const [{ data: tenant }, { data: raw }] = await Promise.all([
+  const [{ data: tenant }, { data: raw }, contactosRes] = await Promise.all([
     // select('*'): sin db/046 los ajustes caen a sus valores por omisión.
     db.from('tenants').select('*').eq('id', tenantId).maybeSingle(),
     db
@@ -56,7 +56,18 @@ export default async function RegresanPage({ params }: { params: Promise<{ slug:
       .eq('tenant_id', tenantId)
       .order('starts_at', { ascending: false })
       .limit(BOOKING_LIMIT),
+    // "Ya le escribiste" (db/060), últimos 30 días. Sin la tabla: null y la pantalla usa el teléfono.
+    db
+      .from('regresan_contactos')
+      .select('clave, contactado_at')
+      .eq('tenant_id', tenantId)
+      .gte('contactado_at', new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString()),
   ]);
+  const escritasBase = contactosRes.error
+    ? null
+    : Object.fromEntries(
+        (contactosRes.data ?? []).map((c) => [c.clave as string, new Date(c.contactado_at as string).getTime()]),
+      );
 
   const ajustes = ajustesDe(tenant);
   const negocio = (tenant?.name as string) ?? 'tu negocio';
@@ -83,6 +94,8 @@ export default async function RegresanPage({ params }: { params: Promise<{ slug:
         canal={canal}
         tieneLinkResena={Boolean(ajustes.linkResena)}
         {...datos}
+        escritasBase={escritasBase}
+        onContactada={marcarContactada.bind(null, slug)}
         ajustes={
           <AjustesRegresan
             semanas={ajustes.semanas}

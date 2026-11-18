@@ -14,7 +14,7 @@ import { addDaysKey, dayKey, instantFromLocal } from '@/lib/dates/tenantTime';
 // visitantes ven lo mismo. Las fechas sí son relativas a hoy — una demo
 // con citas del mes pasado se lee como un producto abandonado.
 
-const NOMBRES = [
+export const NOMBRES = [
   'María Fernanda L.',
   'Carlos Rentería',
   'Ana Sofía Trejo',

@@ -28,6 +28,8 @@ export type BloqueoVista = { id: string; resource_id: string | null; starts_at: 
 type Acciones = {
   slug: string;
   crear: (slug: string, fd: FormData) => Promise<void>;
+  /** Cambia las horas de una franja sin quitarla antes (crea y luego borra en el servidor). */
+  cambiar: (id: string, slug: string, fd: FormData) => Promise<void>;
   quitar: (id: string, slug: string) => Promise<void>;
   quitarBloqueo: (id: string, slug: string) => Promise<void>;
 };
@@ -271,7 +273,7 @@ function HojaSemana({
     const fd = new FormData(e.currentTarget);
     const desde = String(fd.get('starts_at') ?? '');
     const hasta = String(fd.get('ends_at') ?? '');
-    // Se revisa aquí, antes de quitar nada: cambiar = quitar la vieja y guardar la nueva.
+    // Se revisa aquí, antes de mandar nada al servidor.
     if (!desde || !hasta || desde >= hasta) {
       toast('La hora de cierre tiene que ser después de la de apertura, por ejemplo de 9:00 a 18:00.', 'error');
       return null;
@@ -340,8 +342,9 @@ function HojaSemana({
             'Horario guardado',
             acciones &&
               (async () => {
-                if (f.id) await acciones.quitar(f.id, acciones.slug);
-                await acciones.crear(acciones.slug, formHorario(persona.id, [dow], h[0], h[1]));
+                const fd = formHorario(persona.id, [dow], h[0], h[1]);
+                if (f.id) await acciones.cambiar(f.id, acciones.slug, fd);
+                else await acciones.crear(acciones.slug, fd);
               })
           );
         }}

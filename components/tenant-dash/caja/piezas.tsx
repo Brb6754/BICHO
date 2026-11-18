@@ -244,7 +244,7 @@ export function BotonPago({
       onClick={onClick}
       disabled={disabled}
       aria-pressed={actual}
-      className={`relative flex min-h-[5.5rem] flex-col items-center justify-center gap-1.5 rounded-2xl bg-surface px-2 py-3 text-[15px] font-semibold text-ink shadow-[0_1px_2px_rgb(0_0_0/0.06)] transition active:scale-95 disabled:opacity-50 motion-reduce:transform-none ${FOCO}`}
+      className={`relative flex min-h-[5.5rem] flex-col items-center justify-center gap-1.5 rounded-2xl bg-surface px-1 py-3 text-[13px] font-semibold min-[400px]:text-[15px] text-ink shadow-[0_1px_2px_rgb(0_0_0/0.06)] transition active:scale-95 disabled:opacity-50 motion-reduce:transform-none ${FOCO}`}
       style={{ boxShadow: `inset 0 0 0 ${actual ? 2.5 : 1.5}px ${color}` }}
     >
       <span className="flex h-10 w-10 items-center justify-center rounded-full" style={{ backgroundColor: color }}>

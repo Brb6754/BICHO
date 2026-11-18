@@ -10,7 +10,6 @@ import {
 import { Sidebar } from './Sidebar';
 import { TrialBanner } from '@/components/tenant-dash/TrialBanner';
 import { tenantAccess } from '@/lib/billing/trial';
-import { estiloDe } from '@/lib/branding/dashEstilo';
 import { boostVisible, productosDeFila, whatsappVisible } from '@/lib/products';
 import { tilesDe } from '@/lib/branding/moduloColores';
 import { planDe } from '@/lib/billing/planes';
@@ -111,10 +110,7 @@ export default async function DashboardLayout({
 
   return (
     <div
-      className="tenant-shell tenant-dash relative flex min-h-screen bg-paper"
-      // Estilo del panel (db/054). Viene de la misma consulta tolerante
-      // de arriba: sin la columna, clásico.
-      data-estilo={estiloDe(ajustes?.dashboard_estilo)}
+      className="tenant-shell tenant-dash dash-app relative flex min-h-screen bg-paper"
       style={
         {
           ...tenantColorCssVars(primaryColor, secondaryColor, accentColor),

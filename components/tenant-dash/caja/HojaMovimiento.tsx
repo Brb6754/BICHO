@@ -135,7 +135,7 @@ export function HojaMovimiento({
               <CalendarCheck className="mx-auto h-8 w-8 text-muted" aria-hidden="true" />
               <p className="mt-2 text-[17px] font-semibold text-ink">No tienes citas por cobrar</p>
               <p className="mt-1 text-[15px] leading-relaxed text-muted">
-                Cuando marques en tu agenda que una clienta llegó («Asistió»), aparece aquí para cobrarla con dos toques.
+                Cuando marques en tu agenda que una clienta llegó («Vino»), aparece aquí para cobrarla con dos toques.
               </p>
             </div>
           ) : (
@@ -205,7 +205,7 @@ export function HojaMovimiento({
           {/* El monto, grande, con su lápiz para cambiarlo. */}
           <div className="flex items-end justify-between gap-3 rounded-2xl bg-paper px-4 py-4 ring-1 ring-border">
             <div className="min-w-0">
-              <p className="truncate text-[15px] text-muted">
+              <p className="line-clamp-2 break-words text-[15px] text-muted">
                 {deCita ? `${sel?.servicio ?? 'Cita'}${sel?.hora ? ` · ${sel.hora}` : ''}` : tipo === 'gasto' ? 'Gasto' : 'Cobro'}
               </p>
               <p className="mt-1 text-[2.5rem] font-bold leading-none tracking-tight tabular-nums text-ink">

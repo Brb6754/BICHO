@@ -21,8 +21,8 @@ import { mailtoLink, waLink } from '@/lib/regresan/mensajes';
 // listo para que el dueño lo revise y lo envíe él. Envío masivo
 // automático = número baneado.
 //
-// shortcut: "ya le escribiste" vive solo en este teléfono (localStorage),
-// no hay columna para guardarlo; si se quiere entre equipos, va a la base.
+// "Ya le escribiste" vive en la base (db/060, regresan_contactos) para que
+// lo vea todo el equipo. Sin esa migración, en este teléfono como antes.
 
 export type FilaRegresan = {
   key: string;
@@ -193,6 +193,8 @@ export function RegresanBoard({
   tieneLinkResena,
   demo = false,
   ajustes,
+  escritasBase,
+  onContactada,
 }: {
   negocio: string;
   semanas: number;
@@ -203,20 +205,33 @@ export function RegresanBoard({
   tieneLinkResena: boolean;
   demo?: boolean;
   ajustes?: React.ReactNode;
+  /** Lo guardado en la base (db/060). null/undefined = sin tabla: se usa el teléfono. */
+  escritasBase?: Record<string, number> | null;
+  onContactada?: (clave: string) => Promise<{ ok: true } | { ok: false; faltaTabla?: true; error?: string }>;
 }) {
-  const [escritas, setEscritas] = useState<Record<string, number>>({});
+  const [conBase, setConBase] = useState(!demo && Boolean(escritasBase) && Boolean(onContactada));
+  const [escritas, setEscritas] = useState<Record<string, number>>(conBase ? (escritasBase ?? {}) : {});
   useEffect(() => {
-    if (!demo) setEscritas(leerEscritas());
-  }, [demo]);
+    if (!demo && !conBase) setEscritas((prev) => ({ ...leerEscritas(), ...prev }));
+  }, [demo, conBase]);
+  function enTelefono(sig: Record<string, number>) {
+    try {
+      localStorage.setItem(CLAVE_LS, JSON.stringify(sig));
+    } catch {
+      /* sin almacenamiento: la palomita dura lo que dure la página */
+    }
+  }
   function marcar(key: string) {
-    setEscritas((prev) => {
-      const sig = { ...prev, [key]: Date.now() };
-      try {
-        if (!demo) localStorage.setItem(CLAVE_LS, JSON.stringify(sig));
-      } catch {
-        /* sin almacenamiento: la palomita dura lo que dure la página */
-      }
-      return sig;
+    const sig = { ...escritas, [key]: Date.now() };
+    setEscritas(sig);
+    if (demo) return;
+    if (!conBase || !onContactada) return enTelefono(sig);
+    void onContactada(key).then((r) => {
+      if (r.ok) return;
+      if (r.faltaTabla) {
+        setConBase(false);
+        enTelefono(sig);
+      } else if (r.error) toast(r.error, 'error');
     });
   }
   const n = inactivas.length;
@@ -232,8 +247,16 @@ export function RegresanBoard({
         onCambiar={setVista}
         opciones={[
           { id: 'recuperar', texto: 'Recuperar clientas', cuenta: n },
-          { id: 'resenas', texto: 'Reseñas', cuenta: tieneLinkResena ? resenas.length : undefined },
-          { id: 'recordatorios', texto: 'Recordatorios', cuenta: proximos.length || undefined },
+          {
+            id: 'resenas',
+            texto: 'Reseñas',
+            cuenta: tieneLinkResena ? resenas.length : undefined,
+          },
+          {
+            id: 'recordatorios',
+            texto: 'Recordatorios',
+            cuenta: proximos.length || undefined,
+          },
         ]}
       />
 
@@ -401,7 +424,10 @@ export function AjustesRegresan({
 }) {
   const router = useRouter();
   const [form, setForm] = useState({ semanas: String(semanas), linkResena });
-  const [error, setError] = useState<{ campo: 'semanas' | 'link' | null; texto: string } | null>(null);
+  const [error, setError] = useState<{
+    campo: 'semanas' | 'link' | null;
+    texto: string;
+  } | null>(null);
   const [guardando, setGuardando] = useState(false);
 
   async function guardar(e: React.FormEvent) {

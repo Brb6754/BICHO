@@ -3,7 +3,7 @@
 ## En producción (bichomx.com, master)
 - Ola 2: Inventario, Comisiones, RESICO, Referidos (2dbcd21).
 - 3 planes: Esencial $299 / Negocio $499 / Pro $799. Fuente única en `lib/billing/planes.ts`.
-- 4 estilos de dashboard (clasico/suave/vibrante/poster) que elige el dueño.
+- Panel rediseñado "para señoras": un solo estilo claro sin modo oscuro, cobro desde la agenda, corte y "Ya le escribiste" en la base (874a4a9; `db/060_corte_y_contactos.sql` SIN correr, usa localStorage mientras tanto).
 - Página de reservar con portada que colapsa al avanzar (modelo: lima-laca).
 - Directorio y mapa en `/negocios` (requiere `db/055_directorio.sql`).
 - Landing nueva + SEO con gráficos (f8c0341, 0a4ef3c):

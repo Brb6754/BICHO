@@ -59,6 +59,8 @@ describe('ActionForm no borra lo escrito si falla', () => {
 
   it('no usa <form action>: con eso React 19 resetea el form aunque la action falle', () => {
     const html = renderToStaticMarkup(
+      // Archivo .ts sin JSX y el tipo de ActionForm exige children en props.
+      // eslint-disable-next-line react/no-children-prop
       createElement(ActionForm, { action: async () => {}, children: createElement('input', { name: 'name' }) })
     );
     expect(html).toMatch(/^<form/);

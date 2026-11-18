@@ -7,7 +7,10 @@ import { descargarMedia } from '@/lib/whatsapp/media';
 import { TRANSCRIPCION_ACTIVA, transcribir } from '@/lib/whatsapp/transcribir';
 import { extraerConstancia } from '@/lib/whatsapp/cotiza/constancia';
 import { NOMBRES_COTIZA, TOOLS_COTIZA, TOOLS_FACTURA, ejecutarHerramientaCotiza, type ContextoCotiza } from '@/lib/whatsapp/cotiza/herramientas';
+import { enviarInteractivo, resumenSaliente, type Saliente } from '@/lib/whatsapp/interactivo';
 import { correrAgente, type Turno } from './agente';
+import { barrerYAvisar, type EnvioDeps } from './avisos';
+import { leerId, manejarOpcion, quiereAgendar, type CtxFlujo, type RespuestaFlujo } from './flujoCita';
 import { TOOLS, ejecutarHerramienta } from './herramientas';
 import { agenteDisponible, cotizaDisponible, resolverTenant } from './ruteo';
 import { puedeMandarArchivo, revisarTope } from './tope';
@@ -27,7 +30,27 @@ export type MensajeEntrante = {
   phoneNumberId: string;
   /** Imagen, documento o audio: el id para bajarlo de Meta. */
   mediaId?: string;
+  /** Respuesta a una lista, un botón o un botón de plantilla: el id/payload de la opción. NO es confiable. */
+  opcion?: string;
+  /** Nombre del perfil de WhatsApp (contacts[].profile.name), si vino. */
+  nombrePerfil?: string;
 };
+
+type Interactivo = { type?: string; list_reply?: { id?: unknown; title?: unknown }; button_reply?: { id?: unknown; title?: unknown } };
+
+/** list_reply / button_reply (mensajes interactivos) o button (plantilla con respuesta rápida) → { id, título }. */
+function respuestaOpcion(m: Record<string, unknown>): { id: string; titulo: string } | null {
+  if (m.type === 'interactive') {
+    const i = m.interactive as Interactivo | undefined;
+    const r = i?.type === 'list_reply' ? i.list_reply : i?.type === 'button_reply' ? i.button_reply : null;
+    return typeof r?.id === 'string' ? { id: r.id, titulo: String(r.title ?? '') } : null;
+  }
+  if (m.type === 'button') {
+    const b = m.button as { payload?: unknown; text?: unknown } | undefined;
+    return typeof b?.payload === 'string' ? { id: b.payload, titulo: String(b.text ?? '') } : null;
+  }
+  return null;
+}
 
 // Lo que se guarda en whatsapp_conversaciones.historial. El modelo ve
 // los últimos HISTORIAL_MODELO; el panel, estos.
@@ -44,17 +67,29 @@ export function extraerMensajes(payload: unknown): MensajeEntrante[] {
       const phoneNumberId = (value?.metadata as { phone_number_id?: string } | undefined)?.phone_number_id;
       const messages = value?.messages;
       if (!phoneNumberId || !Array.isArray(messages)) continue;
+      const perfiles = new Map<string, string>();
+      for (const c of (Array.isArray(value?.contacts) ? value.contacts : []) as { wa_id?: unknown; profile?: { name?: unknown } }[]) {
+        if (typeof c?.wa_id === 'string' && typeof c.profile?.name === 'string' && c.profile.name.trim()) {
+          perfiles.set(c.wa_id.replace(/\D/g, ''), c.profile.name.trim().slice(0, 80));
+        }
+      }
       for (const m of messages as Record<string, unknown>[]) {
         if (typeof m?.id !== 'string' || typeof m?.from !== 'string') continue;
         const media = (['image', 'document', 'audio'].includes(String(m.type)) ? m[String(m.type)] : null) as { id?: unknown } | null;
+        const from = m.from.replace(/\D/g, '');
+        const opcion = respuestaOpcion(m);
+        const nombrePerfil = perfiles.get(from);
         out.push({
           id: m.id,
-          from: m.from.replace(/\D/g, ''),
+          from,
           timestamp: String(m.timestamp ?? ''),
           type: String(m.type ?? ''),
-          texto: m.type === 'text' ? String((m.text as { body?: string } | undefined)?.body ?? '').slice(0, 2000) : null,
+          // Una opción elegida queda en el historial con su título, como si la hubiera escrito.
+          texto: m.type === 'text' ? String((m.text as { body?: string } | undefined)?.body ?? '').slice(0, 2000) : opcion ? opcion.titulo.slice(0, 200) : null,
           phoneNumberId,
           ...(typeof media?.id === 'string' ? { mediaId: media.id } : {}),
+          ...(opcion ? { opcion: opcion.id.slice(0, 256) } : {}),
+          ...(nombrePerfil ? { nombrePerfil } : {}),
         });
       }
     }
@@ -69,6 +104,11 @@ export type Deps = {
   descargar?: typeof descargarMedia;
   extraer?: (bytes: ArrayBuffer, mime: string) => ReturnType<typeof extraerConstancia>;
   factura?: ContextoCotiza['deps'];
+  /** Listas/botones y plantillas (fake de Meta en las pruebas). */
+  interactivo?: typeof enviarInteractivo;
+  plantilla?: EnvioDeps['plantilla'];
+  linkAnticipo?: CtxFlujo['linkAnticipo'];
+  mover?: CtxFlujo['mover'];
 };
 
 export type Resultado = 'baja' | 'duplicado' | 'ignorado' | 'sin_resolver' | 'agente_apagado' | 'tope' | 'humano' | 'respondido' | 'error';
@@ -136,6 +176,11 @@ export async function procesarMensaje(m: MensajeEntrante, deps: Deps = {}): Prom
     return 'agente_apagado';
   }
 
+  // Barrido perezoso (Vercel Hobby solo deja crons diarios): libera los
+  // apartados vencidos de este negocio y les avisa, antes de que este
+  // mensaje vea disponibilidad. Nunca lanza.
+  if (citas) await barrerYAvisar(db, tenant, new Date(), { interactivo: deps.interactivo, plantilla: deps.plantilla });
+
   // Tope ANTES de cualquier llamada a Claude. Este mensaje ya cuenta (está en el dedup).
   await db.from('whatsapp_mensajes_procesados').update({ tenant_id: tenant.id }).eq('wamid', m.id);
   const tope = await revisarTope(db, m.from, tenant.id);
@@ -193,9 +238,40 @@ export async function procesarMensaje(m: MensajeEntrante, deps: Deps = {}): Prom
     return 'humano';
   }
 
+  const ctx = { db, tenantId: tenant.id, slug: tenant.slug, timezone: tenant.timezone, telefono: m.from, conversacionId: c.id };
+  const ctxFlujo: CtxFlujo = { ...ctx, nombrePerfil: m.nombrePerfil, linkAnticipo: deps.linkAnticipo, mover: deps.mover };
+  const mandar = (s: Saliente) =>
+    s.tipo === 'texto' ? enviar(m.phoneNumberId, m.from, s.texto) : (deps.interactivo ?? enviarInteractivo)(m.phoneNumberId, m.from, s);
+  const mandarFlujo = async (f: RespuestaFlujo): Promise<Turno[]> => {
+    const turnos: Turno[] = [];
+    for (const s of f.mensajes) {
+      const r = await mandar(s);
+      if (!r.ok) console.error('whatsapp flujo no enviado', { id: m.id, error: r.error });
+      turnos.push({ role: 'assistant', content: resumenSaliente(s), at: new Date().toISOString() });
+    }
+    if (f.pendiente && turnos.length) turnos[turnos.length - 1].pendiente = f.pendiente;
+    return turnos;
+  };
+
+  // Flujo de citas con botones (sin Claude): una opción elegida, el nombre
+  // que se pidió en el turno anterior, o un "quiero agendar" directo.
+  if (citas) {
+    const previo = Array.isArray(c.historial) ? c.historial.at(-1) : undefined;
+    const pendiente = previo?.role === 'assistant' && previo.pendiente ? leerId(previo.pendiente) : null;
+    const nombre = texto?.trim() ?? '';
+    let flujo: RespuestaFlujo | null = null;
+    if (m.opcion !== undefined) flujo = await manejarOpcion(ctxFlujo, leerId(m.opcion));
+    else if (pendiente && m.type === 'text' && nombre.length >= 2 && nombre.length <= 60) flujo = await manejarOpcion(ctxFlujo, pendiente, nombre);
+    else if (m.type === 'text' && quiereAgendar(texto)) flujo = await manejarOpcion(ctxFlujo, { a: 'c' });
+    if (flujo) {
+      await guardar([...historial, ...(await mandarFlujo(flujo))], flujo.humano ? { estado: 'humano' } : {});
+      return 'respondido';
+    }
+  }
+
   let respuesta: string;
   let fallo = false;
-  const ctx = { db, tenantId: tenant.id, slug: tenant.slug, timezone: tenant.timezone, telefono: m.from, conversacionId: c.id };
+  let herramientas: string[] = [];
   if (texto === null && archivo && factura) {
     respuesta = await leerConstancia(db, deps, ctx, m);
   } else if (texto === null) {
@@ -212,7 +288,7 @@ export async function procesarMensaje(m: MensajeEntrante, deps: Deps = {}): Prom
     const tools = [...TOOLS.filter((t) => citas || t.name === 'pasar_a_humano'), ...(cotiza ? TOOLS_COTIZA : []), ...(factura ? TOOLS_FACTURA : [])];
     const permitidas = new Set(tools.map((t) => t.name));
     try {
-      ({ respuesta, fallo } = await correrAgente({
+      ({ respuesta, fallo, herramientas } = await correrAgente({
         tenant,
         historial,
         client: deps.client,
@@ -234,8 +310,11 @@ export async function procesarMensaje(m: MensajeEntrante, deps: Deps = {}): Prom
 
   const envio = await enviar(m.phoneNumberId, m.from, respuesta);
   if (!envio.ok) console.error('whatsapp respuesta no enviada', { id: m.id, error: envio.error });
+  const turnos: Turno[] = [{ role: 'assistant', content: respuesta, at: new Date().toISOString() }];
+  // El agente pidió el menú con botones: va justo después de su mensaje.
+  if (citas && !fallo && herramientas.includes('mostrar_menu_citas')) turnos.push(...(await mandarFlujo(await manejarOpcion(ctxFlujo, { a: 'c' }))));
   // Sin `estado` en el update normal: pasar_a_humano pudo haberlo cambiado durante el turno.
-  await guardar([...historial, { role: 'assistant', content: respuesta, at: new Date().toISOString() }], fallo ? { estado: 'humano' } : {});
+  await guardar([...historial, ...turnos], fallo ? { estado: 'humano' } : {});
   return 'respondido';
 }
 

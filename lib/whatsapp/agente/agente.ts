@@ -11,7 +11,13 @@ export const MAX_PASOS_WA = 6;
 // Mensajes de historial que ve el modelo.
 export const HISTORIAL_MODELO = 10;
 
-export type Turno = { role: 'user' | 'assistant'; content: string; at?: string };
+export type Turno = {
+  role: 'user' | 'assistant';
+  content: string;
+  at?: string;
+  /** Flujo de citas con botones: la opción que espera el nombre del cliente (flujoCita.ts). No va al modelo. */
+  pendiente?: string;
+};
 
 type Bloque = { type: string; props?: Record<string, unknown>; hidden?: boolean };
 
@@ -32,7 +38,9 @@ export type Modo = { citas: boolean; cotiza: boolean; factura: boolean };
 
 const REGLAS_CITAS = `
 Citas:
-- Para agendar: confirma servicio, día y hora (de ver_disponibilidad) y el nombre del cliente; luego usa crear_cita. Al terminar comparte el link para cambiar o cancelar.
+- Si quiere agendar y no dijo servicio, día y hora, usa mostrar_menu_citas (le llegan opciones con botones).
+- Para agendar a mano: confirma servicio, día y hora (de ver_disponibilidad) y el nombre del cliente; luego usa crear_cita. Al terminar comparte el link para cambiar o cancelar.
+- Si crear_cita responde requiere_anticipo: la cita NO está confirmada todavía. Dile el monto del anticipo, que el horario queda apartado hasta la hora de apartada_hasta, y comparte link_de_pago; si no hay link, dile que el negocio le compartirá por aquí cómo pagar.
 - Antes de cancelar, confirma con el cliente cuál cita.`;
 
 const REGLAS_COTIZA = `

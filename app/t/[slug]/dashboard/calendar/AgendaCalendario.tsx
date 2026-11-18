@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { CalendarHeart, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { AgendaBooking } from '@/components/tenant-dash/AgendaList';
+import { AnticipoBadge } from '@/components/tenant-dash/AnticipoBadge';
 import { ShareLink } from '@/components/tenant-dash/ui/ShareLink';
 import { toast } from '@/components/tenant-dash/ui/Toast';
 import { dayKey, dayLabel, formatTime } from '@/lib/dates/tenantTime';
@@ -760,6 +761,7 @@ function Linea({
                           </span>
                         )}
                         {cita.status !== 'confirmed' && <EtiquetaEstado status={cita.status} chica />}
+                        <AnticipoBadge cita={cita} timezone={tz} chica />
                       </button>
                     );
                   })}

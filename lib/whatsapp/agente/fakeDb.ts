@@ -13,6 +13,8 @@ export function fakeDb(
   opts: {
     rpc?: Record<string, (args: Row) => { data?: unknown; error?: unknown }>;
     unicas?: Record<string, string[]>;
+    /** Columnas que "no existen" (migración sin correr): escribirlas da PGRST204. */
+    sinColumnas?: Record<string, string[]>;
   } = {}
 ) {
   let n = 0;
@@ -29,6 +31,8 @@ export function fakeDb(
 
     const run = () => {
       const filas = (tablas[tabla] ??= []);
+      const escritas = op === 'insert' || op === 'update' ? (Array.isArray(payload) ? payload : [payload ?? {}]).flatMap(Object.keys) : [];
+      if (escritas.some((c) => opts.sinColumnas?.[tabla]?.includes(c))) return { data: null, error: { code: 'PGRST204' } };
       if (op === 'insert') {
         const nuevas: Row[] = (Array.isArray(payload) ? payload : [payload!]).map((r) => ({
           id: `id-${++n}`,
@@ -73,9 +77,9 @@ export function fakeDb(
       insert: (p: Row | Row[]) => ((op = 'insert'), (payload = p), q),
       update: (p: Row) => ((op = 'update'), (payload = p), q),
       eq: (c: string, v: unknown) => (filtros.push((r) => r[c] === v), q),
-      gt: (c: string, v: string) => (filtros.push((r) => String(r[c]) > v), q),
-      gte: (c: string, v: string) => (filtros.push((r) => String(r[c]) >= v), q),
-      lt: (c: string, v: string) => (filtros.push((r) => String(r[c]) < v), q),
+      gt: (c: string, v: string) => (filtros.push((r) => r[c] != null && String(r[c]) > v), q),
+      gte: (c: string, v: string) => (filtros.push((r) => r[c] != null && String(r[c]) >= v), q),
+      lt: (c: string, v: string) => (filtros.push((r) => r[c] != null && String(r[c]) < v), q),
       is: (c: string, v: unknown) => (filtros.push((r) => (r[c] ?? null) === v), q),
       in: (c: string, vs: unknown[]) => (filtros.push((r) => vs.includes(r[c])), q),
       order: (col: string, o?: { ascending?: boolean }) => ((orden = { col, asc: o?.ascending !== false }), q),

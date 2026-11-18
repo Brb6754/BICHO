@@ -1,6 +1,7 @@
 import type Anthropic from '@anthropic-ai/sdk';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { crearReserva } from '@/lib/bookings/crear';
+import { apartarCita } from '@/lib/anticipos/apartar';
+import { obtenerLinkAnticipo } from '@/lib/anticipos/pago';
 import { esServicio } from '@/lib/meetings/kinds';
 import { addDaysKey, appointmentWhen, dayKey, formatTime } from '@/lib/dates/tenantTime';
 import { tenantManageBookingUrl } from '@/lib/urls';
@@ -58,6 +59,12 @@ export const TOOLS: Anthropic.Tool[] = [
     },
   },
   {
+    name: 'mostrar_menu_citas',
+    description:
+      'Le manda al cliente una lista para elegir servicio, especialista, día y hora con botones. Úsala cuando quiera agendar y todavía no tenga claro servicio, día y hora. Después solo dile en una línea que ahí le van las opciones.',
+    input_schema: { type: 'object', properties: {}, additionalProperties: false },
+  },
+  {
     name: 'ver_mi_cita',
     description: 'Las próximas citas confirmadas de quien está escribiendo.',
     input_schema: { type: 'object', properties: {}, additionalProperties: false },
@@ -84,7 +91,15 @@ export const TOOLS: Anthropic.Tool[] = [
   },
 ];
 
-type Servicio = { id: string; name: string; duration_minutes: number; price_cents: number | null; show_price?: boolean | null; kind?: string | null };
+export type Servicio = {
+  id: string;
+  name: string;
+  duration_minutes: number;
+  price_cents: number | null;
+  show_price?: boolean | null;
+  kind?: string | null;
+  deposit_mxn?: number | null;
+};
 
 function precio(s: Servicio): string {
   if (s.show_price === false) return 'no publicado (que lo confirme el negocio)';
@@ -92,7 +107,7 @@ function precio(s: Servicio): string {
   return `$${(s.price_cents / 100).toLocaleString('es-MX')}`;
 }
 
-async function servicios(ctx: Contexto): Promise<Servicio[]> {
+export async function servicios(ctx: Contexto): Promise<Servicio[]> {
   const { data, error } = await ctx.db.from('service_types').select('*').eq('tenant_id', ctx.tenantId).eq('active', true);
   if (error) throw new Error('No pude leer los servicios.');
   return ((data ?? []) as Servicio[]).filter(esServicio);
@@ -109,27 +124,37 @@ async function buscarServicio(ctx: Contexto, ref: unknown): Promise<Servicio> {
   return s;
 }
 
-type Hueco = { resource_id: string; slot_start: string; slot_end: string };
+export type Hueco = { resource_id: string; slot_start: string; slot_end: string };
 
-async function huecos(ctx: Contexto, servicioId: string, fecha: string): Promise<Hueco[]> {
-  // Recursos que hacen este servicio (db/032); sin filas, todos los activos.
+/** Recursos activos de ESTE negocio que hacen el servicio (db/032); sin filas, todos los activos. */
+export async function recursosDelServicio(ctx: Contexto, servicioId: string): Promise<{ id: string; name?: string | null }[]> {
   const { data: rs } = await ctx.db
     .from('resource_services')
     .select('resource_id')
     .eq('tenant_id', ctx.tenantId)
     .eq('service_type_id', servicioId);
-  let q = ctx.db.from('resources').select('id').eq('tenant_id', ctx.tenantId).eq('active', true);
+  let q = ctx.db.from('resources').select('id, name').eq('tenant_id', ctx.tenantId).eq('active', true);
   if (rs?.length) q = q.in('id', rs.map((x: { resource_id: string }) => x.resource_id));
   const { data: recursos } = await q;
+  return (recursos ?? []) as { id: string; name?: string | null }[];
+}
+
+/**
+ * Huecos libres REALES (get_available_slots) del servicio entre dos días
+ * locales (AAAA-MM-DD, inclusive), ya pasados fuera. Con `recursoId`, solo
+ * ese recurso — y solo si es del negocio y hace el servicio.
+ */
+export async function huecos(ctx: Contexto, servicioId: string, desde: string, hasta: string = desde, recursoId?: string): Promise<Hueco[]> {
+  const recursos = (await recursosDelServicio(ctx, servicioId)).filter((r) => !recursoId || r.id === recursoId);
 
   const ahora = Date.now();
   const res = await Promise.all(
-    ((recursos ?? []) as { id: string }[]).map(async (r) => {
+    recursos.map(async (r) => {
       const { data } = await ctx.db.rpc('get_available_slots', {
         p_resource_id: r.id,
         p_service_type_id: servicioId,
-        p_from: fecha,
-        p_to: fecha,
+        p_from: desde,
+        p_to: hasta,
       });
       return ((data ?? []) as { slot_start: string; slot_end: string }[]).map((s) => ({ resource_id: r.id, ...s }));
     })
@@ -141,7 +166,7 @@ async function huecos(ctx: Contexto, servicioId: string, fecha: string): Promise
 }
 
 /** 12 dígitos MX (52 + 10) → los 10 locales, que es como los teclea la gente en la web. */
-function telefonoLocal(t: string): string {
+export function telefonoLocal(t: string): string {
   return t.length === 12 && t.startsWith('52') ? t.slice(2) : t.length === 13 && t.startsWith('521') ? t.slice(3) : t;
 }
 
@@ -196,7 +221,8 @@ export async function ejecutarHerramienta(ctx: Contexto, nombre: string, input: 
         (h) => new Date(h.slot_start).getTime() === inicio.getTime()
       );
       if (!hueco) throw new Error('Ese horario ya no está libre. Consulta ver_disponibilidad otra vez.');
-      const r = await crearReserva(ctx.db, ctx.tenantId, {
+      // Con anticipo queda apartada (no confirmada) hasta que pague; sin anticipo, confirmada como siempre.
+      const r = await apartarCita(ctx.db, ctx.tenantId, {
         resource_id: hueco.resource_id,
         service_type_id: s.id,
         starts_at: hueco.slot_start,
@@ -206,13 +232,33 @@ export async function ejecutarHerramienta(ctx: Contexto, nombre: string, input: 
         notes: 'Agendada por WhatsApp (recepcionista IA)',
       });
       if (!r.ok) throw new Error(r.error);
-      return {
+      const base = {
         cita_id: r.bookingId,
         servicio: r.serviceName,
         cuando: appointmentWhen(hueco.slot_start, ctx.timezone),
         link_para_cambiar_o_cancelar: tenantManageBookingUrl(ctx.slug, r.bookingId),
       };
+      if (!r.requiereAnticipo || !r.venceEn) return { ...base, requiere_anticipo: false };
+      const link = await obtenerLinkAnticipo(ctx.db, {
+        tenantId: ctx.tenantId,
+        bookingId: r.bookingId,
+        montoMxn: r.montoMxn,
+        descripcion: `Anticipo ${r.serviceName}`,
+        vence: r.venceEn,
+      });
+      return {
+        ...base,
+        requiere_anticipo: true,
+        anticipo_mxn: r.montoMxn,
+        apartada_hasta: formatTime(r.venceEn.toISOString(), ctx.timezone),
+        link_de_pago: link?.url ?? null,
+        si_no_hay_link: link ? null : 'El negocio le compartirá por aquí cómo pagar el anticipo.',
+      };
     }
+
+    case 'mostrar_menu_citas':
+      // procesar.ts ve que se usó y manda la lista de servicios después de la respuesta.
+      return { menu: 'se le manda la lista de servicios justo después de tu mensaje' };
 
     case 'ver_mi_cita': {
       const citas = await citasDelTelefono(ctx);

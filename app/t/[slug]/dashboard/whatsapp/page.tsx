@@ -14,7 +14,11 @@ import { Bloqueado } from '../plan/Bloqueado';
 import { Conversaciones, type ConversacionVista } from './Conversaciones';
 import { CotizacionesWhatsapp, type CotizacionWA } from './CotizacionesWhatsapp';
 import { Intro, Pestanas, Proximamente, Requisitos, vistaDe } from './Secciones';
-import { aprobarFactura, cambiarAgente, cambiarConfirmarFacturas, cambiarCotiza, cambiarEstado, responder } from './actions';
+import { aprobarFactura, cambiarAgente, cambiarConfirmarFacturas, cambiarCotiza, cambiarEstado, guardarAnticipos, responder } from './actions';
+import { configDesdeFila, mpConnectHabilitado } from '@/lib/anticipos/config';
+import { esServicio } from '@/lib/meetings/kinds';
+import { AnticiposVista, type ConexionMp } from '@/components/tenant-dash/AnticiposVista';
+import { Hourglass } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -90,6 +94,24 @@ export default async function WhatsappPage({
       .limit(30);
     const conversaciones = (data ?? []) as ConversacionVista[];
 
+    // Anticipos (db/061): `tenant` ya viene con `*`; sin la migración no trae las columnas.
+    const anticiposMigrados = tenant != null && 'anticipo_enabled' in tenant;
+    const admin = createAdminClient();
+    let servicios: { id: string; name: string; deposit_mxn?: number | null }[] = [];
+    let conexionMp: ConexionMp = null;
+    if (anticiposMigrados) {
+      const [{ data: sv }, mp] = await Promise.all([
+        admin.from('service_types').select('*').eq('tenant_id', tenantId).eq('active', true).order('name'),
+        // Solo columnas no secretas; con service_role porque la tabla no tiene policies (ya probamos membresía arriba).
+        mpConnectHabilitado()
+          ? admin.from('tenant_mp_connections').select('mp_user_id, live_mode, connected_at').eq('tenant_id', tenantId).maybeSingle()
+          : Promise.resolve({ data: null }),
+      ]);
+      servicios = (sv ?? []).filter(esServicio) as typeof servicios;
+      const c = mp.data as { mp_user_id: string; live_mode: boolean; connected_at: string } | null;
+      conexionMp = c ? { mpUserId: c.mp_user_id, liveMode: c.live_mode, connectedAt: c.connected_at } : null;
+    }
+
     return (
       <>
         {encabezado}
@@ -139,6 +161,30 @@ export default async function WhatsappPage({
                 responder: (id) => responder.bind(null, slug, id),
               }}
             />
+          </section>
+        )}
+
+        {anticiposMigrados ? (
+          <AnticiposVista
+            slug={slug}
+            config={configDesdeFila(tenant)}
+            servicios={servicios}
+            mp={{ habilitado: mpConnectHabilitado(), conexion: conexionMp }}
+            timezone={timezone}
+            puedeCambiar={puedeCambiar}
+            guardar={guardarAnticipos.bind(null, slug)}
+          />
+        ) : (
+          // Falta db/061_anticipos.sql.
+          <section className="mt-10 max-w-3xl">
+            <SectionHeading title="Anticipos" />
+            <Card>
+              <p className="flex items-center gap-2 text-[15px] font-semibold text-ink">
+                <Hourglass className="h-4 w-4 shrink-0" aria-hidden="true" />
+                Próximamente: pedir anticipo para apartar la cita
+              </p>
+              <p className="mt-1 text-sm leading-relaxed text-muted">Todavía no está activo en tu cuenta. Te lo activamos nosotros.</p>
+            </Card>
           </section>
         )}
       </>

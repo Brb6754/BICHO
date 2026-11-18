@@ -40,7 +40,7 @@ export async function descargarMedia(mediaId: string): Promise<Ok<{ bytes: Array
   }
 }
 
-async function postMensaje(phoneNumberId: string, cuerpo: Record<string, unknown>): Promise<Ok<object> | Falla> {
+export async function postMensaje(phoneNumberId: string, cuerpo: Record<string, unknown>): Promise<Ok<object> | Falla> {
   const t = token();
   if (!t) return { ok: false, error: 'WHATSAPP_ACCESS_TOKEN no configurado' };
   try {

@@ -6,6 +6,8 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { planPermiteAgente } from '@/lib/whatsapp/agente/ruteo';
 import { enviarTexto } from '@/lib/whatsapp/texto';
 import { COLUMNAS_QUOTE_FACTURA, timbrarYEnviar, type QuoteFactura } from '@/lib/whatsapp/cotiza/facturar';
+import { faltaMigracion } from '@/lib/anticipos/config';
+import { leerFormAnticipo, MIGRACION_ANTICIPOS } from '@/lib/anticiposPanel';
 
 // Acciones del panel de la recepcionista. Cada una prueba membresía
 // (requireTenantStaff) y filtra por tenant_id: un id de conversación de
@@ -134,4 +136,37 @@ export async function aprobarFactura(slug: string, quoteId: string) {
   revalidatePath(`/t/${slug}/dashboard/whatsapp`);
   revalidatePath(`/t/${slug}/dashboard/facturas`);
   if (!r.ok) throw new Error(r.error);
+}
+
+// ── Anticipos (db/061) ───────────────────────────────────────────────
+
+/** Guarda la configuración de anticipos del negocio y el monto de cada servicio. */
+export async function guardarAnticipos(slug: string, formData: FormData) {
+  const { tenantId, role } = await requireTenantStaff(slug);
+  if (role !== 'owner' && role !== 'admin') throw new Error('Solo el dueño o un administrador puede cambiar esto.');
+  const r = leerFormAnticipo(formData);
+  if (!r.ok) throw new Error(r.error);
+  const v = r.valor;
+  const db = createAdminClient();
+
+  const { error } = await db
+    .from('tenants')
+    .update({
+      anticipo_enabled: v.activado,
+      anticipo_mxn: v.montoGeneralMxn,
+      anticipo_apartado_min: v.minutosApartado,
+      anticipo_reagendar_horas: v.plazoReagendarHoras,
+      anticipo_politica: v.politica,
+    })
+    .eq('id', tenantId);
+  if (error) throw new Error(faltaMigracion(error) ? MIGRACION_ANTICIPOS : 'No se pudo guardar. Inténtalo otra vez.');
+
+  // Un update por servicio; el filtro por tenant hace que un id ajeno no toque nada.
+  const resultados = await Promise.all(
+    v.porServicio.map((s) => db.from('service_types').update({ deposit_mxn: s.depositMxn }).eq('id', s.id).eq('tenant_id', tenantId))
+  );
+  const fallo = resultados.find((x) => x.error)?.error;
+  if (fallo) throw new Error(faltaMigracion(fallo) ? MIGRACION_ANTICIPOS : 'Se guardó lo general, pero no el anticipo de algún servicio. Inténtalo otra vez.');
+
+  revalidatePath(`/t/${slug}/dashboard/whatsapp`);
 }

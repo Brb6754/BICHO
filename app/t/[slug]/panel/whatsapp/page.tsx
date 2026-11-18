@@ -6,6 +6,8 @@ import { Conversaciones, type ConversacionVista } from '@/app/t/[slug]/dashboard
 import { CotizacionesWhatsapp, type CotizacionWA } from '@/app/t/[slug]/dashboard/whatsapp/CotizacionesWhatsapp';
 import { Intro, Pestanas, vistaDe } from '@/app/t/[slug]/dashboard/whatsapp/Secciones';
 import { SectionHeading } from '@/components/tenant-dash/PageHeader';
+import { AnticiposVista } from '@/components/tenant-dash/AnticiposVista';
+import { CONFIG_APAGADA } from '@/lib/anticipos/config';
 
 export const dynamic = 'force-dynamic';
 
@@ -92,6 +94,16 @@ export default async function WhatsappDemoPage({
           <SectionHeading title="Conversaciones" />
           <Conversaciones conversaciones={ejemplo} timezone={tenant.timezone} />
           <DemoNote>Conversaciones de ejemplo: los teléfonos y mensajes son inventados y los botones no envían nada.</DemoNote>
+          {/* Anticipos de ejemplo: el primer servicio sin anticipo (0) y el más caro pide más que el general. Sin `guardar`: todo en memoria. */}
+          <AnticiposVista
+            slug={slug}
+            config={{ ...CONFIG_APAGADA, activado: true, montoGeneralMxn: 100, politica: 'El anticipo se descuenta del total. Si cancelas con menos de 24 horas, no se devuelve.' }}
+            servicios={services.map((s, i) => ({ id: s.id, name: s.name, deposit_mxn: i === 0 ? 0 : s.price_cents >= 60000 ? 200 : null }))}
+            mp={{ habilitado: true, conexion: { mpUserId: '123456789', liveMode: true, connectedAt: hace(60 * 24 * 12) } }}
+            timezone={tenant.timezone}
+            puedeCambiar
+          />
+          <DemoNote>Anticipos de ejemplo: puedes moverle a todo, pero no se guarda ni se conecta nada.</DemoNote>
         </section>
       ) : (
         <section className="mt-10">

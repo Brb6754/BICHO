@@ -11,6 +11,10 @@
     {
       "path": "/api/cron/boost",
       "schedule": "0 18 * * *"
+    },
+    {
+      "path": "/api/cron/citas-whatsapp",
+      "schedule": "0 14 * * *"
     }
   ]
 }

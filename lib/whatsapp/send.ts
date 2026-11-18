@@ -1,3 +1,4 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { appointmentWhen } from '@/lib/dates/tenantTime';
 import { toE164Mx } from './phone';
@@ -25,7 +26,7 @@ export type WhatsAppKind = 'confirmation' | 'reminder' | 'rescheduled' | 'cancel
 // arrastrar el cliente service_role al bundle.
 export { toE164Mx };
 
-async function log(entry: {
+export async function log(entry: {
   tenantId: string;
   bookingId?: string | null;
   kind: WhatsAppKind;
@@ -33,9 +34,9 @@ async function log(entry: {
   status: 'sent' | 'failed' | 'skipped';
   providerId?: string | null;
   error?: string | null;
-}) {
+}, db?: SupabaseClient) {
   try {
-    const admin = createAdminClient();
+    const admin = db ?? createAdminClient();
     await admin.from('whatsapp_messages').insert({
       tenant_id: entry.tenantId,
       booking_id: entry.bookingId ?? null,

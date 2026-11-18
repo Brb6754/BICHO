@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { ConfirmForm } from '@/components/ui/ConfirmForm';
 import { toast } from '@/components/tenant-dash/ui/Toast';
 import type { AgendaBooking } from '@/components/tenant-dash/AgendaList';
+import { AnticipoBadge } from '@/components/tenant-dash/AnticipoBadge';
 import { appointmentWhen, formatTime, minutesBetween } from '@/lib/dates/tenantTime';
 import { ESTADOS } from '@/lib/agenda/calendario';
 import { primerNombre, waLink } from '@/lib/regresan/mensajes';
@@ -95,6 +96,7 @@ export function HojaCita({
             <dt className="text-[13px] font-medium text-muted">Cómo va</dt>
             <dd>
               <EtiquetaEstado status={status} />
+              <span className="ml-2"><AnticipoBadge cita={cita} timezone={timezone} /></span>
               {demo?.cobrada && (
                 <span className="ml-2 rounded-full bg-[#DCFCE7] px-2.5 py-0.5 text-[15px] font-semibold text-[#14532D]">
                   Cobrada (ejemplo)

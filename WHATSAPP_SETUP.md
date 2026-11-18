@@ -272,3 +272,197 @@ Nombre sugerido: `boost_hora_floja`
 Costo estimado (lo que enseña el panel, marcado como estimación): MX$0.20
 por aviso de utilidad y MX$0.60 por promoción de marketing (≈3× utilidad,
 sección 3). Verificar contra el cobro real de Meta.
+
+## 8. Bot de citas con anticipo
+
+Va sobre la recepcionista (sección 5): mismo switch, mismo plan Pro, mismo
+webhook. Núcleo en `lib/anticipos/` (README ahí); necesita
+`db/061_anticipos.sql` corrida. Sin ella todo funciona como antes: la cita
+se confirma directo y el cron responde `ok:false` con el motivo.
+
+### Qué hace
+- **Agendar con botones, sin pasar por Claude.** Entra cuando el cliente
+  escribe algo corto como "quiero una cita", "agendar" o "reservar"
+  (`quiereAgendar` en `lib/whatsapp/agente/flujoCita.ts`; si menciona
+  cancelar, cambiar, precio… va a la IA), o cuando la IA usa la
+  herramienta `mostrar_menu_citas`. Pasos con listas: servicio →
+  especialista (se salta si hay uno solo; ofrece "Cualquiera disponible")
+  → día (próximos 14 con huecos) → hora (disponibilidad real,
+  `get_available_slots`). Cada opción lleva en su id lo ya elegido
+  (`c|s=…|r=…|d=…`): el id se valida con una gramática cerrada y todo se
+  vuelve a checar contra la base al apartar (servicio y recurso de ESTE
+  negocio, hueco libre). El nombre sale del perfil de WhatsApp; si no
+  viene, se le pregunta.
+- **Anticipo.** Si el servicio lo pide, la cita queda apartada
+  (`apartarCita`): se le dice el monto, que el horario queda apartado N
+  minutos y el link de pago si `obtenerLinkAnticipo` da uno; si no, que el
+  negocio le compartirá cómo pagar. Sin anticipo, confirmada como siempre.
+  La herramienta `crear_cita` de la IA hace lo mismo.
+- **Apartados vencidos.** Se liberan en cada mensaje entrante del negocio
+  (barrido perezoso) y en el cron; al cliente le llega un botón "Buscar
+  otro horario" (interactivo si está dentro de las 24 h; si Meta lo
+  rechaza, la plantilla de abajo).
+- **Recordatorios** a 24 h y a 2 h con botones Confirmo / Reagendar, y un
+  **seguimiento** después de la cita con "Agendar otra" (uno por clienta;
+  no si ya tiene otra cita o ya recibió uno en 30 días). No se recuerdan
+  apartados sin pagar. Si "Clientas que regresan" ya mandó su
+  recordatorio (`reminder_sent_at`), no sale el de 24 h, y al revés.
+- **Confirmo** marca `customer_confirmed_at`. **Reagendar** ofrece días y
+  horas del mismo recurso y mueve LA MISMA cita (conserva el anticipo).
+  Fuera del plazo del negocio (`anticipo_reagendar_horas`) le explica la
+  política con el límite en hora local y pasa la conversación a humano.
+
+### Lo que hay que hacer
+1. Correr `db/061_anticipos.sql` en el SQL Editor (idempotente).
+2. Aprobar en Meta las tres plantillas de abajo y poner sus nombres en
+   las variables de entorno. Sin el nombre no se manda nada: queda
+   `skipped` con el motivo en `whatsapp_messages`.
+3. El cron `/api/cron/citas-whatsapp` está en `vercel.json` una vez al
+   día (Hobby solo deja diarios). Con eso salen el de 24 h, el
+   seguimiento y la liberación diaria, pero **el de 2 h casi nunca cae a
+   tiempo**. Para eso hay que llamarlo cada 15 minutos desde un cron
+   externo (por ejemplo cron-job.org), `GET` a
+   `https://<dominio>/api/cron/citas-whatsapp` con el header
+   `Authorization: Bearer <CRON_SECRET>`, o pasar a Vercel Pro y cambiar el
+   schedule a `"*/15 * * * *"`. Es idempotente: cada envío se marca antes
+   de mandarse, así que llamarlo de más no duplica mensajes.
+
+### Variables de entorno nuevas
+| Variable | Para qué |
+|---|---|
+| `WHATSAPP_TEMPLATE_RECORDATORIO` | Recordatorio 24 h y 2 h |
+| `WHATSAPP_TEMPLATE_SEGUIMIENTO` | Después de la cita |
+| `WHATSAPP_TEMPLATE_APARTADO_VENCIDO` | Aviso de apartado liberado fuera de la ventana de 24 h |
+
+Las tres usan `WHATSAPP_TEMPLATE_LANG` (default `es_MX`). Los botones son
+de **respuesta rápida**: su texto vive en Meta y el código pone el
+payload por índice, así que el ORDEN de los botones importa.
+
+### Plantilla recordatorio (UTILITY, es_MX) — *por aprobar*
+Nombre sugerido: `recordatorio_cita`
+
+| # | Contenido |
+|---|---|
+| `{{1}}` | Primer nombre del cliente |
+| `{{2}}` | Negocio |
+| `{{3}}` | Servicio |
+| `{{4}}` | Cuándo ("Jueves 19 de noviembre, 12:00") |
+
+> Hola {{1}}, te recordamos tu cita en {{2}}: {{3}} el {{4}}. ¿Nos confirmas?
+
+Botones (en este orden): 1. `Confirmo` · 2. `Reagendar`
+
+### Plantilla seguimiento (UTILITY, es_MX) — *por aprobar*
+Nombre sugerido: `seguimiento_cita`
+
+| # | Contenido |
+|---|---|
+| `{{1}}` | Primer nombre |
+| `{{2}}` | Negocio |
+| `{{3}}` | Servicio |
+
+> Hola {{1}}, gracias por venir a {{2}} por tu {{3}}. Cuando quieras tu
+> próxima cita, la agendas aquí mismo.
+
+Botón: 1. `Agendar otra`
+
+Ojo: Meta puede clasificar este texto como MARKETING si suena a
+promoción; si lo reclasifica, el cobro es el de marketing (sección 3).
+
+### Plantilla apartado vencido (UTILITY, es_MX) — *por aprobar*
+Nombre sugerido: `apartado_vencido`
+
+| # | Contenido |
+|---|---|
+| `{{1}}` | Primer nombre |
+| `{{2}}` | Negocio |
+| `{{3}}` | Servicio |
+| `{{4}}` | Cuándo era |
+
+> Hola {{1}}, el horario que te apartamos en {{2}} ({{3}}, {{4}}) se liberó
+> porque no se recibió el anticipo a tiempo. ¿Quieres buscar otro?
+
+Botón: 1. `Buscar otro horario`
+
+## 9. Mercado Pago Connect (anticipos)
+
+El bot de citas puede pedir un anticipo para apartar el horario (db/061).
+Con Connect, el link de pago es una preferencia de Checkout Pro creada con
+la cuenta de Mercado Pago **del negocio**: el dinero cae directo en su
+cuenta, bicho no lo retiene, no lo reparte y no cobra comisión
+(sin `marketplace_fee`). Sin esto, el bot dice que el negocio le
+compartirá cómo pagar y el anticipo se marca a mano.
+
+**Estado:** listo para sandbox y apagado. Solo se enciende con
+`MP_CONNECT_ENABLED=1`; producción además necesita `MP_CONNECT_LIVE=1`
+(y el RFC + la app aprobada en Mercado Pago).
+
+### Alta de la app (una sola vez)
+
+1. mercadopago.com.mx/developers → **Tus integraciones → Crear aplicación**.
+   Es una app aparte de la del plan mensual (sección de suscripciones):
+   otras credenciales y otro secreto de webhook.
+2. Tipo de integración: pagos online con **Checkout Pro**, y activar
+   **OAuth / cobrar en nombre de terceros** (modelo marketplace). No se
+   configura comisión.
+3. **URL de redireccionamiento**: `https://<dominio raíz>/api/mercadopago/oauth/callback`.
+   Tiene que ser idéntica a `MP_CONNECT_REDIRECT_URI` (MP compara exacto).
+4. **Webhooks**: URL `https://<dominio raíz>/api/webhooks/mercadopago-anticipos`,
+   evento **Pagos** (`payment`). Copia la **clave secreta** a
+   `MP_CONNECT_WEBHOOK_SECRET`. Igual cada preferencia manda su propia
+   `notification_url` a esa misma ruta.
+5. Credenciales → `MP_CONNECT_CLIENT_ID` y `MP_CONNECT_CLIENT_SECRET`.
+6. Llave de cifrado de los tokens (guárdala: si se pierde, cada negocio
+   tiene que volver a conectar):
+   `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`
+   → `MP_TOKEN_ENC_KEY`.
+7. Todo va en Vercel → Settings → Environment Variables (server-only).
+
+### Cómo funciona
+
+- **Conectar**: desde el panel, `GET /api/mercadopago/oauth/start?slug=<slug>`
+  (exige sesión y membresía del negocio). Crea un `state` de un solo uso en
+  `mp_oauth_states` y manda al dueño a `auth.mercadopago.com/authorization`.
+  El callback valida el `state` (existe, < 10 min, se borra al usarlo),
+  cambia el `code` por tokens y los guarda **cifrados** (AES-256-GCM) en
+  `tenant_mp_connections`. Regresa a `/dashboard/whatsapp?mp=ok|error`.
+- **Desconectar**: `POST /api/mercadopago/oauth/disconnect` (form con `slug`,
+  mismo origen). Borra la conexión; el permiso en MP lo quita el dueño
+  desde su cuenta (no hay endpoint de revocación documentado).
+- **Tokens**: el access token dura 180 días; se refresca 7 días antes de
+  vencer. El refresh token es de un solo uso y se reemplaza en cada refresh.
+- **Webhook**: verifica `x-signature` (HMAC-SHA256 sobre
+  `id:<data.id>;request-id:<x-request-id>;ts:<ts>;`, ventana de 5 min) antes
+  de parsear, **vuelve a consultar el pago** con el token del negocio, exige
+  que `external_reference` (`<tenant>:<cita>`) sea de ese negocio, `approved`,
+  MXN y monto ≥ anticipo; deduplica por id de evento en `mp_anticipo_events`
+  y confirma con `confirmarAnticipo`. Manda el comprobante por WhatsApp
+  (texto libre: entra en la ventana de 24 h porque el cliente acaba de
+  chatear). Si el apartado ya se había liberado, le avisa con honestidad
+  que el negocio lo contactará para reagendar o devolver el dinero.
+
+### Sandbox
+
+1. En Tus integraciones → **Cuentas de prueba**, crea dos usuarios de
+   prueba: un **vendedor** (hace de negocio) y un **comprador**.
+2. Inicia sesión con el vendedor de prueba y conecta desde el panel del
+   negocio de prueba (`MP_CONNECT_LIVE` vacío → `test_token=true`).
+3. Agenda por WhatsApp un servicio con anticipo; el link es
+   `sandbox_init_point`. Paga con el comprador de prueba y las tarjetas de
+   prueba de MP (titular `APRO` = aprobado, `OTHE` = rechazado).
+4. Revisa en Vercel los logs `[mp-anticipos]` (solo id/tipo/fecha, nunca el
+   payload) y que la cita quede `deposit_status = 'paid'`.
+
+### Nivel de integración y riesgos
+
+- Revisado con la documentación oficial de OAuth (URL de autorización,
+  `POST /oauth/token` con `authorization_code`/`refresh_token`, vigencia de
+  180 días). El catálogo de PagoKit no estaba disponible al construirlo, así
+  que se trata como nivel **"advise"**: el esquema de firma de MP firma
+  metadatos (id, request-id, ts), **no el cuerpo**, así que la defensa
+  principal es **re-consultar el pago + validar la referencia + dedup**; la
+  firma es una capa extra.
+- PKCE no se usa (MP lo soporta si se activa en la app; quedó como TODO en
+  `lib/payments/mpConnect.ts`).
+- El vendedor se resuelve por el `user_id` del evento; una notificación sin
+  `user_id` se ignora.

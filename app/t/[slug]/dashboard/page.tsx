@@ -4,6 +4,7 @@ import { ShareLink } from '@/components/tenant-dash/ui/ShareLink';
 import { PrimerosPasos } from '@/components/tenant-dash/ui/PrimerosPasos';
 import { createClient } from '@/lib/supabase/server';
 import { type AgendaBooking } from '@/components/tenant-dash/AgendaList';
+import { conAnticipo } from '@/lib/anticiposPanel';
 import { dayKey } from '@/lib/dates/tenantTime';
 import { tenantBookingPageUrl } from '@/lib/urls';
 import { esServicio } from '@/lib/meetings/kinds';
@@ -60,6 +61,7 @@ export default async function DashboardOverviewPage({ params }: { params: Promis
     { count: resourceCount },
     { count: scheduleCount },
     { count: bookingCount },
+    { data: anticipos },
   ] = await Promise.all([
       supabase
         .from('bookings')
@@ -86,9 +88,17 @@ export default async function DashboardOverviewPage({ params }: { params: Promis
       supabase.from('resource_schedules').select('id', { count: 'exact', head: true }).eq('tenant_id', tenant!.id),
       // ¿Ya llegó la primera cita? Último paso de "Tu agenda en 5 minutos".
       supabase.from('bookings').select('id', { count: 'exact', head: true }).eq('tenant_id', tenant!.id),
+      // Anticipo de cada cita (db/061), aparte: sin la migración falla sola y el inicio sigue igual.
+      supabase
+        .from('bookings')
+        .select('id, deposit_status, hold_expires_at')
+        .eq('tenant_id', tenant!.id)
+        .not('deposit_status', 'is', null)
+        .gte('starts_at', from)
+        .lte('starts_at', to),
     ]);
 
-  const bookings = (raw ?? []) as unknown as AgendaBooking[];
+  const bookings = conAnticipo((raw ?? []) as unknown as AgendaBooking[], anticipos);
   const tz = tenant?.timezone ?? null;
   const todayKey = dayKey(now, tz);
 

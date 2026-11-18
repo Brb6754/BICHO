@@ -1,5 +1,6 @@
 import { CalendarDays, Check, UserX, X } from 'lucide-react';
 import { dayKey, dayLabel, formatTime, groupByDay, minutesBetween } from '@/lib/dates/tenantTime';
+import { AnticipoBadge } from './AnticipoBadge';
 
 export type AgendaBooking = {
   id: string;
@@ -14,6 +15,9 @@ export type AgendaBooking = {
   resources: { name: string } | null;
   service_types: { name: string } | null;
   customers: { name: string; phone?: string | null } | null;
+  // db/061: llegan de una consulta aparte (conAnticipo); sin la migración no vienen.
+  deposit_status?: string | null;
+  hold_expires_at?: string | null;
 };
 
 // The agenda, grouped by the tenant's LOCAL day.
@@ -140,6 +144,11 @@ export function AgendaList({
                           {b.customers?.name ?? 'Clienta'}
                           {b.resources?.name && <span className="text-muted"> &middot; {b.resources.name}</span>}
                         </p>
+                        {b.deposit_status && (
+                          <div className="mt-1">
+                            <AnticipoBadge cita={b} timezone={timezone} chica />
+                          </div>
+                        )}
                       </div>
 
                       <div className="flex items-center justify-end gap-2">

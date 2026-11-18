@@ -9,6 +9,7 @@ import { HelpTip } from '@/components/tenant-dash/ui/HelpTip';
 import { PageHeader } from '@/components/tenant-dash/PageHeader';
 import { tenantBookingPageUrl } from '@/lib/urls';
 import type { AgendaBooking } from '@/components/tenant-dash/AgendaList';
+import { conAnticipo } from '@/lib/anticiposPanel';
 import { addDaysKey, dayKey, instantFromLocal } from '@/lib/dates/tenantTime';
 import { fechaDeParam, rangoDeCarga } from '@/lib/agenda/calendario';
 import { esServicio } from '@/lib/meetings/kinds';
@@ -85,7 +86,16 @@ export default async function CalendarPage({
     duration_minutes: number;
   }[];
 
-  const bookings = (raw ?? []) as unknown as AgendaBooking[];
+  // Anticipo de cada cita (db/061), en consulta aparte: sin la migración falla sola y la agenda sigue igual.
+  const { data: anticipos } = await supabase
+    .from('bookings')
+    .select('id, deposit_status, hold_expires_at')
+    .eq('tenant_id', tenant!.id)
+    .not('deposit_status', 'is', null)
+    .gte('starts_at', instantFromLocal(rango.desde, '00:00', tz))
+    .lt('starts_at', instantFromLocal(addDaysKey(rango.hasta, 1), '00:00', tz));
+
+  const bookings = conAnticipo((raw ?? []) as unknown as AgendaBooking[], anticipos);
 
   // Una columna por persona: las activas, más quien ya no está activa pero
   // tiene citas en este mes (si no, esas citas no tendrían dónde dibujarse).

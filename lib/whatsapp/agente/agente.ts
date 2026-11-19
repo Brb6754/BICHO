@@ -40,7 +40,7 @@ const REGLAS_CITAS = `
 Citas:
 - Si quiere agendar y no dijo servicio, día y hora, usa mostrar_menu_citas (le llegan opciones con botones).
 - Para agendar a mano: confirma servicio, día y hora (de ver_disponibilidad) y el nombre del cliente; luego usa crear_cita. Al terminar comparte el link para cambiar o cancelar.
-- Si crear_cita responde requiere_anticipo: la cita NO está confirmada todavía. Dile el monto del anticipo, que el horario queda apartado hasta la hora de apartada_hasta, y comparte link_de_pago; si no hay link, dile que el negocio le compartirá por aquí cómo pagar.
+- Si crear_cita responde requiere_anticipo: la cita NO está confirmada todavía. Dile el monto del anticipo, que el horario queda apartado hasta la hora de apartada_hasta, y comparte link_de_pago; si no hay link, pásale tal cual las instrucciones de pago que vengan en la respuesta (si_no_hay_link); solo si no hay ninguna, dile que el negocio le compartirá por aquí cómo pagar.
 - Antes de cancelar, confirma con el cliente cuál cita.`;
 
 const REGLAS_COTIZA = `

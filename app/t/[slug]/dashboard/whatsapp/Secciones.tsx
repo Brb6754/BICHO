@@ -146,25 +146,18 @@ export function Requisitos({ items }: { items: { ok: boolean; texto: string }[] 
   );
 }
 
-/**
- * "En esta página": saltos a cada bloque de la vista larga (Recepcionista
- * tiene pláticas y, debajo, Anticipos). Anclas nativas: sin JS y el botón
- * Atrás regresa arriba.
- */
-export function Anclas({ items }: { items: { id: string; texto: string; detalle?: string }[] }) {
+/** El anticipo ya no se configura aquí: un renglón que lleva a su página. */
+export function AnticiposAqui({ href }: { href: string }) {
   return (
-    <nav aria-label="En esta página" className="mt-5 flex flex-wrap gap-2">
-      {items.map((i) => (
-        <a
-          key={i.id}
-          href={`#${i.id}`}
-          className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-surface px-4 text-[15px] font-semibold text-ink ring-1 ring-border transition hover:bg-ink/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-        >
-          {i.texto}
-          {i.detalle && <span className="font-normal text-muted">· {i.detalle}</span>}
-        </a>
-      ))}
-    </nav>
+    <p className="mt-10 text-[15px] leading-relaxed text-muted">
+      ¿Quieres pedir anticipo para apartar las citas?{' '}
+      <Link
+        href={href}
+        className="inline-flex min-h-11 items-center font-semibold text-ink underline decoration-ink/30 underline-offset-4 hover:decoration-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+      >
+        El anticipo se configura en Anticipos
+      </Link>
+    </p>
   );
 }
 

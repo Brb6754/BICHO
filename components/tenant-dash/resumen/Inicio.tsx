@@ -2,6 +2,7 @@ import Link from 'next/link';
 import type { LucideIcon } from 'lucide-react';
 import {
   ArrowRight,
+  Banknote,
   CalendarDays,
   CalendarCheck2,
   CalendarOff,
@@ -66,6 +67,7 @@ const ICONO: Record<ClaveColor, LucideIcon> = {
   posts: Megaphone,
   whatsapp: MessageCircle,
   boost: Zap,
+  anticipos: Banknote,
 };
 
 // La cuadrícula va por USO: lo que se abre todos los días arriba, lo de
@@ -76,6 +78,7 @@ const POR_USO: ClaveColor[] = [
   'regresan',
   'whatsapp',
   'servicios',
+  'anticipos',
   'lealtad',
   'comisiones',
   'inventario',

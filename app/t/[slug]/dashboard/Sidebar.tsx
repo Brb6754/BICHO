@@ -24,6 +24,7 @@ import {
   Megaphone,
   Landmark,
   HandCoins,
+  Banknote,
   Package,
   House,
   Ellipsis,
@@ -130,6 +131,8 @@ const NAV_ITEMS: {
   // (Comisiones), se repone (Inventario); y para quien vende por
   // proyecto: se cotiza, se factura, y la guía para poder facturar.
   { href: '/dashboard/caja', label: 'Caja', icon: Wallet, requiresCaja: true, group: 'dinero' },
+  // Anticipos: cualquier negocio con citas (la página de reservas y WhatsApp apartan con anticipo).
+  { href: '/dashboard/anticipos', label: 'Anticipos', icon: Banknote, requiresReservas: true, group: 'dinero' },
   { href: '/dashboard/comisiones', label: 'Comisiones', icon: HandCoins, requiresComisiones: true, group: 'dinero' },
   { href: '/dashboard/inventario', label: 'Inventario', icon: Package, requiresInventario: true, group: 'dinero' },
   { href: '/dashboard/cotizaciones', label: 'Cotizaciones', icon: FileText, requiresQuotes: true, group: 'dinero' },

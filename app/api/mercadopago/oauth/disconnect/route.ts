@@ -31,5 +31,5 @@ export async function POST(request: Request) {
 
   const { error } = await createAdminClient().from('tenant_mp_connections').delete().eq('tenant_id', tenantId);
   if (error) console.error(`[mp-connect] desconectar falló code=${error.code}`);
-  return Response.redirect(`${tenantShareUrl(slug)}/dashboard/whatsapp?mp=${error ? 'error' : 'desconectado'}`, 303);
+  return Response.redirect(`${tenantShareUrl(slug)}/dashboard/anticipos?mp=${error ? 'error' : 'desconectado'}`, 303);
 }

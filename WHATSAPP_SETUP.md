@@ -425,7 +425,7 @@ compartirá cómo pagar y el anticipo se marca a mano.
   `mp_oauth_states` y manda al dueño a `auth.mercadopago.com/authorization`.
   El callback valida el `state` (existe, < 10 min, se borra al usarlo),
   cambia el `code` por tokens y los guarda **cifrados** (AES-256-GCM) en
-  `tenant_mp_connections`. Regresa a `/dashboard/whatsapp?mp=ok|error`.
+  `tenant_mp_connections`. Regresa a `/dashboard/anticipos?mp=ok|error`.
 - **Desconectar**: `POST /api/mercadopago/oauth/disconnect` (form con `slug`,
   mismo origen). Borra la conexión; el permiso en MP lo quita el dueño
   desde su cuenta (no hay endpoint de revocación documentado).

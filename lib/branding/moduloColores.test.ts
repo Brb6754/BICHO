@@ -14,7 +14,7 @@ describe('moduloColores', () => {
 
   it('un tile por módulo prendido, href sin /t/{slug}', () => {
     const t = tilesDe({ ...nada, reservas: true, caja: true }, '/dashboard', null);
-    expect(t.map((x) => x.href)).toEqual(['/dashboard/calendar', '/dashboard/caja', '/dashboard/services']);
+    expect(t.map((x) => x.href)).toEqual(['/dashboard/calendar', '/dashboard/caja', '/dashboard/services', '/dashboard/anticipos']);
     expect(t.every((x) => !x.bloqueado)).toBe(true);
   });
 

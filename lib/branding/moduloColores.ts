@@ -23,6 +23,7 @@ export const COLOR_MODULO = {
   posts: '#00E5FF', // cian
   whatsapp: '#25D366', // verde WhatsApp: el canal se reconoce por su color
   boost: '#A020F0', // violeta neón: de la familia de campaña, ningún otro módulo lo usa
+  anticipos: '#00B85C', // verde dinero, el mismo de Caja: es cobrar
 } as const;
 export const ACENTO_COPILOTO = '#00E5FF';
 
@@ -63,6 +64,7 @@ const TILES: { clave: ClaveColor; modulo: Modulo; label: string; ruta: string }[
   { clave: 'resico', modulo: 'resico', label: 'Impuestos (RESICO)', ruta: '/resico' },
   { clave: 'posts', modulo: 'posts', label: 'Posts con IA', ruta: '/posts' },
   { clave: 'servicios', modulo: 'reservas', label: 'Servicios', ruta: '/services' },
+  { clave: 'anticipos', modulo: 'reservas', label: 'Anticipos', ruta: '/anticipos' },
   { clave: 'copiloto', modulo: 'copiloto', label: 'Copiloto', ruta: '/copiloto' },
   { clave: 'whatsapp', modulo: 'whatsapp', label: 'WhatsApp', ruta: '/whatsapp' },
   { clave: 'boost', modulo: 'boost', label: 'Llena tus huecos', ruta: '/boost' },

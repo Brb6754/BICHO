@@ -13,12 +13,8 @@ import { cotizacionesConIva } from '@/lib/quotes/preciosIva';
 import { Bloqueado } from '../plan/Bloqueado';
 import { Conversaciones, type ConversacionVista } from './Conversaciones';
 import { CotizacionesWhatsapp, type CotizacionWA } from './CotizacionesWhatsapp';
-import { Anclas, Intro, ParaQue, Pestanas, Proximamente, Requisitos, vistaDe } from './Secciones';
-import { aprobarFactura, cambiarAgente, cambiarConfirmarFacturas, cambiarCotiza, cambiarEstado, guardarAnticipos, responder } from './actions';
-import { configDesdeFila, mpConnectHabilitado } from '@/lib/anticipos/config';
-import { esServicio } from '@/lib/meetings/kinds';
-import { AnticiposVista, type ConexionMp } from '@/components/tenant-dash/AnticiposVista';
-import { Hourglass } from 'lucide-react';
+import { AnticiposAqui, Intro, ParaQue, Pestanas, Proximamente, Requisitos, vistaDe } from './Secciones';
+import { aprobarFactura, cambiarAgente, cambiarConfirmarFacturas, cambiarCotiza, cambiarEstado, responder } from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -94,37 +90,10 @@ export default async function WhatsappPage({
       .limit(30);
     const conversaciones = (data ?? []) as ConversacionVista[];
 
-    // Anticipos (db/061): `tenant` ya viene con `*`; sin la migración no trae las columnas.
-    const anticiposMigrados = tenant != null && 'anticipo_enabled' in tenant;
-    const admin = createAdminClient();
-    let servicios: { id: string; name: string; deposit_mxn?: number | null }[] = [];
-    let conexionMp: ConexionMp = null;
-    if (anticiposMigrados) {
-      const [{ data: sv }, mp] = await Promise.all([
-        admin.from('service_types').select('*').eq('tenant_id', tenantId).eq('active', true).order('name'),
-        // Solo columnas no secretas; con service_role porque la tabla no tiene policies (ya probamos membresía arriba).
-        mpConnectHabilitado()
-          ? admin.from('tenant_mp_connections').select('mp_user_id, live_mode, connected_at').eq('tenant_id', tenantId).maybeSingle()
-          : Promise.resolve({ data: null }),
-      ]);
-      servicios = (sv ?? []).filter(esServicio) as typeof servicios;
-      const c = mp.data as { mp_user_id: string; live_mode: boolean; connected_at: string } | null;
-      conexionMp = c ? { mpUserId: c.mp_user_id, liveMode: c.live_mode, connectedAt: c.connected_at } : null;
-    }
-
     const conConversaciones = conversaciones.length > 0 || (migrada && (numeroListo || prendido));
-    const config = configDesdeFila(tenant);
     return (
       <>
         {encabezado}
-        {conConversaciones && (
-          <Anclas
-            items={[
-              { id: 'conversaciones', texto: 'Conversaciones', detalle: conversaciones.length ? String(conversaciones.length) : undefined },
-              { id: 'anticipos', texto: 'Anticipos', detalle: anticiposMigrados ? (config.activado ? 'pides anticipo' : 'sin anticipo') : undefined },
-            ]}
-          />
-        )}
         {!migrada ? (
           // Falta db/056_whatsapp_agente.sql.
           <Proximamente vista="recepcionista" />
@@ -175,30 +144,7 @@ export default async function WhatsappPage({
           </section>
         )}
 
-        {anticiposMigrados ? (
-          <AnticiposVista
-            slug={slug}
-            config={config}
-            servicios={servicios}
-            mp={{ habilitado: mpConnectHabilitado(), conexion: conexionMp }}
-            timezone={timezone}
-            puedeCambiar={puedeCambiar}
-            guardar={guardarAnticipos.bind(null, slug)}
-            sinInstrucciones={!('anticipo_instrucciones' in tenant)}
-          />
-        ) : (
-          // Falta db/061_anticipos.sql.
-          <section id="anticipos" className="mt-10 max-w-3xl scroll-mt-24">
-            <SectionHeading title="Anticipos" />
-            <Card>
-              <p className="flex items-center gap-2 text-[15px] font-semibold text-ink">
-                <Hourglass className="h-4 w-4 shrink-0" aria-hidden="true" />
-                Próximamente: pedir anticipo para apartar la cita
-              </p>
-              <p className="mt-1 text-sm leading-relaxed text-muted">Todavía no está activo en tu cuenta. Te lo activamos nosotros.</p>
-            </Card>
-          </section>
-        )}
+        <AnticiposAqui href="/dashboard/anticipos" />
       </>
     );
   }

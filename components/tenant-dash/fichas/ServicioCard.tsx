@@ -1,6 +1,6 @@
 'use client';
 
-import { Clock3, Pencil, Tag, Trash2, User } from 'lucide-react';
+import { Banknote, Clock3, Pencil, Tag, Trash2, User } from 'lucide-react';
 import { ActionForm } from '@/components/tenant-dash/ui/ActionForm';
 import { ConfirmForm } from '@/components/ui/ConfirmForm';
 import { ConHoja, FormularioHoja } from './Hoja';
@@ -97,9 +97,12 @@ export function CamposServicio({ s }: { s?: ServicioVista }) {
 export function ServicioCard({
   s,
   acciones,
+  anticipoMxn = 0,
 }: {
   s: ServicioVista;
   acciones?: { editar: Accion; alternar: Accion; borrar: Accion };
+  /** Solo lectura: lo que pide de anticipo (se cambia en /dashboard/anticipos). */
+  anticipoMxn?: number;
 }) {
   const activo = s.active !== false;
   const precio =
@@ -120,6 +123,7 @@ export function ServicioCard({
               <span className="mt-2 flex flex-wrap gap-1.5">
                 <Chip icon={Clock3}>{duracion(s.duration_minutes)}</Chip>
                 {s.requires_staff === false && <Chip icon={User}>Sin persona</Chip>}
+                {anticipoMxn > 0 && <Chip icon={Banknote}>Anticipo {pesos(anticipoMxn * 100)}</Chip>}
               </span>
             </span>
             <span className="flex shrink-0 flex-col items-end gap-2">

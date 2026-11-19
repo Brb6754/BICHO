@@ -21,7 +21,7 @@ export async function GET(request: Request) {
 
   const { data: tenant } = await db.from('tenants').select('slug').eq('id', tenantId).maybeSingle();
   if (!tenant?.slug) return new Response('Negocio no encontrado.', { status: 404 });
-  const volver = (r: 'ok' | 'error') => Response.redirect(`${tenantShareUrl(tenant.slug)}/dashboard/whatsapp?mp=${r}`, 302);
+  const volver = (r: 'ok' | 'error') => Response.redirect(`${tenantShareUrl(tenant.slug)}/dashboard/anticipos?mp=${r}`, 302);
 
   const code = q.get('code');
   if (!code) return volver('error'); // el dueño rechazó o MP devolvió error

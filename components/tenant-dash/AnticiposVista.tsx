@@ -28,6 +28,17 @@ const area =
 
 const pesos = (n: number) => `$${n.toLocaleString('es-MX')}`;
 
+/** El «¿cómo funciona?» junto al título de la página (panel real y demo). */
+export function AyudaAnticipos() {
+  return (
+    <HelpTip title="¿Cómo funciona el anticipo?">
+      Cuando alguien agenda en tu página o por WhatsApp, se le aparta el horario y se le pide el anticipo. Si no paga a
+      tiempo, el horario se libera solo para alguien más. Si paga, la cita queda confirmada y en tu agenda dice «Anticipo
+      pagado».
+    </HelpTip>
+  );
+}
+
 export function AnticiposVista({
   slug,
   config,
@@ -65,20 +76,7 @@ export function AnticiposVista({
   };
 
   return (
-    <section id="anticipos" className="mt-10 max-w-3xl scroll-mt-24">
-      <h2 className="mb-3 flex min-h-[2.75rem] items-center gap-1 text-[17px] font-semibold tracking-tight text-ink">
-        Anticipos
-        <HelpTip title="¿Cómo funciona el anticipo?">
-          Cuando alguien agenda por WhatsApp, la recepcionista le aparta el horario y le pide el anticipo. Si no paga a
-          tiempo, el horario se libera solo para alguien más. Si paga, la cita queda confirmada y en tu agenda dice
-          «Anticipo pagado».
-        </HelpTip>
-      </h2>
-      {/* Mismo estilo que ParaQue de whatsapp/Secciones.tsx. */}
-      <p className="-mt-2 mb-4 text-[15px] leading-relaxed text-muted">
-        Pide dinero para apartar las citas de WhatsApp, para que no te dejen plantada.
-      </p>
-
+    <section className="mt-8 max-w-3xl">
       <Card>
         <form
           onSubmit={(e) => {
@@ -116,7 +114,7 @@ export function AnticiposVista({
               </p>
               <p className="mt-1 text-sm leading-relaxed text-muted">
                 {activado
-                  ? 'Las citas por WhatsApp se apartan y se confirman cuando llega el pago.'
+                  ? 'Las citas se apartan y se confirman cuando llega el pago.'
                   : 'Las citas se confirman directo, sin pedir dinero antes.'}
               </p>
             </div>
@@ -277,8 +275,7 @@ function CobroEnLinea({
           Cobro en línea: próximamente
         </p>
         <p className="mt-1 text-sm leading-relaxed text-muted">
-          Por ahora, cuando alguien aparta, la recepcionista le manda lo que escribiste en «Cómo te pagan». Cuando te
-          pague, márcalo en la cita con «Ya pagó» (en tu agenda o en el inicio) para que no se libere.
+          Por ahora, cuando alguien aparta, le damos lo que escribiste en «Cómo te pagan». Cuando te pague, márcalo en la cita con «Ya pagó» (en tu agenda o en el inicio) para que no se libere.
         </p>
       </Card>
     );
@@ -293,8 +290,8 @@ function CobroEnLinea({
         </p>
         <p className="mt-1 text-sm leading-relaxed text-muted">
           {conexion
-            ? `Cuenta ${conexion.mpUserId}, conectada el ${longDate(conexion.connectedAt, timezone).toLowerCase()}${conexion.liveMode ? '' : ' (en modo de prueba)'}. La recepcionista manda un link de pago con cada apartado.`
-            : 'Conéctalo y la recepcionista manda un link de pago con cada apartado.'}{' '}
+            ? `Cuenta ${conexion.mpUserId}, conectada el ${longDate(conexion.connectedAt, timezone).toLowerCase()}${conexion.liveMode ? '' : ' (en modo de prueba)'}. Cada apartado lleva su link de pago.`
+            : 'Conéctalo y cada apartado lleva su link de pago.'}{' '}
           El dinero llega directo a tu cuenta de Mercado Pago; bicho no lo toca.
         </p>
       </div>

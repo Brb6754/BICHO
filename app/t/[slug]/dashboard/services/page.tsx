@@ -1,5 +1,7 @@
 import { productosDe } from '@/lib/products';
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
+import { configDesdeFila, montoAnticipo } from '@/lib/anticipos/config';
 import { Plus, Sparkles, Tag } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { createService, updateService, toggleServiceActive, deleteService } from './actions';
@@ -27,7 +29,9 @@ export default async function ServicesPage({ params }: { params: Promise<{ slug:
   if (!productos.reservas) redirect('/dashboard');
 
   const supabase = await createClient();
-  const { data: tenant } = await supabase.from('tenants').select('id').eq('slug', slug).single();
+  // `*`: sin db/061 no vienen las columnas de anticipo y todo cae en "sin anticipo".
+  const { data: tenant } = await supabase.from('tenants').select('*').eq('slug', slug).single();
+  const anticipo = configDesdeFila(tenant);
   const { data: services_raw } = await supabase
     .from('service_types')
     .select('*')
@@ -65,12 +69,24 @@ export default async function ServicesPage({ params }: { params: Promise<{ slug:
         <>
           <p className="mt-6 px-1 text-[15px] text-muted">
             <span className="font-semibold text-ink">{activeCount}</span> de {services.length} se ofrecen en tu página
+            {anticipo.activado && (
+              <>
+                {' · '}
+                <Link
+                  href="/dashboard/anticipos"
+                  className="inline-flex min-h-11 items-center font-semibold text-ink underline decoration-ink/30 underline-offset-4 hover:decoration-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                >
+                  Cambiar anticipos
+                </Link>
+              </>
+            )}
           </p>
           <ul className="mt-3 grid gap-3 lg:grid-cols-2">
             {services.map((s) => (
               <ServicioCard
                 key={s.id}
                 s={s}
+                anticipoMxn={montoAnticipo(anticipo, s)}
                 acciones={{
                   editar: updateService.bind(null, s.id, slug),
                   alternar: toggleServiceActive.bind(null, s.id, !s.active, slug),

@@ -65,6 +65,11 @@ export function BrandForm({
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  // Lo último guardado, para decir "Guardado" o "sin guardar" a la vista:
+  // un toast se va en segundos y ella vuelve a la pantalla sin saber.
+  const [guardado, setGuardado] = useState({ primary: initialPrimary, accent: initialAccent });
+  const [recienGuardado, setRecienGuardado] = useState(false);
+  const sinGuardar = Boolean(file) || primary !== guardado.primary || accent !== guardado.accent;
 
   // Vista previa local del archivo elegido; el blob anterior se libera.
   function pickFile(f: File | null) {
@@ -103,6 +108,8 @@ export function BrandForm({
       }
       pickFile(null);
       setSavedLogo(r.logoUrl);
+      setGuardado({ primary, accent });
+      setRecienGuardado(true);
       toast('Marca guardada. Ya se ve en tu página y en tu panel.');
       router.refresh();
     } catch {
@@ -125,7 +132,7 @@ export function BrandForm({
             className="flex min-h-[3.25rem] cursor-pointer items-center gap-3 rounded-2xl border border-dashed border-border bg-surface px-4 py-4 text-sm text-muted transition-colors focus-within:ring-2 focus-within:ring-primary/40 hover:text-ink"
           >
             <ImageUp className="h-5 w-5 shrink-0" aria-hidden="true" />
-            <span className="min-w-0 truncate">{file ? file.name : savedLogo ? 'Cambiar logo (JPG, PNG o WebP, hasta 2 MB)' : 'Subir tu logo (JPG, PNG o WebP, hasta 2 MB)'}</span>
+            <span className="min-w-0 break-words">{file ? file.name : savedLogo ? 'Cambiar logo (JPG, PNG o WebP, hasta 2 MB)' : 'Subir tu logo (JPG, PNG o WebP, hasta 2 MB)'}</span>
             <input
               id="brand-logo"
               type="file"
@@ -178,7 +185,10 @@ export function BrandForm({
             Con este color principal, el texto de los botones casi no se lee. Prueba un tono más claro o más oscuro.
           </p>
         )}
-        {accentOnWhite < 3 && (
+        {/* 1.5 y no 3: el color de detalle va de fondo con texto legible
+            encima, no como texto, y con 3 casi todas las combinaciones
+            listas de arriba (tonos pastel) disparaban este aviso. */}
+        {accentOnWhite < 1.5 && (
           <p className="text-sm text-warning">
             Tu color de detalle casi no se ve sobre fondo blanco. Prueba uno más fuerte.
           </p>
@@ -188,10 +198,19 @@ export function BrandForm({
             {error}
           </p>
         )}
-        <div>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <Button type="submit" isLoading={saving} className="max-sm:w-full !min-h-[3.25rem] !text-[16px]">
             {saving ? 'Guardando…' : 'Guardar marca'}
           </Button>
+          <p role="status" className="text-[15px] max-sm:w-full max-sm:text-center">
+            {saving ? null : sinGuardar ? (
+              <span className="text-muted">Tienes cambios sin guardar</span>
+            ) : recienGuardado ? (
+              <span className="inline-flex items-center gap-1.5 font-medium text-success">
+                <Check className="h-4 w-4" strokeWidth={3} aria-hidden="true" /> Guardado: ya se ve en tu página
+              </span>
+            ) : null}
+          </p>
         </div>
       </div>
 

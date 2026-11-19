@@ -35,14 +35,15 @@ export default async function TiposPage({ params }: { params: Promise<{ slug: st
     .order('created_at');
 
   if (error) {
+    // La causa real va al log del servidor; a la dueña nunca se le enseña un nombre de archivo.
+    console.error('reuniones/tipos/page.tsx: falta db/039_reuniones.sql?', error.message);
     return (
       <div>
         <PageHeader title="Tipos de reunión" />
         <div className="mt-8 rounded-2xl bg-surface p-6 ring-1 ring-border">
-          <p className="text-[15px] font-medium text-ink">Falta correr una migración</p>
+          <p className="text-[15px] font-medium text-ink">Esta sección todavía no está lista en tu cuenta</p>
           <p className="mt-2 text-sm leading-relaxed text-muted">
-            Corre <code className="rounded bg-ink/[0.06] px-1.5 py-0.5">db/039_reuniones.sql</code> en el SQL Editor de
-            Supabase y recarga esta página.
+            No es nada que hayas hecho tú. Escríbenos y la dejamos lista; mientras, el resto de tu panel funciona igual.
           </p>
         </div>
       </div>

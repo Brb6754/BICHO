@@ -189,14 +189,16 @@ export function NuevaFacturaForm({
           {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(exito.total / 100)}
         </p>
         <p className="mt-2 text-[15px] text-muted">El SAT ya la tiene registrada.</p>
+        {/* div y no p: HelpTip trae un popover (div) y un div dentro de
+            un p rompe la hidratación de esta pantalla de éxito. */}
         {exito.uuid && (
-          <p className="mx-auto mt-4 flex max-w-md flex-wrap items-center justify-center break-all text-[13px] text-muted">
+          <div className="mx-auto mt-4 flex max-w-md flex-wrap items-center justify-center break-all text-[13px] text-muted">
             Folio fiscal: {exito.uuid}
             <HelpTip title="¿Qué es el folio fiscal?">
               Es el número único con el que el SAT identifica esta factura. Tu cliente lo puede usar para buscarla en el
               portal del SAT.
             </HelpTip>
-          </p>
+          </div>
         )}
         <div className="mx-auto mt-5 grid max-w-md gap-2 sm:grid-cols-2">
           {exito.uuid && (
@@ -271,11 +273,15 @@ export function NuevaFacturaForm({
                   className={opcion(quoteId === c.id)}
                 >
                   <Avatar nombre={c.customerName} />
+                  {/* El total va bajo el nombre y no a la derecha: a 375 px la
+                      columna de la derecha dejaba el nombre en «María G…». */}
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[16px] font-semibold text-ink">{c.customerName}</span>
-                    <span className="block text-[13px] text-muted">Cotización #{c.folio}</span>
+                    <span className="line-clamp-2 break-words text-[16px] font-semibold leading-snug text-ink">{c.customerName}</span>
+                    <span className="mt-0.5 flex flex-wrap items-baseline gap-x-2 text-[13px] text-muted">
+                      Cotización #{c.folio}
+                      <span className="text-[16px] font-bold tabular-nums text-ink">{c.total}</span>
+                    </span>
                   </span>
-                  <span className="shrink-0 text-[17px] font-bold tabular-nums text-ink">{c.total}</span>
                   <Marca activa={quoteId === c.id} />
                 </button>
               ))}

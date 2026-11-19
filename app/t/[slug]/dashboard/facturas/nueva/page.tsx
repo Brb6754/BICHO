@@ -8,6 +8,7 @@ import { PageHeader } from '@/components/tenant-dash/PageHeader';
 import { cotizacionesConIva } from '@/lib/quotes/preciosIva';
 import { computeTotals, formatMoney, formatFolio } from '@/lib/quotes/totals';
 import { NuevaFacturaForm, type CotizacionFacturable } from '../NuevaFacturaForm';
+import { PasosConectar } from '../PasosConectar';
 
 export const dynamic = 'force-dynamic';
 
@@ -92,16 +93,7 @@ export default async function NuevaFacturaPage({
       </div>
 
       {!credenciales?.api_key ? (
-        <div className="mt-8 rounded-2xl bg-surface p-6 ring-1 ring-border">
-          <p className="text-[15px] font-medium text-ink">Todavía no puedes hacer facturas</p>
-          <p className="mt-2 max-w-prose text-sm leading-relaxed text-muted">
-            Falta conectar tu negocio con el SAT.{' '}
-            <Link href="/dashboard/facturas" className="font-medium text-ink underline underline-offset-4">
-              Ve qué te falta
-            </Link>
-            .
-          </p>
-        </div>
+        <PasosConectar />
       ) : (
         <div className="mt-8 flex flex-col gap-5">
           {!credenciales.live && (

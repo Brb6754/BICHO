@@ -118,7 +118,7 @@ export function ReunionesBoard({
           !sinTipos && (
             <Link
               href="/dashboard/reuniones/tipos"
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-border px-4 text-sm font-medium text-ink transition-colors hover:bg-ink/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 max-sm:flex-1"
+              className="inline-flex min-h-11 items-center justify-center gap-2 whitespace-nowrap rounded-full border border-border px-4 text-sm font-medium text-ink transition-colors hover:bg-ink/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 max-sm:flex-1"
             >
               <Settings2 className="h-4 w-4" aria-hidden="true" />
               Tipos de reunión
@@ -225,7 +225,7 @@ function PasoPreparar({
           <>
             <Link
               href={href}
-              className="inline-flex min-h-7 items-center text-[15px] font-medium text-ink underline underline-offset-4"
+              className="inline-flex min-h-11 items-center text-[15px] font-medium text-ink underline underline-offset-4"
             >
               {titulo}
             </Link>
@@ -295,7 +295,7 @@ function Fila({
       className={`animate-fade-in flex flex-col rounded-3xl bg-surface p-5 ${capturar && !m.outcome ? 'ring-2 ring-warning/40' : 'ring-1 ring-border'}`}
       style={{ animationDelay: `${Math.min(i, 6) * 40}ms` }}
     >
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
         <span
           className={`inline-flex items-center rounded-full px-3 py-1 text-[13px] font-semibold ${capturar ? 'bg-warning-soft text-warning' : 'bg-info-soft text-info'}`}
         >

@@ -11,6 +11,7 @@ import {
   Gift,
   Hand,
   Link2,
+  Mail,
   MapPin,
   MessageCircle,
   Paintbrush,
@@ -111,24 +112,26 @@ export function CitaConfirmada({ className = '', servicio = 'Manicure en gel', c
   );
 }
 
+// El recordatorio que hoy sale de verdad es un CORREO (cron de Clientes que
+// regresan). Antes se dibujaba como chat de WhatsApp, que no está conectado.
 export function MensajeRecordatorio({ className = '' }: { className?: string }) {
   return (
-    <div className={`w-full overflow-hidden rounded-2xl bg-[#ECE5DD] text-[13px] shadow-[0_24px_50px_-24px_rgba(11,6,40,0.55)] ${className}`}>
-      <div className="flex items-center gap-2.5 bg-[#1F6F54] px-3.5 py-2.5 text-white">
-        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/20 text-[11px] font-bold">LL</span>
-        <span className="font-semibold leading-tight">Lima &amp; Laca</span>
-        <MessageCircle className="ml-auto h-4 w-4 opacity-80" aria-hidden="true" />
+    <div className={`w-full overflow-hidden rounded-2xl bg-white text-[13px] text-[#140F2E] shadow-[0_24px_50px_-24px_rgba(11,6,40,0.55)] ${className}`}>
+      <div className="flex items-center gap-2.5 border-b border-[#140F2E]/[0.08] px-3.5 py-2.5">
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#5B34E8] text-[11px] font-bold text-white">LL</span>
+        <span className="min-w-0 leading-tight">
+          <span className="block font-semibold">Lima &amp; Laca</span>
+          <span className="block truncate text-[11px] text-[#6A6488]">Tu cita es mañana</span>
+        </span>
+        <Mail className="ml-auto h-4 w-4 shrink-0 text-[#6A6488]" aria-hidden="true" />
       </div>
-      <div className="space-y-2 p-3">
-        <div className="max-w-[92%] rounded-xl rounded-tl-sm bg-white px-3 py-2 leading-snug text-[#1B1B1B] shadow-sm">
-          Hola Ana, te esperamos <strong>mañana a las 10:30</strong> para tu manicure en gel.
-          <span className="mt-1.5 flex items-center gap-1 font-semibold text-[#1F6F54]">
-            <Link2 className="h-3.5 w-3.5" aria-hidden="true" />
-            Cambiar o cancelar mi cita
-          </span>
-          <span className="mt-1 block text-right text-[10px] text-[#8A8A8A]">recordatorio automático</span>
-        </div>
-        <div className="ml-auto w-fit rounded-xl rounded-tr-sm bg-[#D9FDD3] px-3 py-2 text-[#1B1B1B] shadow-sm">¡Ahí estaré!</div>
+      <div className="p-3.5 leading-snug">
+        Hola Ana, te esperamos <strong>mañana a las 10:30</strong> para tu manicure en gel.
+        <span className="mt-3 flex w-fit items-center gap-1.5 rounded-full bg-[#5B34E8] px-3 py-1.5 text-[12px] font-semibold text-white">
+          <Link2 className="h-3.5 w-3.5" aria-hidden="true" />
+          Cambiar o cancelar mi cita
+        </span>
+        <span className="mt-2.5 block text-[10px] text-[#6A6488]">Recordatorio automático por correo</span>
       </div>
     </div>
   );
@@ -521,7 +524,7 @@ export function IlustracionFuncion({ slug, className = '' }: { slug: string; cla
 /** Miniatura dentro de una tarjeta-enlace: misma pieza, sobre el lila de la tarjeta, sin robar foco. */
 export function VistaTarjeta({ slug }: { slug: string }) {
   return (
-    <div aria-hidden="true" className="pointer-events-none relative -mx-2 -mt-2 mb-5 flex h-[176px] items-start justify-center overflow-hidden rounded-[18px] bg-[#EAE5FB] px-5 pt-5 [mask-image:linear-gradient(to_bottom,black_72%,transparent)]">
+    <div aria-hidden="true" className="pointer-events-none relative -mx-2 -mt-2 mb-5 flex h-[176px] [contain:inline-size] items-start justify-center overflow-hidden rounded-[18px] bg-[#EAE5FB] px-5 pt-5 [mask-image:linear-gradient(to_bottom,black_72%,transparent)]">
       <div className="w-[280px] shrink-0 origin-top sm:scale-[0.9] lg:scale-[0.7] xl:scale-[0.84]">
         <IlustracionFuncion slug={slug} className="transition-transform duration-500 group-hover:-translate-y-1.5" />
       </div>
@@ -828,7 +831,7 @@ export function LineaCita() {
 /** Cabecera de la guía de citas: el recordatorio y su respuesta. */
 export function EscenaRecordatorio() {
   return (
-    <div className="relative mx-auto w-full max-w-[380px] pb-14 pt-2">
+    <div className="relative mx-auto w-full max-w-[380px] pb-24 pt-2">
       <span aria-hidden="true" className="absolute inset-8 rounded-full bg-[#7A55FF] blur-3xl" />
       <MensajeRecordatorio className="relative rotate-[-2deg]" />
       <CitaConfirmada className="mk-rise absolute -bottom-1 -right-1 w-[13.5rem] rotate-[4deg] sm:-right-6" cuando="Mañana · 10:30 a.m." />

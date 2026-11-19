@@ -243,11 +243,14 @@ export function DemoTarjeta({
   demo,
   href,
   panelHref,
+  nota = true,
   className = '',
 }: {
   demo: { nombre: string; giro: string; foto: string | null };
   href: string;
   panelHref?: string;
+  /** En una rejilla de demos la sección ya lo dice una vez; repetirlo en cada tarjeta es ruido. */
+  nota?: boolean;
   className?: string;
 }) {
   return (
@@ -268,12 +271,22 @@ export function DemoTarjeta({
           <span className="mt-1 block text-xl font-bold text-white">{demo.nombre}</span>
         </span>
       </a>
-      <div className="flex flex-col gap-2 p-5 text-sm">
-        <p className="text-[#4A4370]">Es un negocio de ejemplo con datos de prueba. Reserva una cita como lo haría tu clienta.</p>
-        <div className="flex flex-wrap gap-x-5 gap-y-2 font-semibold">
-          <a href={href} className="text-[#5B34E8] underline-offset-2 hover:underline">Reservar en el demo</a>
+      <div className="flex flex-col gap-3 p-5 text-sm">
+        {nota && <p className="text-[#4A4370]">Es un negocio de ejemplo con datos de prueba. Reserva una cita como lo haría tu clienta.</p>}
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-1 font-semibold">
+          <a
+            href={href}
+            className="inline-flex min-h-11 items-center rounded-full bg-[#5B34E8] px-5 text-white transition-colors hover:bg-[#4A26D1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5B34E8] focus-visible:ring-offset-2"
+          >
+            Reservar en el demo
+          </a>
           {panelHref && (
-            <a href={panelHref} className="text-[#5B34E8] underline-offset-2 hover:underline">Ver el panel del dueño</a>
+            <a
+              href={panelHref}
+              className="inline-flex min-h-11 items-center rounded-sm text-[#5B34E8] underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5B34E8]"
+            >
+              Ver el panel del dueño
+            </a>
           )}
         </div>
       </div>

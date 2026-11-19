@@ -18,19 +18,19 @@ export function MarketingFooter() {
         <nav aria-label="Pie de página" className="grid grid-cols-2 gap-x-10 gap-y-8 text-sm text-[#B9B1E6] sm:grid-cols-3">
           <div>
             <p className="font-semibold text-white">Producto</p>
-            <ul className="mt-3 space-y-2.5">
-              <li><Link href="/funciones" className={`rounded-sm transition-colors hover:text-white ${focusRingOnDark}`}>Funciones</Link></li>
-              <li><Link href="/#precios" className={`rounded-sm transition-colors hover:text-white ${focusRingOnDark}`}>Precios</Link></li>
-              <li><Link href="/#demos" className={`rounded-sm transition-colors hover:text-white ${focusRingOnDark}`}>Demos</Link></li>
-              <li><Link href="/registro" className={`rounded-sm transition-colors hover:text-white ${focusRingOnDark}`}>Prueba gratis</Link></li>
+            <ul className="mt-2">
+              <li><Link href="/funciones" className={`inline-block rounded-sm py-[5px] transition-colors hover:text-white ${focusRingOnDark}`}>Funciones</Link></li>
+              <li><Link href="/#precios" className={`inline-block rounded-sm py-[5px] transition-colors hover:text-white ${focusRingOnDark}`}>Precios</Link></li>
+              <li><Link href="/#demos" className={`inline-block rounded-sm py-[5px] transition-colors hover:text-white ${focusRingOnDark}`}>Demos</Link></li>
+              <li><Link href="/registro" className={`inline-block rounded-sm py-[5px] transition-colors hover:text-white ${focusRingOnDark}`}>Prueba gratis</Link></li>
             </ul>
           </div>
           <div>
             <p className="font-semibold text-white">Para tu giro</p>
-            <ul className="mt-3 space-y-2.5">
+            <ul className="mt-2">
               {GIROS.map((g) => (
                 <li key={g.slug}>
-                  <Link href={`/para/${g.slug}`} className={`rounded-sm transition-colors hover:text-white ${focusRingOnDark}`}>
+                  <Link href={`/para/${g.slug}`} className={`inline-block rounded-sm py-[5px] transition-colors hover:text-white ${focusRingOnDark}`}>
                     {g.nombre.charAt(0).toUpperCase() + g.nombre.slice(1)}
                   </Link>
                 </li>
@@ -39,11 +39,11 @@ export function MarketingFooter() {
           </div>
           <div>
             <p className="font-semibold text-white">Recursos</p>
-            <ul className="mt-3 space-y-2.5">
-              <li><Link href="/guias" className={`rounded-sm transition-colors hover:text-white ${focusRingOnDark}`}>Guías</Link></li>
-              <li><Link href="/negocios" className={`rounded-sm transition-colors hover:text-white ${focusRingOnDark}`}>Directorio de negocios</Link></li>
-              <li><Link href="/estudio" className={`rounded-sm transition-colors hover:text-white ${focusRingOnDark}`}>Software a la medida</Link></li>
-              <li><a href={`mailto:${CORREO_CONTACTO}`} className={`rounded-sm transition-colors hover:text-white ${focusRingOnDark}`}>Contacto</a></li>
+            <ul className="mt-2">
+              <li><Link href="/guias" className={`inline-block rounded-sm py-[5px] transition-colors hover:text-white ${focusRingOnDark}`}>Guías</Link></li>
+              <li><Link href="/negocios" className={`inline-block rounded-sm py-[5px] transition-colors hover:text-white ${focusRingOnDark}`}>Directorio de negocios</Link></li>
+              <li><Link href="/estudio" className={`inline-block rounded-sm py-[5px] transition-colors hover:text-white ${focusRingOnDark}`}>Software a la medida</Link></li>
+              <li><a href={`mailto:${CORREO_CONTACTO}`} className={`inline-block rounded-sm py-[5px] transition-colors hover:text-white ${focusRingOnDark}`}>Contacto</a></li>
             </ul>
           </div>
         </nav>
@@ -52,10 +52,10 @@ export function MarketingFooter() {
       <div className="mx-auto mt-12 flex max-w-6xl flex-col gap-3 border-t border-[#332A63] pt-6 text-xs text-[#B9B1E6]/70 sm:flex-row sm:items-center sm:justify-between">
         <p>© {new Date().getFullYear()} bicho. Software &amp; AI Solutions.</p>
         <div className="flex gap-6">
-          <Link href="/privacidad" className={`rounded-sm transition-colors hover:text-white ${focusRingOnDark}`}>
+          <Link href="/privacidad" className={`inline-block rounded-sm py-[5px] transition-colors hover:text-white ${focusRingOnDark}`}>
             Aviso de privacidad
           </Link>
-          <Link href="/terminos" className={`rounded-sm transition-colors hover:text-white ${focusRingOnDark}`}>
+          <Link href="/terminos" className={`inline-block rounded-sm py-[5px] transition-colors hover:text-white ${focusRingOnDark}`}>
             Términos
           </Link>
         </div>

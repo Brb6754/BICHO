@@ -91,7 +91,7 @@ const CONFIANZA = [
   { icono: Smartphone, titulo: 'Lista hoy', texto: 'Te registras y tu página queda funcionando el mismo día.' },
   { icono: CreditCard, titulo: 'Sin tarjeta', texto: '15 días gratis sin dar ningún dato de pago.' },
   { icono: LogOut, titulo: 'Cancelas con un mensaje', texto: 'Sin contrato ni plazo forzoso. Nos escribes y listo.' },
-  { icono: Download, titulo: 'Tus datos son tuyos', texto: 'Si te vas, pídenos tu lista de clientas y citas y te la mandamos.' },
+  { icono: Download, titulo: 'Tus datos son tuyos', texto: 'Desde Mi plan descargas tu lista de clientas y tus citas en un archivo que abre en Excel, cuando quieras.' },
   { icono: UserRound, titulo: 'Te contesta una persona', texto: 'Si te atoras, te ayuda alguien de bicho, no un bot.' },
   { icono: Tag, titulo: 'Precio claro', texto: 'Tres planes con precio publicado. Sin comisión por cita.' },
 ];
@@ -125,7 +125,7 @@ export default function LandingPage() {
               Agenda de citas para uñas, pestañas, estéticas, spa y barberías
             </p>
             <h1 className="mt-5 font-[family-name:var(--font-display)] text-[clamp(2.6rem,9vw,5.6rem)] font-extrabold uppercase leading-[0.9] tracking-[-0.03em] text-white">
-              Deja de contestar <span className="text-[#D4F23A]">“¿a qué hora tienes?”</span>
+              Deja de contestar <span className="text-[#D4F23A]"><span className="whitespace-nowrap">“¿a qué</span> hora tienes?”</span>
             </h1>
             <p className="mt-6 max-w-xl text-[17px] leading-relaxed text-[#E3DEFA] sm:text-lg">
               Tus clientas apartan solas su cita, a cualquier hora, y les llega su confirmación con un link para cambiarla. Tú
@@ -213,7 +213,7 @@ export default function LandingPage() {
           <ul className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {DEMOS.map((d) => (
               <li key={d.slug}>
-                <DemoTarjeta demo={d} href={urlDemo(d.slug)} panelHref={urlDemo(d.slug, '/panel')} className="h-full" />
+                <DemoTarjeta demo={d} href={urlDemo(d.slug)} panelHref={urlDemo(d.slug, '/panel')} nota={false} className="h-full" />
               </li>
             ))}
           </ul>
@@ -320,7 +320,7 @@ export default function LandingPage() {
             <PillLink href="/registro" tone="lime" className="justify-between sm:justify-start">
               Prueba 15 días gratis
             </PillLink>
-            <a href={`mailto:${CORREO_CONTACTO}`} className="text-center text-sm font-semibold text-white underline underline-offset-2 sm:ml-4">
+            <a href={`mailto:${CORREO_CONTACTO}`} className="inline-flex min-h-11 items-center justify-center text-sm font-semibold text-white underline underline-offset-2 sm:ml-4">
               ¿Dudas? Escríbenos
             </a>
           </div>

@@ -73,7 +73,7 @@ export const FUNCIONES: Funcion[] = [
     keyword: 'recordatorios de citas por WhatsApp',
     titulo: 'Recordatorios automáticos de citas · bicho',
     descripcion:
-      'Recordatorio automático antes de cada cita, por correo o por WhatsApp, con link para reagendar. Menos clientes que no llegan. Incluido en el plan Negocio.',
+      'Recordatorio automático por correo antes de cada cita, con link para reagendar. Menos clientes que no llegan. Incluido en el plan Negocio.',
     h1: 'Recordatorios de citas automáticos',
     bajada:
       'La mayoría de las citas que no llegan no son mala fe: se les olvidó. Un recordatorio a tiempo, con un link para cambiar la hora, convierte el plantón en un aviso.',
@@ -85,7 +85,7 @@ export const FUNCIONES: Funcion[] = [
       { titulo: 'Nunca dos veces', texto: 'Cada cita recibe un solo recordatorio, aunque algo se repita. Nadie recibe el mismo mensaje tres veces.' },
     ],
     pasos: [
-      'Tu clienta agenda y deja su correo o su WhatsApp.',
+      'Tu clienta agenda y deja su correo.',
       'Antes de su cita le llega el recordatorio con día, hora y servicio.',
       'Si no puede, toca el link y cambia la hora ella misma.',
     ],

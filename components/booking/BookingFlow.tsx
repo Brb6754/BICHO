@@ -24,6 +24,9 @@ import {
   formatDuration,
   publicPrice,
   stepsFor,
+  pesos,
+  type AnticipoPendiente,
+  type ContactoNegocio,
   type Resource,
   type ResourceChoice,
   type Service,
@@ -84,6 +87,8 @@ type Props = {
   serviceHint?: string;
   /** Logo para la barra compacta que reemplaza a la portada al avanzar. */
   logoUrl?: string | null;
+  /** Teléfono real del negocio: salida cuando hay anticipo y no hay link de pago. */
+  contact?: ContactoNegocio | null;
 
   // ── Injection points, both optional ──────────────────────────────
   // A real tenant page passes neither and gets the real behaviour:
@@ -128,6 +133,7 @@ export default function BookingFlow({
   location,
   serviceHint,
   logoUrl,
+  contact,
   loadSlots,
   onSubmitBooking,
   manageUrl,
@@ -178,6 +184,7 @@ export default function BookingFlow({
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [bookingId, setBookingId] = useState<string | null>(null);
+  const [anticipo, setAnticipo] = useState<AnticipoPendiente | null>(null);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [showAllTimes, setShowAllTimes] = useState(false);
   const [showFormErrors, setShowFormErrors] = useState(false);
@@ -419,6 +426,7 @@ export default function BookingFlow({
   if (service) {
     sidePanelRows.push({ label: 'Servicio', value: service.name });
     sidePanelRows.push({ label: 'Duración', value: formatDuration(service.duration_minutes) });
+    if (service.anticipo) sidePanelRows.push({ label: 'Anticipo', value: pesos(service.anticipo) });
   }
   if (resourceChoice && eligible.length > 1)
     sidePanelRows.push({ label: hasOwnLabel ? label : 'Atiende', value: resourceName });
@@ -435,6 +443,12 @@ export default function BookingFlow({
     if (!service || !selectedSlot || !resourceChoice) return;
     if (!formValid) {
       setShowFormErrors(true);
+      // Al primer campo que falta, para no dejar al teclado (o al lector
+      // de pantalla) en un botón que no hace nada visible.
+      // Al centro: un focus() a secas lo deja debajo de la barra fija.
+      const campo = document.getElementById(customer.name.trim() ? 'booking-phone' : 'booking-name');
+      campo?.scrollIntoView({ block: 'center' });
+      campo?.focus({ preventScroll: true });
       return;
     }
     // With "cualquiera", pick a resource that actually has this exact
@@ -489,14 +503,23 @@ export default function BookingFlow({
       setSubmitting(false);
 
       if (res.ok) {
+        setAnticipo(body.anticipo ?? null);
         setBookingId(body.bookingId);
+        return;
+      }
+      // Solo un 409 significa que el horario se ocupó: recargar y volver
+      // a elegir hora. Cualquier otro error (un correo mal escrito, el
+      // límite de intentos) se arregla aquí mismo; mandarle a la hora y
+      // tirarle el horario era castigarle por un typo.
+      if (res.status !== 409) {
+        setSubmitError(body.error ?? 'No se pudo agendar la cita.');
         return;
       }
       // The slot went while they were typing: reload, drop it, and send
       // them back to pick again instead of leaving a dead button.
       setSelectedSlot(null);
       await loadAvailability(service);
-      setSubmitError(body.error ?? 'No se pudo agendar la cita.');
+      setSubmitError(body.error ?? 'Ese horario se acaba de ocupar. Elige otro, por favor.');
       goTo('time');
     } catch {
       setSubmitting(false);
@@ -513,6 +536,7 @@ export default function BookingFlow({
     setCustomer({ name: '', phone: '', email: '', notes: '' });
     setSlotsByResource({});
     setBookingId(null);
+    setAnticipo(null);
     setSubmitError(null);
     setShowFormErrors(false);
   }
@@ -547,6 +571,8 @@ export default function BookingFlow({
           calendarUrl={googleCalendarUrl()}
           emailed={Boolean(customer.email)}
           onBookAnother={resetFlow}
+          anticipo={anticipo}
+          contact={contact}
         />
       </div>
     );
@@ -579,12 +605,10 @@ export default function BookingFlow({
       ? 'Falta tu nombre o un teléfono de 10 dígitos.'
       : undefined;
 
-  const actionLabel =
-    currentStep === 'details'
-      ? 'Confirmar reserva'
-      : currentStep === 'time' && selectedSlot
-        ? 'Continuar'
-        : 'Continuar';
+  const pideAnticipo = service?.anticipo ?? 0;
+  // Con anticipo no se confirma al tocar: se aparta. El botón no promete
+  // lo que todavía no pasa.
+  const actionLabel = currentStep === 'details' ? (pideAnticipo > 0 ? 'Apartar mi cita' : 'Confirmar reserva') : 'Continuar';
 
   function onAction() {
     if (currentStep === 'details') {
@@ -717,6 +741,18 @@ export default function BookingFlow({
               title="¿A qué hora?"
               hint={selectedDay ? longDate(`${selectedDay}T12:00:00Z`, timezone) : undefined}
             />
+            {/* El 409 de "ese horario se ocupó" regresa aquí; antes el
+                mensaje solo se pintaba en Datos y se perdía en el camino. */}
+            {submitError && (
+              <div className="mb-4">
+                <ErrorState
+                  title="Elige otro horario"
+                  message={submitError}
+                  onRetry={() => setSubmitError(null)}
+                  retryLabel="Entendido"
+                />
+              </div>
+            )}
             <div>
               {loading ? (
                 <LoadingSlots />
@@ -743,7 +779,10 @@ export default function BookingFlow({
                           key={slot.slot_start}
                           label={formatTime(slot.slot_start, timezone)}
                           state={selectedSlot?.slot_start === slot.slot_start ? 'selected' : 'available'}
-                          onSelect={() => setSelectedSlot(slot)}
+                          onSelect={() => {
+                            setSelectedSlot(slot);
+                            setSubmitError(null);
+                          }}
                         />
                       ))}
                     </TimeGroup>
@@ -765,6 +804,7 @@ export default function BookingFlow({
               location={location}
               onEdit={goTo}
               showResourceRow={eligible.length > 1}
+              anticipo={pideAnticipo}
             />
             {submitError && (
               <ErrorState
@@ -793,7 +833,9 @@ export default function BookingFlow({
           loading={submitting}
           footnote={
             currentStep === 'details'
-              ? 'Puedes cambiar o cancelar tu cita después, desde el enlace que te llega.'
+              ? pideAnticipo > 0
+                ? `Este servicio pide ${pesos(pideAnticipo)} de anticipo: al apartar te decimos cómo pagarlo y tu cita se confirma cuando llega.`
+                : 'Puedes cambiar o cancelar tu cita después, desde el enlace que te llega.'
               : undefined
           }
         />}

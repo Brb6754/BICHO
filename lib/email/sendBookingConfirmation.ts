@@ -1,5 +1,6 @@
 import { Resend } from 'resend';
-import { appointmentWhen } from '@/lib/dates/tenantTime';
+import { appointmentWhen, formatTime } from '@/lib/dates/tenantTime';
+import { readableFgRgb } from '@/lib/branding/colors';
 import { FROM_BOOKINGS, REPLY_TO } from './from';
 
 // El remitente vive en ./from: una sola variable de entorno decide si
@@ -33,6 +34,7 @@ export async function sendBookingConfirmation({
   accentColor,
   kind = 'confirmed',
   timezone,
+  anticipo = null,
 }: {
   customerEmail: string;
   customerName: string;
@@ -64,6 +66,10 @@ export async function sendBookingConfirmation({
   // without it told a customer in Mexico City that their 17:30
   // appointment was at 23:30. Falls back to America/Mexico_City.
   timezone?: string | null;
+  // Cita apartada que espera anticipo (lib/anticipos): el correo dice
+  // "apartada", no "confirmada", con el monto, a qué hora se libera y el
+  // link de pago si lo hay.
+  anticipo?: { montoMxn: number; venceEn: string; pagoUrl: string | null } | null;
 }): Promise<void> {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
@@ -77,16 +83,39 @@ export async function sendBookingConfirmation({
     const resend = new Resend(apiKey);
     const when = appointmentWhen(startsAt, timezone);
     const buttonColor = accentColor ?? '#4F46E5';
-    const heading =
-      kind === 'rescheduled' ? 'Tu cita se reprogramó' : kind === 'reminder' ? 'Te esperamos pronto' : '¡Cita confirmada!';
-    const intro =
-      kind === 'rescheduled'
-        ? `Hola ${escapeHtml(customerName)}, tu cita en <strong>${escapeHtml(businessName)}</strong> se movió a un nuevo horario.`
+    // Texto blanco fijo sobre un acento claro (lima, dorado) no se leía.
+    const buttonText = `rgb(${readableFgRgb(buttonColor).split(' ').join(', ')})`;
+    const button = (href: string, label: string) =>
+      `<a href="${escapeHtml(href)}" style="display: inline-block; background: ${buttonColor}; color: ${buttonText}; text-decoration: none; font-weight: 600; padding: 12px 28px; border-radius: 999px;">${label}</a>`;
+    const pendiente = kind === 'confirmed' ? anticipo : null;
+    const monto = pendiente ? `$${pendiente.montoMxn.toLocaleString('es-MX')}` : '';
+    const hola = `Hola ${escapeHtml(customerName)}, tu cita en <strong>${escapeHtml(businessName)}</strong>`;
+    const heading = pendiente
+      ? 'Tu cita está apartada'
+      : kind === 'rescheduled'
+        ? 'Tu cita se reprogramó'
+        : kind === 'reminder'
+          ? 'Te esperamos pronto'
+          : '¡Cita confirmada!';
+    const intro = pendiente
+      ? `Hola ${escapeHtml(customerName)}, apartamos tu horario en <strong>${escapeHtml(businessName)}</strong>. Para confirmarlo falta tu anticipo de <strong>${monto}</strong>; si no llega antes de las <strong>${formatTime(pendiente.venceEn, timezone)}</strong> (hora del negocio), el horario se libera.`
+      : kind === 'rescheduled'
+        ? `${hola} se movió a un nuevo horario.`
         : kind === 'reminder'
           ? `Hola ${escapeHtml(customerName)}, te recordamos tu cita en <strong>${escapeHtml(businessName)}</strong>.`
-          : `Hola ${escapeHtml(customerName)}, tu cita en <strong>${escapeHtml(businessName)}</strong> quedó agendada.`;
-    const subject =
-      kind === 'rescheduled' ? 'Cita reprogramada' : kind === 'reminder' ? 'Recordatorio de tu cita' : 'Cita confirmada';
+          : `${hola} quedó agendada.`;
+    const subject = pendiente
+      ? 'Falta tu anticipo para confirmar tu cita'
+      : kind === 'rescheduled'
+        ? 'Cita reprogramada'
+        : kind === 'reminder'
+          ? 'Recordatorio de tu cita'
+          : 'Cita confirmada';
+    const bloqueAnticipo = !pendiente
+      ? ''
+      : pendiente.pagoUrl
+        ? `<div style="text-align: center; margin-top: 28px;">${button(pendiente.pagoUrl, `Pagar anticipo de ${monto}`)}</div>`
+        : `<p style="margin-top: 20px; color: #555;">${escapeHtml(businessName)} te dirá cómo pagar el anticipo.</p>`;
     await resend.emails.send({
       from: FROM_BOOKINGS,
       ...(REPLY_TO ? { replyTo: REPLY_TO } : {}),
@@ -99,11 +128,11 @@ export async function sendBookingConfirmation({
           <table style="width: 100%; margin-top: 16px; border-collapse: collapse;">
             <tr><td style="padding: 6px 0; color: #888;">Servicio</td><td style="padding: 6px 0; text-align: right;"><strong>${escapeHtml(serviceName)}</strong></td></tr>
             <tr><td style="padding: 6px 0; color: #888;">Fecha y hora</td><td style="padding: 6px 0; text-align: right;"><strong>${when}</strong></td></tr>
+            ${pendiente ? `<tr><td style="padding: 6px 0; color: #888;">Anticipo</td><td style="padding: 6px 0; text-align: right;"><strong>${monto}</strong> · pendiente</td></tr>` : ''}
           </table>
-          <div style="text-align: center; margin-top: 28px;">
-            <a href="${manageUrl}" style="display: inline-block; background: ${buttonColor}; color: #ffffff; text-decoration: none; font-weight: 600; padding: 12px 28px; border-radius: 999px;">
-              Ver mi cita
-            </a>
+          ${bloqueAnticipo}
+          <div style="text-align: center; margin-top: ${pendiente ? '16px' : '28px'};">
+            ${pendiente?.pagoUrl ? `<a href="${escapeHtml(manageUrl)}" style="color: ${buttonColor}; font-weight: 600;">Ver mi cita</a>` : button(manageUrl, 'Ver mi cita')}
           </div>
           <p style="margin-top: 20px; color: #888; font-size: 13px; text-align: center;">Desde ahí puedes cambiar o cancelar tu cita cuando quieras.</p>
         </div>

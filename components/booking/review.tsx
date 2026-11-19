@@ -1,10 +1,19 @@
 'use client';
 
 import { useState } from 'react';
-import { CalendarPlus, Check, ChevronDown, MapPin, MessageCircle, Pencil } from 'lucide-react';
+import { CalendarPlus, Check, ChevronDown, Clock3, MapPin, MessageCircle, Pencil, Phone } from 'lucide-react';
 import { dayKey, formatTime } from '@/lib/dates/tenantTime';
 import motion from './motion.module.css';
-import { formatDuration, publicPrice, type Service, type StepId } from './types';
+import {
+  contactoHref,
+  formatDuration,
+  pesos,
+  publicPrice,
+  type AnticipoPendiente,
+  type ContactoNegocio,
+  type Service,
+  type StepId,
+} from './types';
 
 // The last step is two blocks, not one long form: first what you are
 // about to book, then who you are. The old flow asked for a phone number
@@ -30,7 +39,8 @@ function SummaryRow({
           <button
             type="button"
             onClick={onEdit}
-            className="inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5 text-[11px] font-semibold text-primary transition-colors hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+            // ::before lleva el área táctil a 44 px sin mover el diseño.
+            className="relative inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5 before:absolute before:-inset-x-1 before:-inset-y-3 before:content-[''] text-[11px] font-semibold text-primary transition-colors hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           >
             <Pencil className="h-3 w-3" aria-hidden="true" />
             <span className="sr-only">{editLabel ?? `Cambiar ${label}`}</span>
@@ -49,6 +59,7 @@ export function BookingSummary({
   location,
   onEdit,
   showResourceRow,
+  anticipo = 0,
 }: {
   service: Service;
   resourceName: string;
@@ -56,6 +67,8 @@ export function BookingSummary({
   location?: string | null;
   onEdit: (step: StepId) => void;
   showResourceRow: boolean;
+  /** Pesos de anticipo que pide el servicio; 0 = no pide. */
+  anticipo?: number;
 }) {
   return (
     <section className="rounded-2xl bg-paper px-4 py-3 ring-1 ring-border">
@@ -69,6 +82,7 @@ export function BookingSummary({
         <SummaryRow label="Cuándo" value={when} onEdit={() => onEdit('date')} />
         {location && <SummaryRow label="Dónde" value={location} />}
         {publicPrice(service) && <SummaryRow label="Precio" value={publicPrice(service)} />}
+        {anticipo > 0 && <SummaryRow label="Anticipo" value={`${pesos(anticipo)} para confirmar`} />}
       </div>
 
       {/* No invented cancellation policy: the business hasn't set one
@@ -141,11 +155,12 @@ export function CustomerForm({
             onChange={(e) => onChange({ name: e.target.value })}
             onBlur={() => setTouched((t) => ({ ...t, name: true }))}
             aria-invalid={show('name') && !!nameError}
+            aria-describedby={show('name') && nameError ? 'booking-name-error' : undefined}
             className={fieldClass(nameError, 'name')}
             placeholder="María Fernanda Ruiz"
           />
           {show('name') && nameError && (
-            <p className="mt-1.5 text-xs text-error">{nameError}</p>
+            <p id="booking-name-error" className="mt-1.5 text-xs text-error">{nameError}</p>
           )}
         </div>
 
@@ -162,14 +177,14 @@ export function CustomerForm({
             onChange={(e) => onChange({ phone: e.target.value })}
             onBlur={() => setTouched((t) => ({ ...t, phone: true }))}
             aria-invalid={show('phone') && !!phoneError}
-            aria-describedby="booking-phone-help"
+            aria-describedby={show('phone') && phoneError ? 'booking-phone-error booking-phone-help' : 'booking-phone-help'}
             className={fieldClass(phoneError, 'phone')}
             placeholder="618 123 4567"
           />
           <p id="booking-phone-help" className="mt-1.5 text-xs text-muted">
             Por si el negocio necesita avisarte de un cambio. No se usa para nada más.
           </p>
-          {show('phone') && phoneError && <p className="mt-1 text-xs text-error">{phoneError}</p>}
+          {show('phone') && phoneError && <p id="booking-phone-error" className="mt-1 text-xs text-error">{phoneError}</p>}
         </div>
 
         <div>
@@ -185,14 +200,14 @@ export function CustomerForm({
             onChange={(e) => onChange({ email: e.target.value })}
             onBlur={() => setTouched((t) => ({ ...t, email: true }))}
             aria-invalid={show('email') && !!emailError}
-            aria-describedby="booking-email-help"
+            aria-describedby={show('email') && emailError ? 'booking-email-error booking-email-help' : 'booking-email-help'}
             className={fieldClass(emailError, 'email')}
             placeholder="maria@correo.com"
           />
           <p id="booking-email-help" className="mt-1.5 text-xs text-muted">
             Si lo dejas, te mandamos la confirmación y el enlace para cambiar la cita.
           </p>
-          {show('email') && emailError && <p className="mt-1 text-xs text-error">{emailError}</p>}
+          {show('email') && emailError && <p id="booking-email-error" className="mt-1 text-xs text-error">{emailError}</p>}
         </div>
 
         {/* Notes are behind a disclosure: almost nobody writes one, and an
@@ -202,7 +217,8 @@ export function CustomerForm({
             type="button"
             onClick={() => setNotesOpen((v) => !v)}
             aria-expanded={notesOpen}
-            className="inline-flex items-center gap-1.5 text-[13px] font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+            aria-controls="booking-notes"
+            className="inline-flex min-h-[44px] items-center gap-1.5 text-[13px] font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           >
             <ChevronDown
               className={`h-4 w-4 transition-transform ${notesOpen ? 'rotate-180' : ''}`}
@@ -213,6 +229,8 @@ export function CustomerForm({
           {notesOpen && (
             <textarea
               id="booking-notes"
+              aria-label="Nota para el negocio"
+              maxLength={1000}
               rows={3}
               value={values.notes}
               onChange={(e) => onChange({ notes: e.target.value })}
@@ -245,6 +263,8 @@ export function ConfirmationScreen({
   calendarUrl,
   emailed,
   onBookAnother,
+  anticipo = null,
+  contact = null,
 }: {
   businessName: string;
   service: Service;
@@ -261,6 +281,10 @@ export function ConfirmationScreen({
   // Only claim an email was sent when one actually was.
   emailed: boolean;
   onBookAnother: () => void;
+  // Apartada esperando anticipo: la pantalla no celebra una cita que
+  // todavía no está confirmada; dice cuánto, hasta qué hora y cómo pagar.
+  anticipo?: AnticipoPendiente | null;
+  contact?: ContactoNegocio | null;
 }) {
   // Date parts in the BUSINESS's timezone: the calendar day comes from
   // dayKey, then it's spelled out from noon UTC of that day (same trick
@@ -274,6 +298,7 @@ export function ConfirmationScreen({
   const icsHref = `data:text/calendar;charset=utf-8,${encodeURIComponent(
     icsFile({ title: `${service.name} — ${businessName}`, startsAt, endsAt, location, uid: bookingId })
   )}`;
+  const vence = anticipo ? formatTime(anticipo.venceEn, timezone) : '';
   const shareText = [
     `Ya aparté mi cita en ${businessName}:`,
     `${service.name} — ${when}`,
@@ -284,6 +309,11 @@ export function ConfirmationScreen({
 
   return (
     <div className="px-5 pb-8 pt-10 sm:px-8">
+      {anticipo ? (
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-warning/15 text-warning" aria-hidden="true">
+          <Clock3 className="h-8 w-8" />
+        </div>
+      ) : (
       <div className="relative mx-auto flex h-16 w-16 items-center justify-center" aria-hidden="true">
         <span className={`${motion.ring} absolute inset-0 rounded-full bg-success`} />
         {BURST_ANGLES.map((a, i) => (
@@ -310,14 +340,53 @@ export function ConfirmationScreen({
           <path className={motion.drawCheck} d="M5 12.5l4.5 4.5L19 7.5" />
         </svg>
       </div>
+      )}
 
       <h1
         className="mt-5 text-balance text-center text-[1.75rem] font-semibold leading-tight text-ink sm:text-[2.1rem]"
         style={{ fontFamily: 'var(--tpl-heading-font, var(--font-heading))', letterSpacing: 'var(--tpl-heading-tracking)' }}
       >
-        ¡Listo! Tu cita está apartada
+        {anticipo ? `Apartada: falta tu anticipo de ${pesos(anticipo.montoMxn)}` : '¡Listo! Tu cita está confirmada'}
       </h1>
-      <p className="mt-2 text-center text-sm text-muted">{businessName} te espera.</p>
+      {anticipo ? (
+        <div role="status" className="mx-auto mt-4 max-w-sm rounded-2xl bg-warning/10 px-4 py-3 text-center text-sm leading-relaxed text-ink ring-1 ring-warning/30">
+          <p>
+            Guardamos tu horario hasta las <strong className="font-semibold tabular-nums">{vence}</strong> (hora del
+            negocio). Si el anticipo no llega a tiempo, se libera para alguien más.
+          </p>
+          {anticipo.pagoUrl ? (
+            <a
+              href={anticipo.pagoUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-3 inline-flex min-h-[52px] w-full items-center justify-center rounded-full bg-primary px-6 text-sm font-semibold text-[rgb(var(--color-cta-fg))] shadow-[0_6px_18px_-6px_rgb(var(--color-primary)/0.6)] transition active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
+            >
+              Pagar anticipo de {pesos(anticipo.montoMxn)}
+            </a>
+          ) : (
+            <>
+              <p className="mt-2 text-muted">{businessName} te dirá cómo pagarlo.</p>
+              {contact && (
+                <a
+                  href={contactoHref(contact)}
+                  target={contact.kind === 'whatsapp' ? '_blank' : undefined}
+                  rel="noreferrer"
+                  className="mt-3 inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-full border border-border bg-surface px-5 text-sm font-semibold text-ink transition-colors hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                >
+                  {contact.kind === 'whatsapp' ? (
+                    <MessageCircle className="h-4 w-4" aria-hidden="true" />
+                  ) : (
+                    <Phone className="h-4 w-4" aria-hidden="true" />
+                  )}
+                  {contact.kind === 'whatsapp' ? `Escribir a ${businessName}` : `Llamar a ${businessName}`}
+                </a>
+              )}
+            </>
+          )}
+        </div>
+      ) : (
+        <p className="mt-2 text-center text-sm text-muted">{businessName} te espera.</p>
+      )}
 
       {/* The ticket */}
       <div className={`${motion.ticket} mx-auto mt-7 max-w-sm overflow-clip rounded-3xl bg-paper ring-1 ring-border`}>
@@ -369,7 +438,11 @@ export function ConfirmationScreen({
       <div className="mx-auto mt-6 flex max-w-sm flex-col gap-2.5">
         <a
           href={manageUrl}
-          className="inline-flex min-h-[52px] items-center justify-center rounded-full bg-primary px-6 text-sm font-semibold text-[rgb(var(--color-cta-fg))] shadow-[0_6px_18px_-6px_rgb(var(--color-primary)/0.6)] transition active:scale-[0.99]"
+          className={
+            anticipo?.pagoUrl
+              ? 'inline-flex min-h-[48px] items-center justify-center rounded-full border border-border bg-surface px-6 text-sm font-semibold text-ink transition-colors hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40'
+              : 'inline-flex min-h-[52px] items-center justify-center rounded-full bg-primary px-6 text-sm font-semibold text-[rgb(var(--color-cta-fg))] shadow-[0_6px_18px_-6px_rgb(var(--color-primary)/0.6)] transition active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2'
+          }
         >
           Ver, cambiar o cancelar mi cita
         </a>
@@ -412,7 +485,9 @@ export function ConfirmationScreen({
 
       <p className="mx-auto mt-4 max-w-sm text-center text-xs leading-relaxed text-muted">
         {emailed
-          ? 'Te mandamos la confirmación por correo. Si no llega en unos minutos, revisa tu carpeta de spam.'
+          ? anticipo
+            ? 'Te mandamos los datos y el enlace de tu cita por correo. Si no llega en unos minutos, revisa tu carpeta de spam.'
+            : 'Te mandamos la confirmación por correo. Si no llega en unos minutos, revisa tu carpeta de spam.'
           : 'Guarda este enlace o toma una captura: es la forma de volver a tu cita, y no dejaste un correo donde mandártelo.'}
       </p>
     </div>

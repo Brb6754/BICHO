@@ -18,6 +18,10 @@ import { normalizeDesign, templateDesignCssVars, type TemplateDesign } from '@/l
 import { appointmentWhen, dayKey, formatTime, minutesBetween } from '@/lib/dates/tenantTime';
 import motion from '@/components/booking/motion.module.css';
 import { tenantBookingPageUrl } from '@/lib/urls';
+import { configDesdeFila } from '@/lib/anticipos/config';
+import { puedeReagendar } from '@/lib/anticipos/reagendar';
+import { contactFromBlocks } from '@/components/tenant-public/BookingPausedNotice';
+import { contactoHref, pesos } from '@/components/booking/types';
 
 type BookingRow = {
   id: string;
@@ -29,6 +33,10 @@ type BookingRow = {
   service_types: { name: string } | null;
   resources: { name: string } | null;
   customers: { name: string } | null;
+  // db/061; ausentes sin la migración.
+  deposit_status?: 'pending' | 'paid' | 'waived' | 'released' | null;
+  deposit_mxn?: number | null;
+  hold_expires_at?: string | null;
 };
 
 function resolveFontKey(value: unknown): FontKey {
@@ -89,6 +97,7 @@ export default async function BookingDetailPage({
     { data: pageRow },
     { data: templateRow },
     { data: bookingRaw },
+    { data: tenantRow },
   ] =
     await Promise.all([
       admin
@@ -103,12 +112,14 @@ export default async function BookingDetailPage({
       admin.from('templates').select('design').eq('vertical', tenant.vertical ?? 'general').maybeSingle(),
       admin
         .from('bookings')
-        .select(
-          'id, starts_at, ends_at, status, resource_id, service_type_id, service_types(name), resources(name), customers(name)'
-        )
+        // `*` y no la lista de columnas: así las del anticipo (db/061)
+        // llegan si existen y no tumban la consulta si no.
+        .select('*, service_types(name), resources(name), customers(name)')
         .eq('id', bookingId)
         .eq('tenant_id', tenant.id)
         .maybeSingle(),
+      // Config de anticipo y el teléfono del bloque de contacto; `*` por la misma razón.
+      admin.from('tenants').select('*').eq('id', tenant.id).maybeSingle(),
     ]);
   const booking = bookingRaw as unknown as BookingRow | null;
 
@@ -127,13 +138,29 @@ export default async function BookingDetailPage({
   const isPast = booking ? new Date(booking.starts_at).getTime() <= Date.now() : false;
   const canChange = booking?.status === 'confirmed' && !isPast;
 
+  // Anticipo (lib/anticipos). Solo informa: las reglas de cambiar o
+  // cancelar siguen siendo las de siempre.
+  const deposito = booking?.deposit_status ?? null;
+  const montoDeposito = booking?.deposit_mxn ?? 0;
+  const pendiente = canChange && deposito === 'pending' && montoDeposito > 0;
+  const apartadoVencido =
+    pendiente && booking?.hold_expires_at ? new Date(booking.hold_expires_at).getTime() <= Date.now() : false;
+  const configAnticipo = configDesdeFila(tenantRow as Record<string, unknown> | null);
+  const plazo =
+    booking && canChange && (deposito === 'pending' || deposito === 'paid')
+      ? puedeReagendar(booking, configAnticipo)
+      : null;
+  const contacto = contactFromBlocks(tenantRow?.page_blocks);
+
   const status = !booking
     ? null
     : booking.status === 'cancelled'
       ? { label: 'Cancelada', dot: '#DC2626' }
       : booking.status === 'completed' || isPast
         ? { label: 'Ya pasó', dot: 'rgb(var(--color-muted))' }
-        : { label: 'Confirmada', dot: accentColor };
+        : pendiente
+          ? { label: 'Apartada · falta el anticipo', dot: '#B45309' }
+          : { label: 'Confirmada', dot: accentColor };
 
   const headingStyle: React.CSSProperties = {
     fontFamily: 'var(--tpl-heading-font, var(--font-heading))',
@@ -259,6 +286,12 @@ export default async function BookingDetailPage({
                       <dd className="text-right font-medium text-ink">{booking.customers.name}</dd>
                     </div>
                   )}
+                  {deposito === 'paid' && montoDeposito > 0 && (
+                    <div className="flex items-baseline justify-between gap-6 py-3">
+                      <dt className="text-muted">Anticipo</dt>
+                      <dd className="text-right font-medium tabular-nums text-ink">{pesos(montoDeposito)} · pagado</dd>
+                    </div>
+                  )}
                   {/* "Where do I go" — the one question this page could
                       never answer, because until db/024 a business had
                       nowhere to put its address. Links to Maps: on a
@@ -283,6 +316,48 @@ export default async function BookingDetailPage({
                   )}
                 </dl>
 
+                {pendiente && (
+                  <div role="status" className="rounded-2xl bg-ink/[0.04] px-4 py-3 text-sm leading-relaxed text-ink ring-1 ring-ink/[0.08]">
+                    {apartadoVencido ? (
+                      <p>
+                        El tiempo para pagar el anticipo de <strong className="font-semibold">{pesos(montoDeposito)}</strong> ya
+                        terminó y el horario puede liberarse. Si ya pagaste, avísale a {tenant.name}.
+                      </p>
+                    ) : (
+                      <p>
+                        Falta tu anticipo de <strong className="font-semibold">{pesos(montoDeposito)}</strong> para confirmar.
+                        Tu horario está apartado hasta las{' '}
+                        <strong className="font-semibold tabular-nums">
+                          {booking.hold_expires_at ? formatTime(booking.hold_expires_at, timezone) : '—'}
+                        </strong>{' '}
+                        (hora del negocio); si no llega, se libera.
+                      </p>
+                    )}
+                    {contacto ? (
+                      <a
+                        href={contactoHref(contacto)}
+                        target={contacto.kind === 'whatsapp' ? '_blank' : undefined}
+                        rel="noreferrer"
+                        className="mt-2 inline-flex min-h-[44px] items-center font-semibold underline decoration-ink/25 underline-offset-4 hover:decoration-ink"
+                      >
+                        {contacto.kind === 'whatsapp' ? `Escribir a ${tenant.name} por WhatsApp` : `Llamar a ${tenant.name}`}
+                      </a>
+                    ) : (
+                      !apartadoVencido && <p className="mt-1 text-muted">{tenant.name} te dirá cómo pagarlo.</p>
+                    )}
+                  </div>
+                )}
+
+                {plazo && (
+                  <div className="text-sm leading-relaxed text-muted">
+                    <p>
+                      Para conservar tu anticipo, cambia tu cita a más tardar el{' '}
+                      <span className="font-medium text-ink">{plazo.limiteTexto}</span>.
+                    </p>
+                    {plazo.politica && <p className="mt-1 whitespace-pre-line">{plazo.politica}</p>}
+                  </div>
+                )}
+
                 {canChange ? (
                   <BookingActions
                     bookingId={booking.id}
@@ -297,7 +372,9 @@ export default async function BookingDetailPage({
                   <div className="flex flex-col items-start gap-4">
                     <p className="text-sm leading-relaxed text-muted">
                       {booking.status === 'cancelled'
-                        ? 'Esta cita se canceló y el horario quedó libre.'
+                        ? deposito === 'released'
+                          ? 'Esta cita se liberó porque el anticipo no llegó a tiempo.'
+                          : 'Esta cita se canceló y el horario quedó libre.'
                         : 'Esta cita ya pasó, así que no se puede cambiar.'}
                     </p>
                     <a

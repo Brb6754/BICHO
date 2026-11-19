@@ -3,7 +3,8 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { sendBookingConfirmation } from '@/lib/email/sendBookingConfirmation';
 import { sendBookingWhatsApp } from '@/lib/whatsapp/send';
 import { tenantManageBookingUrl } from '@/lib/urls';
-import { crearReserva } from '@/lib/bookings/crear';
+import { apartarCita } from '@/lib/anticipos/apartar';
+import { obtenerLinkAnticipo } from '@/lib/anticipos/pago';
 
 // In-memory sliding window, keyed by IP — a real stopgap (it does throttle
 // abuse from a single warm serverless instance, or in a single-instance/
@@ -60,8 +61,10 @@ export async function POST(request: Request) {
   }
 
   // Validación, pertenencia al negocio y create_booking: compartido con
-  // la recepcionista de WhatsApp (lib/bookings/crear.ts).
-  const result = await crearReserva(supabase, tenant.id, body);
+  // la recepcionista de WhatsApp (lib/bookings/crear.ts). apartarCita
+  // además deja la cita apartada si el servicio pide anticipo (db/061);
+  // sin anticipo o sin la migración, queda confirmada como siempre.
+  const result = await apartarCita(supabase, tenant.id, body);
   if (!result.ok) {
     return NextResponse.json({ error: result.error }, { status: result.status });
   }
@@ -71,6 +74,26 @@ export async function POST(request: Request) {
   // Ya validados como string no vacío por crearReserva.
   const customerName = customer_name as string;
   const customerPhone = customer_phone as string;
+
+  // Apartada: falta el anticipo. Nada de "cita confirmada" todavía (esa
+  // sale cuando llega el pago); al cliente se le da el link si lo hay.
+  const anticipo =
+    result.requiereAnticipo && result.venceEn
+      ? {
+          montoMxn: result.montoMxn,
+          venceEn: result.venceEn.toISOString(),
+          pagoUrl:
+            (
+              await obtenerLinkAnticipo(supabase, {
+                tenantId: tenant.id,
+                bookingId,
+                montoMxn: result.montoMxn,
+                descripcion: `Anticipo ${result.serviceName}`,
+                vence: result.venceEn,
+              })
+            )?.url ?? null,
+        }
+      : null;
 
   // Awaited (not fire-and-forget) — Vercel serverless functions can stop
   // executing once the response is sent, so a truly "background" send
@@ -89,8 +112,13 @@ export async function POST(request: Request) {
       manageUrl,
       accentColor: tenant.accent_color ?? undefined,
       timezone: tenant.timezone,
+      anticipo,
     });
   }
+
+  // La plantilla de WhatsApp dice "cita confirmada": con anticipo
+  // pendiente sería falso, así que no sale hasta que se pague.
+  if (anticipo) return NextResponse.json({ ok: true, bookingId, anticipo });
 
   // WhatsApp add-on. Read in its own query so that a database without
   // db/021 applied just behaves as "add-on off" instead of breaking
@@ -117,5 +145,5 @@ export async function POST(request: Request) {
     });
   }
 
-  return NextResponse.json({ ok: true, bookingId });
+  return NextResponse.json({ ok: true, bookingId, anticipo: null });
 }

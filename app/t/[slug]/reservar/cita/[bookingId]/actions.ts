@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { rescheduleBooking } from '@/lib/bookings/reschedule';
+import { reagendarConservandoAnticipo } from '@/lib/anticipos/reagendar';
 import { after } from 'next/server';
 import { avisarCitaLiberada } from '@/lib/boost/motor';
 
@@ -47,7 +47,13 @@ export async function reschedulePublicBooking(
   // appointment or the business moves it from the dashboard, so they live
   // in one place — lib/bookings/reschedule.ts — instead of in two copies
   // that drift.
-  const result = await rescheduleBooking({ bookingId, slug, newStartsAt, newEndsAt });
+  // Con anticipo, el plazo del negocio para reagendar sí se aplica aquí
+  // (antes solo se informaba); sin anticipo se porta igual que rescheduleBooking.
+  const admin = createAdminClient();
+  const { data: tenant } = await admin.from('tenants').select('id').eq('slug', slug).maybeSingle();
+  if (!tenant) return { error: 'Negocio no encontrado.' };
+  const r = await reagendarConservandoAnticipo(admin, { tenantId: tenant.id, slug, bookingId, newStartsAt, newEndsAt });
+  const result = { error: r.ok ? null : r.error };
   if (!result.error) {
     revalidatePath(`/t/${slug}/reservar/cita/${bookingId}`);
   }

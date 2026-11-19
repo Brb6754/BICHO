@@ -18,7 +18,30 @@ export type Service = {
   // card renders one the day it does, and collapses cleanly until then
   // rather than leaving a hole in the layout.
   description?: string | null;
+  // Pesos de anticipo que pide (lib/anticipos/montoAnticipo), calculados
+  // en el servidor. Ausente o 0 = no pide.
+  anticipo?: number;
 };
+
+/** Cita apartada que espera anticipo, tal como la devuelve /api/reservar. */
+export type AnticipoPendiente = { montoMxn: number; venceEn: string; pagoUrl: string | null };
+
+/** El teléfono real del negocio (su bloque "Botón de contacto"), si lo tiene. */
+export type ContactoNegocio = { phone: string; kind: 'call' | 'whatsapp' };
+
+export function pesos(mxn: number): string {
+  return `$${mxn.toLocaleString('es-MX')}`;
+}
+
+/** Primer mensaje del botón "Agenda por WhatsApp": "Hola <slug>" es lo que rutea al negocio (lib/whatsapp/agente/ruteo.ts). */
+export function textoAgendaWhatsApp(slug: string): string {
+  return `Hola ${slug}, quiero agendar una cita`;
+}
+
+export function contactoHref(c: ContactoNegocio): string {
+  // wa.me pide lada de país; 10 dígitos = México.
+  return c.kind === 'whatsapp' ? `https://wa.me/${c.phone.length === 10 ? `52${c.phone}` : c.phone}` : `tel:${c.phone}`;
+}
 
 export type Resource = {
   id: string;

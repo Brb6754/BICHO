@@ -168,7 +168,8 @@ export function SelectionSummary({
           key={item.id + item.value}
           type="button"
           onClick={() => onEdit(item.id)}
-          className={`${motion.chipIn} group inline-flex min-h-[32px] max-w-full items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-xs font-semibold text-ink transition-colors hover:bg-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40`}
+          // El ::before agranda el área táctil a 44 px sin engordar la ficha.
+          className={`${motion.chipIn} group relative inline-flex min-h-[32px] before:absolute before:-inset-y-1.5 before:inset-x-0 before:content-[''] max-w-full items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-xs font-semibold text-ink transition-colors hover:bg-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40`}
         >
           <span className="sr-only">Cambiar {item.label}: </span>
           <span className="truncate">{item.value}</span>

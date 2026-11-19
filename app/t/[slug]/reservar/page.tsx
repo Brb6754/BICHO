@@ -17,9 +17,13 @@ import type { Block, TemplateDesign } from '@/lib/templates/blocks';
 import { createDefaultBlock, normalizeDesign } from '@/lib/templates/blocks';
 import { esServicio } from '@/lib/meetings/kinds';
 import { PublicShell } from '@/components/tenant-public/PublicShell';
-import { BookingPausedNotice, bookingPause } from '@/components/tenant-public/BookingPausedNotice';
+import { BookingPausedNotice, bookingPause, contactFromBlocks } from '@/components/tenant-public/BookingPausedNotice';
+import { configDesdeFila, montoAnticipo } from '@/lib/anticipos/config';
+import { agenteDisponible } from '@/lib/whatsapp/agente/ruteo';
+import { WHATSAPP_CONTACTO, urlWhatsApp } from '@/lib/seo/sitio';
 import { promosVigentes } from '@/components/tenant-public/PromosVigentes';
 import { ListaVip } from '@/components/booking/ListaVip';
+import { textoAgendaWhatsApp } from '@/components/booking/types';
 import { boostActivo, type TenantBoost } from '@/lib/boost/reglas';
 
 function resolveFontKey(value: unknown): FontKey {
@@ -254,10 +258,35 @@ export default async function ReservarPage({ params }: { params: Promise<{ slug:
   const headingKey = resolveFontKey(branding_raw?.font_heading);
   const bodyKey = resolveFontKey(branding_raw?.font_body);
 
+  // `*` para tolerar migraciones sin correr: Boost (db/058), anticipos
+  // (db/061) y la recepcionista (db/056) leen sus columnas de aquí; sin
+  // ellas, todo apagado.
+  const { data: tenantRow } = await supabase.from('tenants').select('*').eq('id', tenant.id).maybeSingle();
+  const anticipos = configDesdeFila(tenantRow);
+
+  // "Agenda por WhatsApp": solo con la recepcionista disponible en el
+  // número compartido de bicho (el texto "Hola <slug>" es lo que la
+  // rutea a este negocio, lib/whatsapp/agente/ruteo.ts) y con ese número
+  // configurado. El número propio de un negocio no tiene "display number"
+  // guardado, así que ahí no hay botón. Nunca un número inventado.
+  // shortcut: asume que WHATSAPP_CONTACTO es el mismo número conectado a
+  // WHATSAPP_PHONE_NUMBER_ID; si algún día son distintos, una variable propia.
+  const whatsappHref =
+    tenantRow &&
+    agenteDisponible(tenantRow) &&
+    !tenantRow.whatsapp_phone_number_id &&
+    process.env.WHATSAPP_PHONE_NUMBER_ID &&
+    process.env.WHATSAPP_ACCESS_TOKEN &&
+    WHATSAPP_CONTACTO
+      ? urlWhatsApp(WHATSAPP_CONTACTO, textoAgendaWhatsApp(slug))
+      : null;
+
   const bookingData = {
     slug,
     businessName: tenant.name,
-    services: services ?? [],
+    services: services.map((s) => ({ ...s, anticipo: montoAnticipo(anticipos, s) })),
+    contact: contactFromBlocks(pageBlocks),
+    whatsappHref,
     resources: resourcesConServicios,
     timezone: tenant.timezone ?? null,
     // `|| undefined` and not `?? undefined`: an empty string saved from
@@ -302,8 +331,7 @@ export default async function ReservarPage({ params }: { params: Promise<{ slug:
 
   // Boost (db/058): "Avísame si se libera algo" debajo del flujo, solo si
   // el negocio tiene la lista VIP prendida (y su plan la incluye).
-  const { data: boostRow } = await supabase.from('tenants').select('*').eq('id', tenant.id).maybeSingle();
-  const conListaVip = boostActivo(boostRow as TenantBoost | null, 'vip') && services.length > 0;
+  const conListaVip = boostActivo(tenantRow as TenantBoost | null, 'vip') && services.length > 0;
   const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? 'localhost:3000';
   const privacidadUrl = `${rootDomain.startsWith('localhost') ? 'http' : 'https'}://${rootDomain}/privacidad`;
 

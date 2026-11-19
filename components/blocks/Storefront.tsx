@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUpRight, Clock3, MapPin, Plus, Tag } from 'lucide-react';
+import { ArrowDown, ArrowUpRight, Clock3, MapPin, MessageCircle, Plus, Tag } from 'lucide-react';
 import type { FaqProps, HeroProps, HoursProps, LocationProps, SplitProps, TeamProps } from '@/lib/templates/blocks';
 import type { Promo } from '@/lib/lealtad/datos';
 import { darkenHex, withAlpha } from '@/lib/branding/colors';
@@ -72,6 +72,7 @@ export function Cover({
   status,
   address,
   mapHref,
+  whatsappHref = null,
 }: {
   businessName: string;
   hero: HeroProps | null;
@@ -81,6 +82,8 @@ export function Cover({
   status: OpenStatus | null;
   address: string | null;
   mapHref: string | null;
+  /** wa.me con el código del negocio (recepcionista de WhatsApp). null = sin botón. */
+  whatsappHref?: string | null;
 }) {
   const image = hero?.backgroundImageUrl?.trim();
   const primary = branding.primaryColor;
@@ -152,7 +155,7 @@ export function Cover({
           {(status || mapHref) && (
             <ul className="-mx-5 mt-6 flex gap-2 overflow-x-auto px-5 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:px-0">
               {status && (
-                <li className={`inline-flex h-9 shrink-0 items-center gap-2 rounded-full bg-surface px-3.5 text-[13px] font-medium text-ink ring-1 ring-border`}>
+                <li className={`inline-flex h-11 shrink-0 items-center gap-2 rounded-full bg-surface px-4 text-[13px] font-medium text-ink ring-1 ring-border`}>
                   <span className="relative flex h-2 w-2" aria-hidden="true">
                     {status.open && (
                       <span className="absolute inset-0 animate-ping rounded-full bg-success opacity-60 motion-reduce:hidden" />
@@ -168,7 +171,7 @@ export function Cover({
                     href={mapHref}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex h-9 items-center gap-1.5 rounded-full bg-surface px-3.5 text-[13px] font-medium text-ink ring-1 ring-border transition hover:ring-ink/25 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 motion-reduce:transform-none"
+                    className="inline-flex h-11 items-center gap-1.5 rounded-full bg-surface px-4 text-[13px] font-medium text-ink ring-1 ring-border transition hover:ring-ink/25 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 motion-reduce:transform-none"
                   >
                     <MapPin className="h-3.5 w-3.5 text-muted" aria-hidden="true" />
                     Cómo llegar
@@ -227,6 +230,21 @@ export function Cover({
           {cta}
           <ArrowDown className="h-4 w-4 transition-transform duration-300 group-hover:translate-y-0.5" aria-hidden="true" />
         </a>
+
+        {/* Secundario: reservar sigue siendo lo principal; esto es para
+            quien prefiere escribir. Visible en escritorio también, donde
+            el botón de arriba no existe (el flujo ya está a la vista). */}
+        {whatsappHref && (
+          <a
+            href={whatsappHref}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-surface text-[15px] font-semibold text-ink ring-1 ring-border transition hover:ring-ink/25 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 motion-reduce:transform-none lg:mt-6 lg:w-fit lg:px-6"
+          >
+            <MessageCircle className="h-4 w-4" aria-hidden="true" />
+            Agenda por WhatsApp
+          </a>
+        )}
       </div>
     </header>
   );

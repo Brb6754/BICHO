@@ -26,7 +26,7 @@ import { BookingStageProvider, StageLayout } from '@/components/booking/stage';
 import type { Promo } from '@/lib/lealtad/datos';
 import { lineForDay, nowIn, openStatus } from '@/lib/schedule/openNow';
 import { Cover, FaqList, InfoRail, mapHrefFor } from './Storefront';
-import type { Service, Resource } from '@/components/booking/types';
+import type { ContactoNegocio, Service, Resource } from '@/components/booking/types';
 import {
   HeroSection,
   ServicesSection,
@@ -52,6 +52,10 @@ type BookingData = {
   resourceLabel?: string;
   resourceQuestion?: string;
   location?: string | null;
+  /** Teléfono real del negocio, para la pantalla de "apartada" (anticipo sin link de pago). */
+  contact?: ContactoNegocio | null;
+  /** wa.me al número de bicho con el código del negocio; null = sin botón. */
+  whatsappHref?: string | null;
 };
 
 // isDark/darkBase are optional so every existing caller (template
@@ -521,6 +525,7 @@ function BlockItem({
               resourceLabel={bookingData.resourceLabel}
               resourceQuestion={bookingData.resourceQuestion}
               location={bookingData.location}
+              contact={bookingData.contact}
             />
           </div>
         </div>
@@ -607,6 +612,7 @@ function LivePage({
             status={status}
             address={address}
             mapHref={mapHref}
+            whatsappHref={bookingData.whatsappHref ?? null}
           />
         }
         flow={
@@ -621,6 +627,7 @@ function LivePage({
             resourceLabel={bookingData.resourceLabel}
             resourceQuestion={bookingData.resourceQuestion}
             location={bookingData.location}
+            contact={bookingData.contact}
             serviceHint={services?.props.intro}
             logoUrl={branding.logoUrl}
           />

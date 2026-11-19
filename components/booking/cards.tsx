@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Check, Clock, Moon, Plus, Sparkles, Sun, Sunrise, Users, Zap, type LucideIcon } from 'lucide-react';
 import motion from './motion.module.css';
-import { formatDuration, publicPrice, priceHidden, type Service } from './types';
+import { formatDuration, pesos, publicPrice, priceHidden, type Service } from './types';
 
 // Selection is never carried by colour alone. Every selected control here
 // changes three things at once: it gains a check mark, its border goes to
@@ -29,6 +29,7 @@ export function ServiceCard({
   onSelect: () => void;
 }) {
   const price = priceHidden(service) ? '' : publicPrice(service) || 'Sin costo';
+  const anticipo = service.anticipo ?? 0;
   return (
     <button
       type="button"
@@ -77,12 +78,19 @@ export function ServiceCard({
           <Clock className="h-3.5 w-3.5" aria-hidden="true" />
           {formatDuration(service.duration_minutes)}
         </span>
-        {price && (
-          <span
-            className="text-[18px] font-semibold tabular-nums text-ink"
-            style={{ fontFamily: 'var(--tpl-heading-font, var(--font-heading))' }}
-          >
-            {price}
+        {(price || anticipo > 0) && (
+          <span className="flex flex-col items-end text-right">
+            {price && (
+              <span
+                className="text-[18px] font-semibold tabular-nums text-ink"
+                style={{ fontFamily: 'var(--tpl-heading-font, var(--font-heading))' }}
+              >
+                {price}
+              </span>
+            )}
+            {anticipo > 0 && (
+              <span className="text-[12px] font-medium tabular-nums text-muted">Pide anticipo de {pesos(anticipo)}</span>
+            )}
           </span>
         )}
       </span>

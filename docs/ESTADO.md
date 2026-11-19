@@ -21,6 +21,7 @@
 - Add-on Cotiza por WhatsApp (cotizar del catálogo, aceptar, facturar CFDI con constancia leída por Claude, seguimiento 48 h): migración `db/057` SIN correr, plantilla de seguimiento sin aprobar, precio por decidir ($1,499 propuesto), sin cobro (Mercado Pago por negocio = siguiente paso). Ver WHATSAPP_SETUP.md → "Cotiza".
 - Bot de citas con anticipo por WhatsApp (18 nov): listas interactivas (servicio → especialista → día → hora), apartado de 15 min que se libera solo, recordatorios 24 h/2 h con Confirmo/Reagendar (plazo del negocio), seguimiento post-cita, panel Anticipos en `/dashboard/whatsapp` y demo `/panel/whatsapp`. Mercado Pago Connect (OAuth, el dinero va directo al negocio) listo para sandbox, apagado con `MP_CONNECT_ENABLED`. Migración `db/061_anticipos.sql` SIN correr; plantillas `WHATSAPP_TEMPLATE_RECORDATORIO/SEGUIMIENTO/APARTADO_VENCIDO` sin aprobar; cron `/api/cron/citas-whatsapp` diario (el de 2 h necesita cron externo cada 15 min). Ver WHATSAPP_SETUP.md §8–9.
 - UX (19 nov): registro sugiere un link libre y aguanta sin señal, la prueba de 15 días se explica con fechas, "Descargar mis datos" (CSV, solo dueño) en Mi plan; la web de reservas ya pide el anticipo y "Ver mi cita" lo muestra y aplica el plazo; en el panel "Ya pagó / 1 h más / Liberar" y "Apartados por cobrar", e instrucciones de pago que el bot manda (`db/062_anticipo_instrucciones.sql` SIN correr). Botón "Agenda por WhatsApp" listo, oculto hasta que haya `WHATSAPP_CONTACTO`.
+- UI (19 nov): Anticipos con página propia en Dinero para todos los planes; landing sin scroll lateral en teléfono y recordatorios mostrados como correo; panel de vendedores rehecho para el celular (recibo "te queda", alta rápida, toasts); Facturas/Reuniones/Mi marca/Referidos sin cortes a 375 px y sin mensajes de migración a la dueña. Decidir: si bicho le cobra al vendedor los mensajes de WhatsApp.
 - Add-on Boost de clientes (Negocio/Pro, $399/mes, 300 msj/mes): lista VIP de cancelaciones + horas flojas con descuento de 20 min, panel `/dashboard/boost`, demo `/panel/boost`, cron diario `/api/cron/boost`. Migración `db/058` SIN correr, plantillas `WHATSAPP_TEMPLATE_BOOST_VIP/FLOJAS` sin aprobar, sin cobro. Ver WHATSAPP_SETUP.md → "Boost".
 
 ## Pendiente de Bruno
@@ -38,9 +39,6 @@
 ## Bugs y huecos conocidos
 - `planes.ts` dice "recordatorios por correo" en Esencial, pero el cron solo corre con `regresan` (Negocio).
 - No está claro con qué plan arranca la prueba de 15 días.
-- La landing promete "te mandamos tus datos" y no existe exportación.
-- La miniatura de recordatorios parece WhatsApp, que todavía no está conectado.
-- Falta `public/demo/burbujas-bigotes.webp`.
 - `MENSAJES.md` y la nota del vault tienen precios viejos ($300).
 - Dev server :3005 roto (Turbopack + next/font Archivo). Para revisar, usar worktree + `next dev --webpack`.
 

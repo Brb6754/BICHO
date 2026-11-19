@@ -14,6 +14,8 @@ import { primerNombre, waLink } from '@/lib/regresan/mensajes';
 import { cancelBooking } from './actions';
 import { RescheduleButton } from './RescheduleButton';
 import { AttendanceButtons } from './AttendanceButtons';
+import { AccionesAnticipo, type DemoAnticipo } from './AccionesAnticipo';
+import { textoVence } from '@/lib/anticiposPanel';
 
 // El detalle de una cita: lo que se abre al tocar su bloque en el
 // calendario. Una hoja abajo en el teléfono (Modal), con las acciones que
@@ -28,6 +30,8 @@ export type AccionesDemo = {
   estado: (id: string, status: string, aviso: string) => void;
   cobrar: (id: string) => void;
   cobrada: boolean;
+  /** Ya pagó / más tiempo / liberar, solo en la página. */
+  anticipo?: DemoAnticipo;
 };
 
 const grande = 'min-h-12 w-full px-5 !text-base font-semibold';
@@ -105,6 +109,24 @@ export function HojaCita({
             </dd>
           </div>
         </dl>
+
+        {/* Apartada esperando anticipo: la dueña marca el pago a mano (transferencia o en el local). */}
+        {confirmada && cita.deposit_status === 'pending' && (
+          <div className="flex flex-col gap-2 rounded-2xl bg-warning-soft p-4">
+            <p className="text-[15px] font-semibold text-ink">
+              Apartada: falta su anticipo{cita.deposit_mxn ? ` de $${cita.deposit_mxn.toLocaleString('es-MX')}` : ''}
+            </p>
+            <p className="text-[14px] leading-relaxed text-ink/75">{textoVence(cita.hold_expires_at ?? null, ahora, timezone)}. Si ya te pagó, márcalo para que no se libere.</p>
+            <AccionesAnticipo
+              slug={slug}
+              bookingId={cita.id}
+              nombre={nombre}
+              montoMxn={cita.deposit_mxn}
+              demo={demo ? (demo.anticipo ?? (() => toast('Es una demo: no se guarda nada.'))) : undefined}
+              className="mt-1"
+            />
+          </div>
+        )}
 
         {/* Antes de la cita: moverla o cancelarla. */}
         {confirmada && (!paso || demo) && (

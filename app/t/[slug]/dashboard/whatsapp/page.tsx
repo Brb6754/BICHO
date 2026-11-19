@@ -13,7 +13,7 @@ import { cotizacionesConIva } from '@/lib/quotes/preciosIva';
 import { Bloqueado } from '../plan/Bloqueado';
 import { Conversaciones, type ConversacionVista } from './Conversaciones';
 import { CotizacionesWhatsapp, type CotizacionWA } from './CotizacionesWhatsapp';
-import { Intro, Pestanas, Proximamente, Requisitos, vistaDe } from './Secciones';
+import { Anclas, Intro, ParaQue, Pestanas, Proximamente, Requisitos, vistaDe } from './Secciones';
 import { aprobarFactura, cambiarAgente, cambiarConfirmarFacturas, cambiarCotiza, cambiarEstado, guardarAnticipos, responder } from './actions';
 import { configDesdeFila, mpConnectHabilitado } from '@/lib/anticipos/config';
 import { esServicio } from '@/lib/meetings/kinds';
@@ -112,9 +112,19 @@ export default async function WhatsappPage({
       conexionMp = c ? { mpUserId: c.mp_user_id, liveMode: c.live_mode, connectedAt: c.connected_at } : null;
     }
 
+    const conConversaciones = conversaciones.length > 0 || (migrada && (numeroListo || prendido));
+    const config = configDesdeFila(tenant);
     return (
       <>
         {encabezado}
+        {conConversaciones && (
+          <Anclas
+            items={[
+              { id: 'conversaciones', texto: 'Conversaciones', detalle: conversaciones.length ? String(conversaciones.length) : undefined },
+              { id: 'anticipos', texto: 'Anticipos', detalle: anticiposMigrados ? (config.activado ? 'pides anticipo' : 'sin anticipo') : undefined },
+            ]}
+          />
+        )}
         {!migrada ? (
           // Falta db/056_whatsapp_agente.sql.
           <Proximamente vista="recepcionista" />
@@ -143,8 +153,8 @@ export default async function WhatsappPage({
           </Card>
         )}
 
-        {(conversaciones.length > 0 || (migrada && (numeroListo || prendido))) && (
-          <section className="mt-10">
+        {conConversaciones && (
+          <section id="conversaciones" className="mt-10 scroll-mt-24">
             <h2 className="mb-3 flex min-h-[2.75rem] items-center gap-1 text-[17px] font-semibold tracking-tight text-ink">
               Conversaciones
               <HelpTip title="¿Cuándo conviene contestar yo?">
@@ -152,6 +162,7 @@ export default async function WhatsappPage({
                 plática y luego «Contestar yo». Cuando termines, regrésasela para que siga agendando.
               </HelpTip>
             </h2>
+            <ParaQue>Lo que te escriben por WhatsApp y lo que les contestó la recepcionista.</ParaQue>
             <Conversaciones
               conversaciones={conversaciones}
               timezone={timezone}
@@ -167,16 +178,17 @@ export default async function WhatsappPage({
         {anticiposMigrados ? (
           <AnticiposVista
             slug={slug}
-            config={configDesdeFila(tenant)}
+            config={config}
             servicios={servicios}
             mp={{ habilitado: mpConnectHabilitado(), conexion: conexionMp }}
             timezone={timezone}
             puedeCambiar={puedeCambiar}
             guardar={guardarAnticipos.bind(null, slug)}
+            sinInstrucciones={!('anticipo_instrucciones' in tenant)}
           />
         ) : (
           // Falta db/061_anticipos.sql.
-          <section className="mt-10 max-w-3xl">
+          <section id="anticipos" className="mt-10 max-w-3xl scroll-mt-24">
             <SectionHeading title="Anticipos" />
             <Card>
               <p className="flex items-center gap-2 text-[15px] font-semibold text-ink">

@@ -25,6 +25,7 @@ import {
   type Vista,
 } from '@/lib/agenda/calendario';
 import { EtiquetaEstado, HojaCita } from './HojaCita';
+import { avisarDemo } from './AccionesAnticipo';
 import { primerNombre } from '@/lib/regresan/mensajes';
 import { AgendarDemo } from './AgendarDemo';
 
@@ -101,6 +102,7 @@ export function AgendaCalendario({
   // Solo demo: citas de ejemplo, estados cambiados y cobros simulados.
   const [extra, setExtra] = useState<AgendaBooking[]>([]);
   const [estados, setEstados] = useState<Record<string, string>>({});
+  const [anticipos, setAnticipos] = useState<Record<string, Partial<AgendaBooking>>>({});
   const [cobradas, setCobradas] = useState<Record<string, boolean>>({});
 
   // La última vista elegida en ESTE aparato; si no hay, Día en el
@@ -142,8 +144,12 @@ export function AgendaCalendario({
   const personaDe = (id?: string) => personas.find((p) => p.id === id) ?? null;
 
   const todas = useMemo(
-    () => [...citas, ...extra].map((c) => (estados[c.id] ? { ...c, status: estados[c.id] } : c)),
-    [citas, extra, estados]
+    () =>
+      [...citas, ...extra].map((c) => {
+        const d = anticipos[c.id] ? { ...c, ...anticipos[c.id] } : c;
+        return estados[c.id] ? { ...d, status: estados[c.id] } : d;
+      }),
+    [citas, extra, estados, anticipos]
   );
   const visibles = useMemo(() => (filtro ? todas.filter((c) => c.resource_id === filtro) : todas), [todas, filtro]);
   const porDia = useMemo(() => {
@@ -562,6 +568,21 @@ export function AgendaCalendario({
                 estado: (id, status, aviso) => {
                   setEstados((e) => ({ ...e, [id]: status }));
                   toast(aviso);
+                },
+                anticipo: (accion) => {
+                  const id = citaAbierta.id;
+                  const hold = citaAbierta.hold_expires_at ? new Date(citaAbierta.hold_expires_at).getTime() : 0;
+                  setAnticipos((a) => ({
+                    ...a,
+                    [id]:
+                      accion === 'pagado'
+                        ? { deposit_status: 'paid' }
+                        : accion === 'tiempo'
+                          ? { hold_expires_at: new Date(Math.max(hold, Date.now()) + 60 * 60_000).toISOString() }
+                          : { deposit_status: 'released' },
+                  }));
+                  if (accion === 'liberar') setEstados((e) => ({ ...e, [id]: 'cancelled' }));
+                  avisarDemo(accion);
                 },
                 cobrar: (id) => {
                   setCobradas((c) => ({ ...c, [id]: true }));

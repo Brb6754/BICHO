@@ -17,6 +17,7 @@ export type AgendaBooking = {
   customers: { name: string; phone?: string | null } | null;
   // db/061: llegan de una consulta aparte (conAnticipo); sin la migración no vienen.
   deposit_status?: string | null;
+  deposit_mxn?: number | null;
   hold_expires_at?: string | null;
 };
 

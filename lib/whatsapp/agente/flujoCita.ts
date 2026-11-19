@@ -188,7 +188,8 @@ async function elegirHora(ctx: CtxFlujo, s: Servicio, r: string, t: string, nomb
     [
       `¡Listo, ${nom}! Te aparté ${res.serviceName} el ${cuando}.`,
       `Para confirmarla falta un anticipo de ${pesos(res.montoMxn)}. El horario queda apartado ${minutos} minutos (hasta las ${formatTime(res.venceEn.toISOString(), tz)}); si no se recibe, se libera.`,
-      pago ? `Págalo aquí: ${pago.url}` : 'El negocio te compartirá por aquí cómo pagarlo.',
+      // Sin cobro en línea: las instrucciones que escribió el negocio (db/062), si las hay.
+      pago ? `Págalo aquí: ${pago.url}` : res.instrucciones ? `Para pagarlo: ${res.instrucciones}` : 'El negocio te compartirá por aquí cómo pagarlo.',
     ].join('\n')
   );
 }

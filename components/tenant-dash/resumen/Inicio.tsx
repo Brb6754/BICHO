@@ -237,6 +237,8 @@ export function Inicio({ p, d, modulos }: { p: ResumenProps; d: Dia; modulos: Ti
         </section>
       )}
 
+      {p.apartados}
+
       <div className="mt-6 grid gap-3 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
         {/* La siguiente cita, en grande y con los colores del negocio. */}
         <Link

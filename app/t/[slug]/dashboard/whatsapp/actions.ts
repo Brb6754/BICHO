@@ -7,7 +7,7 @@ import { planPermiteAgente } from '@/lib/whatsapp/agente/ruteo';
 import { enviarTexto } from '@/lib/whatsapp/texto';
 import { COLUMNAS_QUOTE_FACTURA, timbrarYEnviar, type QuoteFactura } from '@/lib/whatsapp/cotiza/facturar';
 import { faltaMigracion } from '@/lib/anticipos/config';
-import { leerFormAnticipo, MIGRACION_ANTICIPOS } from '@/lib/anticiposPanel';
+import { leerFormAnticipo, MIGRACION_ANTICIPOS, MIGRACION_INSTRUCCIONES } from '@/lib/anticiposPanel';
 
 // Acciones del panel de la recepcionista. Cada una prueba membresía
 // (requireTenantStaff) y filtra por tenant_id: un id de conversación de
@@ -140,8 +140,12 @@ export async function aprobarFactura(slug: string, quoteId: string) {
 
 // ── Anticipos (db/061) ───────────────────────────────────────────────
 
-/** Guarda la configuración de anticipos del negocio y el monto de cada servicio. */
-export async function guardarAnticipos(slug: string, formData: FormData) {
+/**
+ * Guarda la configuración de anticipos del negocio y el monto de cada
+ * servicio. Sin db/062 guarda todo menos las instrucciones de pago y lo
+ * devuelve en `aviso`.
+ */
+export async function guardarAnticipos(slug: string, formData: FormData): Promise<{ aviso?: string }> {
   const { tenantId, role } = await requireTenantStaff(slug);
   if (role !== 'owner' && role !== 'admin') throw new Error('Solo el dueño o un administrador puede cambiar esto.');
   const r = leerFormAnticipo(formData);
@@ -149,16 +153,20 @@ export async function guardarAnticipos(slug: string, formData: FormData) {
   const v = r.valor;
   const db = createAdminClient();
 
-  const { error } = await db
-    .from('tenants')
-    .update({
-      anticipo_enabled: v.activado,
-      anticipo_mxn: v.montoGeneralMxn,
-      anticipo_apartado_min: v.minutosApartado,
-      anticipo_reagendar_horas: v.plazoReagendarHoras,
-      anticipo_politica: v.politica,
-    })
-    .eq('id', tenantId);
+  const general = {
+    anticipo_enabled: v.activado,
+    anticipo_mxn: v.montoGeneralMxn,
+    anticipo_apartado_min: v.minutosApartado,
+    anticipo_reagendar_horas: v.plazoReagendarHoras,
+    anticipo_politica: v.politica,
+  };
+  let aviso: string | undefined;
+  let { error } = await db.from('tenants').update({ ...general, anticipo_instrucciones: v.instrucciones }).eq('id', tenantId);
+  // Sin db/062 (columna nueva): se reintenta sin las instrucciones para no perder lo demás.
+  if (error && faltaColumna(error.code)) {
+    ({ error } = await db.from('tenants').update(general).eq('id', tenantId));
+    if (!error) aviso = MIGRACION_INSTRUCCIONES;
+  }
   if (error) throw new Error(faltaMigracion(error) ? MIGRACION_ANTICIPOS : 'No se pudo guardar. Inténtalo otra vez.');
 
   // Un update por servicio; el filtro por tenant hace que un id ajeno no toque nada.
@@ -169,4 +177,5 @@ export async function guardarAnticipos(slug: string, formData: FormData) {
   if (fallo) throw new Error(faltaMigracion(fallo) ? MIGRACION_ANTICIPOS : 'Se guardó lo general, pero no el anticipo de algún servicio. Inténtalo otra vez.');
 
   revalidatePath(`/t/${slug}/dashboard/whatsapp`);
+  return { aviso };
 }

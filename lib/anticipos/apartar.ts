@@ -11,6 +11,8 @@ export type ResultadoApartado =
       requiereAnticipo: boolean;
       montoMxn: number;
       venceEn: Date | null;
+      /** Cómo pagar sin link (db/062), para el mensaje de apartado. */
+      instrucciones?: string | null;
     }
   | { ok: false; status: number; error: string };
 
@@ -59,5 +61,5 @@ export async function apartarCita(
     if (!faltaMigracion(error)) console.error('apartarCita: no se pudo marcar el anticipo', error);
     return directo;
   }
-  return { ...directo, requiereAnticipo: true, montoMxn: monto, venceEn };
+  return { ...directo, requiereAnticipo: true, montoMxn: monto, venceEn, instrucciones: config.instrucciones };
 }

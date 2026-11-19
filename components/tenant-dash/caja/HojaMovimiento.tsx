@@ -49,6 +49,7 @@ export function HojaMovimiento({
   modo,
   hoy,
   porCobrar,
+  clientas = {},
   onGuardar,
   onBorrar,
   onClose,
@@ -57,6 +58,8 @@ export function HojaMovimiento({
   hoy: string;
   /** Citas de hoy que ya llegaron y nadie ha cobrado. */
   porCobrar: Movimiento[];
+  /** bookingId → nombre de la clienta, para saber a quién se cobra. */
+  clientas?: Record<string, string>;
   /** Devuelve el error a mostrar, o null si se guardó. */
   onGuardar: (d: Guardado) => Promise<string | null>;
   onBorrar: (m: Movimiento) => Promise<string | null>;
@@ -158,7 +161,13 @@ export function HojaMovimiento({
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-[17px] font-semibold text-ink">{c.servicio ?? c.concepto}</span>
-                        <span className="block text-[15px] text-muted">{c.hora ? `Cita de las ${c.hora}` : 'Cita de hoy'}</span>
+                        <span className="block truncate text-[15px] text-muted">
+                          {c.bookingId && clientas[c.bookingId]
+                            ? `${c.hora ?? 'Hoy'} · ${clientas[c.bookingId]}`
+                            : c.hora
+                              ? `Cita de las ${c.hora}`
+                              : 'Cita de hoy'}
+                        </span>
                       </span>
                       <span className="shrink-0 text-xl font-bold tabular-nums text-ink">{formatoPesos(c.montoCents)}</span>
                       <ChevronRight className="h-5 w-5 shrink-0 text-muted" aria-hidden="true" />

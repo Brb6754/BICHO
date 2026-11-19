@@ -36,6 +36,7 @@ export function AnticiposVista({
   timezone,
   puedeCambiar,
   guardar,
+  sinInstrucciones = false,
 }: {
   slug: string;
   config: ConfigAnticipo;
@@ -43,8 +44,10 @@ export function AnticiposVista({
   mp: { habilitado: boolean; conexion: ConexionMp };
   timezone: string | null;
   puedeCambiar: boolean;
-  /** Sin esto es la demo: nada se escribe. */
-  guardar?: (fd: FormData) => Promise<unknown>;
+  /** Sin esto es la demo: nada se escribe. Puede devolver un `aviso` (guardado a medias). */
+  guardar?: (fd: FormData) => Promise<{ aviso?: string } | void>;
+  /** Falta db/062: «Cómo te pagan» todavía no se puede guardar. */
+  sinInstrucciones?: boolean;
 }) {
   const demo = !guardar;
   const [activado, setActivado] = useState(config.activado);
@@ -62,7 +65,7 @@ export function AnticiposVista({
   };
 
   return (
-    <section className="mt-10 max-w-3xl">
+    <section id="anticipos" className="mt-10 max-w-3xl scroll-mt-24">
       <h2 className="mb-3 flex min-h-[2.75rem] items-center gap-1 text-[17px] font-semibold tracking-tight text-ink">
         Anticipos
         <HelpTip title="¿Cómo funciona el anticipo?">
@@ -71,6 +74,10 @@ export function AnticiposVista({
           «Anticipo pagado».
         </HelpTip>
       </h2>
+      {/* Mismo estilo que ParaQue de whatsapp/Secciones.tsx. */}
+      <p className="-mt-2 mb-4 text-[15px] leading-relaxed text-muted">
+        Pide dinero para apartar las citas de WhatsApp, para que no te dejen plantada.
+      </p>
 
       <Card>
         <form
@@ -78,16 +85,22 @@ export function AnticiposVista({
             e.preventDefault();
             const fd = new FormData(e.currentTarget);
             startTransition(async () => {
-              await correrConAviso(
-                // La demo valida igual que el servidor, para que se sienta real.
-                guardar ??
-                  (async (datos: FormData) => {
-                    const r = leerFormAnticipo(datos);
-                    if (!r.ok) throw new Error(r.error);
-                  }),
+              let aviso: string | undefined;
+              const ok = await correrConAviso(
+                async (datos: FormData) => {
+                  if (guardar) {
+                    aviso = (await guardar(datos))?.aviso;
+                    return;
+                  }
+                  // La demo valida igual que el servidor, para que se sienta real.
+                  const r = leerFormAnticipo(datos);
+                  if (!r.ok) throw new Error(r.error);
+                },
                 fd,
                 demo ? 'Listo (es una demo: aquí no se guarda nada)' : 'Anticipos guardados'
               );
+              // Guardado a medias (falta db/062): este aviso reemplaza al de "guardados".
+              if (ok && aviso) toast(aviso, 'error');
             });
           }}
           // Sin validación del navegador: un campo inválido escondido (anticipo apagado) bloquearía sin decir nada.
@@ -191,6 +204,26 @@ export function AnticiposVista({
               </FormField>
             </div>
 
+            <FormField
+              label="Cómo te pagan"
+              hint={
+                sinInstrucciones
+                  ? 'Todavía no se puede guardar: falta correr db/062. Lo demás sí se guarda.'
+                  : 'Se lo mandamos a tu clienta cuando aparta. Lo puede ver cualquiera que reserve: pon solo datos para recibir dinero, nunca contraseñas.'
+              }
+              optional
+            >
+              <textarea
+                name="instrucciones"
+                rows={3}
+                maxLength={500}
+                placeholder="Ej. Transferencia a la CLABE 0123 4567 8901 2345 67 a nombre de Ana López. O en efectivo en el local."
+                defaultValue={config.instrucciones ?? ''}
+                disabled={!puedeCambiar}
+                className={area}
+              />
+            </FormField>
+
             <FormField label="Tu política" hint="Se la decimos a tu cliente cuando le pedimos el anticipo." optional>
               <textarea
                 name="politica"
@@ -244,7 +277,8 @@ function CobroEnLinea({
           Cobro en línea: próximamente
         </p>
         <p className="mt-1 text-sm leading-relaxed text-muted">
-          Por ahora, cuando alguien aparta, la recepcionista le dice que tú le compartes cómo pagar.
+          Por ahora, cuando alguien aparta, la recepcionista le manda lo que escribiste en «Cómo te pagan». Cuando te
+          pague, márcalo en la cita con «Ya pagó» (en tu agenda o en el inicio) para que no se libere.
         </p>
       </Card>
     );

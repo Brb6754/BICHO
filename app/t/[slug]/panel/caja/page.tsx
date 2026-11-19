@@ -22,6 +22,7 @@ export default async function CajaDemoPage({ params }: { params: Promise<{ slug:
         hoy={dayKey(datos.now, timezone)}
         movimientos={demoCaja(slug, datos.services, timezone, datos.now, datos.citas)}
         porCobrarDemo={demoPorCobrar(datos.services, timezone, datos.now, datos.citas)}
+        clientas={Object.fromEntries(datos.citas.filter((c) => c.customers?.name).map((c) => [c.id, c.customers!.name]))}
         demo
       />
     </div>

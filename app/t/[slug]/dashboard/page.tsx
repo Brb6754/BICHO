@@ -4,7 +4,8 @@ import { ShareLink } from '@/components/tenant-dash/ui/ShareLink';
 import { PrimerosPasos } from '@/components/tenant-dash/ui/PrimerosPasos';
 import { createClient } from '@/lib/supabase/server';
 import { type AgendaBooking } from '@/components/tenant-dash/AgendaList';
-import { conAnticipo } from '@/lib/anticiposPanel';
+import { apartadoDe, conAnticipo, type FilaApartado } from '@/lib/anticiposPanel';
+import { ApartadosPorCobrar } from '@/components/tenant-dash/resumen/ApartadosPorCobrar';
 import { dayKey } from '@/lib/dates/tenantTime';
 import { tenantBookingPageUrl } from '@/lib/urls';
 import { esServicio } from '@/lib/meetings/kinds';
@@ -62,6 +63,7 @@ export default async function DashboardOverviewPage({ params }: { params: Promis
     { count: scheduleCount },
     { count: bookingCount },
     { data: anticipos },
+    { data: pendientes },
   ] = await Promise.all([
       supabase
         .from('bookings')
@@ -91,11 +93,21 @@ export default async function DashboardOverviewPage({ params }: { params: Promis
       // Anticipo de cada cita (db/061), aparte: sin la migración falla sola y el inicio sigue igual.
       supabase
         .from('bookings')
-        .select('id, deposit_status, hold_expires_at')
+        .select('id, deposit_status, hold_expires_at, deposit_mxn')
         .eq('tenant_id', tenant!.id)
         .not('deposit_status', 'is', null)
         .gte('starts_at', from)
         .lte('starts_at', to),
+      // Apartados esperando anticipo, de cualquier fecha (el bot aparta hasta 14 días adelante).
+      // Sin db/061 la consulta falla y la lista simplemente no se pinta.
+      supabase
+        .from('bookings')
+        .select('id, starts_at, deposit_mxn, hold_expires_at, customers(name), service_types(name)')
+        .eq('tenant_id', tenant!.id)
+        .eq('status', 'confirmed')
+        .eq('deposit_status', 'pending')
+        .order('hold_expires_at')
+        .limit(20),
     ]);
 
   const bookings = conAnticipo((raw ?? []) as unknown as AgendaBooking[], anticipos);
@@ -150,6 +162,16 @@ export default async function DashboardOverviewPage({ params }: { params: Promis
       action={<ShareLink url={bookingUrl} slug={slug} negocio={tenant?.name} className="justify-center" />}
       // Primeros pasos: hasta que el negocio recibe su primera cita, arriba
       // de todo, porque nada de lo de abajo pasa sin ellos.
+      apartados={
+        pendientes?.length ? (
+          <ApartadosPorCobrar
+            apartados={(pendientes as unknown as FilaApartado[]).map(apartadoDe)}
+            slug={slug}
+            timezone={tz}
+            ahora={now.toISOString()}
+          />
+        ) : undefined
+      }
       setup={<PrimerosPasos slug={slug} url={bookingUrl} negocio={tenant?.name ?? ''} estado={pasos} />}
     />
   );

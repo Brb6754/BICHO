@@ -7,6 +7,7 @@ import { cargarPanelDemo } from '@/lib/demo/panelData';
 import { tenantBookingPageUrl } from '@/lib/urls';
 import { dayKey } from '@/lib/dates/tenantTime';
 import { fechaDeParam, rangoDeCarga } from '@/lib/agenda/calendario';
+import { conAnticiposDemo } from '@/lib/anticiposPanel';
 
 export const dynamic = 'force-dynamic';
 
@@ -51,7 +52,7 @@ export default async function AgendaDemoPage({
 
       <div className="mt-6">
         <AgendaCalendario
-          citas={datos.citas}
+          citas={conAnticiposDemo(datos.citas, datos.now)}
           personas={datos.resources}
           timezone={tz}
           ahora={datos.now.toISOString()}

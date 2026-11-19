@@ -112,6 +112,7 @@ export function CajaBoard({
   hoy,
   movimientos,
   porCobrarDemo,
+  clientas,
   corteBase = null,
   demo = false,
 }: {
@@ -122,6 +123,8 @@ export function CajaBoard({
   corteBase?: CorteGuardado;
   /** Demo: citas de hoy de la agenda demo que ya empezaron (fuera de los totales hasta cobrarlas). */
   porCobrarDemo?: Movimiento[];
+  /** bookingId → nombre de la clienta, para la lista de «Cobrar una cita». */
+  clientas?: Record<string, string>;
   /** El panel de demostración: todo se puede tocar y nada se guarda. */
   demo?: boolean;
 }) {
@@ -519,6 +522,7 @@ export function CajaBoard({
           modo={hoja}
           hoy={hoy}
           porCobrar={porCobrar}
+          clientas={clientas}
           onGuardar={guardar}
           onBorrar={borrar}
           onClose={() => setHoja(null)}

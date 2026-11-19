@@ -11,6 +11,8 @@ import { demoInventario } from '@/lib/inventario/demo';
 import { seAcaba } from '@/lib/inventario/logica';
 import { tenantBookingPageUrl } from '@/lib/urls';
 import { tilesDe } from '@/lib/branding/moduloColores';
+import { apartadoDe, conAnticiposDemo } from '@/lib/anticiposPanel';
+import { ApartadosPorCobrar } from '@/components/tenant-dash/resumen/ApartadosPorCobrar';
 
 // Los módulos que la demo enseña (los mismos que prende su Sidebar en panel/layout.tsx).
 const PRODUCTOS_DEMO = {
@@ -63,7 +65,10 @@ export default async function PanelDemoPage({ params }: { params: Promise<{ slug
   const datos = await cargarPanelDemo(slug);
   if (!datos) notFound();
 
-  const { tenant, citas, services, resources, now } = datos;
+  const { tenant, services, resources, now } = datos;
+  // Dos citas apartadas esperando anticipo y una pagada, igual que en la agenda demo.
+  const citas = conAnticiposDemo(datos.citas, now);
+  const apartados = citas.filter((c) => c.status === 'confirmed' && c.deposit_status === 'pending').map(apartadoDe);
   const tz = tenant.timezone;
 
   const hoyKey = dayKey(now, tz);
@@ -103,6 +108,7 @@ export default async function PanelDemoPage({ params }: { params: Promise<{ slug
         alertas={alertas}
         base="/panel"
         modulos={tilesDe(PRODUCTOS_DEMO, '/panel', null, false)}
+        apartados={<ApartadosPorCobrar apartados={apartados} slug={slug} timezone={tz} ahora={now.toISOString()} demo />}
         demo={{ servicios: services.map((s) => s.name), personas: resources.map((r) => r.name), hoyKey }}
       />
 

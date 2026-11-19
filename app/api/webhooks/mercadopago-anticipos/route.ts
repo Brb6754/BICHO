@@ -4,9 +4,7 @@ import { obtenerTokenVendedor } from '@/lib/payments/mpConnect';
 import { leerReferenciaAnticipo } from '@/lib/payments/mpConnectPago';
 import { confirmarAnticipo } from '@/lib/anticipos/confirmar';
 import { faltaMigracion, mpConnectHabilitado } from '@/lib/anticipos/config';
-import { enviarTexto } from '@/lib/whatsapp/texto';
-import { toE164Mx } from '@/lib/whatsapp/phone';
-import { appointmentWhen } from '@/lib/dates/tenantTime';
+import { avisarPorWhatsapp as avisar, pesosMxn as pesos } from '@/lib/anticipos/avisar';
 
 // Webhook de pagos de ANTICIPOS (Mercado Pago Connect, cuenta del negocio).
 // Separado del de suscripciones (/api/webhooks/mercadopago): otro secreto,
@@ -24,7 +22,6 @@ const MAX_BODY_BYTES = 64 * 1024;
 
 type Notificacion = { id?: string | number; type?: string; date_created?: string; user_id?: string | number; data?: { id?: string | number } };
 type Pago = { id: number | string; status?: string; transaction_amount?: number; currency_id?: string; external_reference?: string | null; collector_id?: number | string };
-type Db = ReturnType<typeof createAdminClient>;
 
 // Solo id/tipo/fecha: el resto puede traer datos del pagador.
 const log = (id: string, type: string, created: string | undefined, nota: string) =>
@@ -156,28 +153,4 @@ export async function POST(request: Request) {
 
   log(eventId, type, body.date_created, `procesado (${r.ok ? (r.yaEstaba ? 'ya pagado' : 'confirmado') : r.motivo})`);
   return Response.json({ received: true });
-}
-
-const pesos = (n: number) => `$${n.toLocaleString('es-MX', { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 })} MXN`;
-
-/** Manda el aviso al teléfono de la cita, por el número del negocio o el de la plataforma. Nunca lanza. */
-async function avisar(db: Db, ref: { tenantId: string; bookingId: string }, texto: (c: { servicio: string; cuando: string }) => string) {
-  try {
-    const [{ data: cita }, { data: tenant }] = await Promise.all([
-      db.from('bookings').select('starts_at, customers(phone), service_types(name)').eq('id', ref.bookingId).eq('tenant_id', ref.tenantId).maybeSingle(),
-      db.from('tenants').select('*').eq('id', ref.tenantId).maybeSingle(),
-    ]);
-    const c = cita as { starts_at: string; customers?: { phone?: string | null } | null; service_types?: { name?: string | null } | null } | null;
-    const t = tenant as { timezone?: string | null; whatsapp_phone_number_id?: string | null } | null;
-    const to = c?.customers?.phone ? toE164Mx(c.customers.phone) : null;
-    const phoneNumberId = t?.whatsapp_phone_number_id || process.env.WHATSAPP_PHONE_NUMBER_ID;
-    if (!c || !to || !phoneNumberId) {
-      console.warn(`[mp-anticipos] sin teléfono o número emisor para avisar booking=${ref.bookingId}`);
-      return;
-    }
-    const enviado = await enviarTexto(phoneNumberId, to, texto({ servicio: c.service_types?.name ?? 'tu cita', cuando: appointmentWhen(c.starts_at, t?.timezone) }));
-    if (!enviado.ok) console.warn(`[mp-anticipos] aviso por WhatsApp no salió booking=${ref.bookingId}`);
-  } catch (e) {
-    console.error(`[mp-anticipos] aviso falló: ${e instanceof Error ? e.message : 'desconocido'}`);
-  }
 }

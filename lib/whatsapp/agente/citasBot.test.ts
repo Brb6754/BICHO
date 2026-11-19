@@ -3,6 +3,7 @@ import { fakeDb } from './fakeDb';
 import { extraerMensajes, procesarMensaje, type MensajeEntrante } from './procesar';
 import { armarId, leerId, paginar, quiereAgendar } from './flujoCita';
 import { correrCronCitas } from './avisos';
+import { ejecutarHerramienta } from './herramientas';
 import { cuerpoInteractivo, enviarInteractivo, enviarPlantillaConBotones, type Saliente } from '@/lib/whatsapp/interactivo';
 
 // Bot de citas con botones + anticipo. Meta (Graph) y Claude van mockeados; nada sale a la red.
@@ -237,6 +238,33 @@ describe('flujo guiado de cita', () => {
     expect(final).toContain('20 minutos (hasta las 12:20)');
     expect(final).toContain('El negocio te compartirá por aquí cómo pagarlo.');
     expect(meta.client.messages.create).not.toHaveBeenCalled();
+  });
+
+  it('con anticipo, sin link y con instrucciones del negocio (db/062): manda las instrucciones', async () => {
+    const instr = 'Transferencia a la CLABE 0123 a nombre de Ana López.';
+    const w = mundo({ anticipo: true, tenantOver: { anticipo_instrucciones: instr } });
+    const meta = crearMeta();
+    await procesarMensaje(msg({ texto: 'Hola salon-a, agendar' }), { db: w.db, ...meta, client: meta.client as never });
+    await elegir(w, meta, 'Corte');
+    await elegir(w, meta, 'Mañana');
+    await elegir(w, meta, '12:00', { nombrePerfil: 'Daniela' });
+    const final = meta.textos().at(-1)!;
+    expect(final).toContain(`Para pagarlo: ${instr}`);
+    expect(final).not.toContain('El negocio te compartirá');
+  });
+
+  it('crear_cita de la IA sin link: pasa las instrucciones del negocio en si_no_hay_link', async () => {
+    const instr = 'Efectivo en el local o transferencia a la CLABE 0123.';
+    const w = mundo({ anticipo: true, tenantOver: { anticipo_instrucciones: instr } });
+    const ctx = { db: w.db, tenantId: 'T-A', slug: 'salon-a', timezone: TZ, telefono: TEL, conversacionId: 'C1' };
+    const r = (await ejecutarHerramienta(ctx, 'crear_cita', { servicio: 'Corte', inicio: `${MANANA}T17:00:00.000Z`, nombre: 'Daniela' })) as Record<string, unknown>;
+    expect(r).toMatchObject({ requiere_anticipo: true, link_de_pago: null });
+    expect(String(r.si_no_hay_link)).toContain(instr);
+
+    // Sin instrucciones: la frase genérica de siempre.
+    const w2 = mundo({ anticipo: true });
+    const r2 = (await ejecutarHerramienta({ ...ctx, db: w2.db }, 'crear_cita', { servicio: 'Corte', inicio: `${MANANA}T17:00:00.000Z`, nombre: 'Daniela' })) as Record<string, unknown>;
+    expect(r2.si_no_hay_link).toBe('El negocio le compartirá por aquí cómo pagar el anticipo.');
   });
 
   it('con anticipo y link de pago: "Cualquiera disponible" elige un recurso libre y manda el link', async () => {

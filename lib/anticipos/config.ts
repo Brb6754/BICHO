@@ -12,6 +12,8 @@ export type ConfigAnticipo = {
   minutosApartado: number;
   plazoReagendarHoras: number;
   politica: string | null;
+  /** Cómo pagar sin link (db/062): "Transferencia a la CLABE …". */
+  instrucciones: string | null;
   timezone: string | null;
 };
 
@@ -21,8 +23,11 @@ export const CONFIG_APAGADA: ConfigAnticipo = {
   minutosApartado: 15,
   plazoReagendarHoras: 24,
   politica: null,
+  instrucciones: null,
   timezone: null,
 };
+
+const texto = (v: unknown): string | null => (typeof v === 'string' && v.trim() ? v.trim() : null);
 
 const entero = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? Math.trunc(v) : null);
 
@@ -33,7 +38,8 @@ export function configDesdeFila(fila: Record<string, unknown> | null | undefined
     montoGeneralMxn: entero(fila.anticipo_mxn),
     minutosApartado: entero(fila.anticipo_apartado_min) ?? CONFIG_APAGADA.minutosApartado,
     plazoReagendarHoras: entero(fila.anticipo_reagendar_horas) ?? CONFIG_APAGADA.plazoReagendarHoras,
-    politica: typeof fila.anticipo_politica === 'string' && fila.anticipo_politica.trim() ? fila.anticipo_politica.trim() : null,
+    politica: texto(fila.anticipo_politica),
+    instrucciones: texto(fila.anticipo_instrucciones),
     timezone: typeof fila.timezone === 'string' ? fila.timezone : null,
   };
 }

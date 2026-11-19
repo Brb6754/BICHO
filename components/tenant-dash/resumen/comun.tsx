@@ -18,6 +18,8 @@ export type ResumenProps = {
   alertas: Alerta[];
   base: string;
   action?: React.ReactNode;
+  /** "Apartados por cobrar" (citas esperando anticipo), si hay alguno. */
+  apartados?: React.ReactNode;
   /** El checklist de "tu página todavía no puede recibir citas", si aplica. */
   setup?: React.ReactNode;
   /** La cuadrícula de módulos del inicio. */

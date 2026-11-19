@@ -89,7 +89,7 @@ export default async function CalendarPage({
   // Anticipo de cada cita (db/061), en consulta aparte: sin la migración falla sola y la agenda sigue igual.
   const { data: anticipos } = await supabase
     .from('bookings')
-    .select('id, deposit_status, hold_expires_at')
+    .select('id, deposit_status, hold_expires_at, deposit_mxn')
     .eq('tenant_id', tenant!.id)
     .not('deposit_status', 'is', null)
     .gte('starts_at', instantFromLocal(rango.desde, '00:00', tz))

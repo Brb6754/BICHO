@@ -4,7 +4,7 @@ import { DemoNote } from '@/components/demo/DemoNote';
 import { cargarPanelDemo } from '@/lib/demo/panelData';
 import { Conversaciones, type ConversacionVista } from '@/app/t/[slug]/dashboard/whatsapp/Conversaciones';
 import { CotizacionesWhatsapp, type CotizacionWA } from '@/app/t/[slug]/dashboard/whatsapp/CotizacionesWhatsapp';
-import { Intro, Pestanas, vistaDe } from '@/app/t/[slug]/dashboard/whatsapp/Secciones';
+import { Anclas, Intro, ParaQue, Pestanas, vistaDe } from '@/app/t/[slug]/dashboard/whatsapp/Secciones';
 import { SectionHeading } from '@/components/tenant-dash/PageHeader';
 import { AnticiposVista } from '@/components/tenant-dash/AnticiposVista';
 import { CONFIG_APAGADA } from '@/lib/anticipos/config';
@@ -91,15 +91,31 @@ export default async function WhatsappDemoPage({
       <Intro vista={vista} />
       {vista === 'recepcionista' ? (
         <section className="mt-10">
-          <SectionHeading title="Conversaciones" />
+          <Anclas
+            items={[
+              { id: 'conversaciones', texto: 'Conversaciones', detalle: String(ejemplo.length) },
+              { id: 'anticipos', texto: 'Anticipos', detalle: 'pides anticipo' },
+            ]}
+          />
+          <div id="conversaciones" className="mt-8 scroll-mt-24">
+            <SectionHeading title="Conversaciones" />
+            <ParaQue>Lo que te escriben por WhatsApp y lo que les contestó la recepcionista.</ParaQue>
+          </div>
           <Conversaciones conversaciones={ejemplo} timezone={tenant.timezone} />
           <DemoNote>Conversaciones de ejemplo: los teléfonos y mensajes son inventados y los botones no envían nada.</DemoNote>
           {/* Anticipos de ejemplo: el primer servicio sin anticipo (0) y el más caro pide más que el general. Sin `guardar`: todo en memoria. */}
           <AnticiposVista
             slug={slug}
-            config={{ ...CONFIG_APAGADA, activado: true, montoGeneralMxn: 100, politica: 'El anticipo se descuenta del total. Si cancelas con menos de 24 horas, no se devuelve.' }}
+            config={{
+              ...CONFIG_APAGADA,
+              activado: true,
+              montoGeneralMxn: 100,
+              politica: 'El anticipo se descuenta del total. Si cancelas con menos de 24 horas, no se devuelve.',
+              instrucciones: `Transferencia a la CLABE 0000 0000 0000 0000 00 (ejemplo) a nombre de ${tenant.name}, o en efectivo en el local.`,
+            }}
             servicios={services.map((s, i) => ({ id: s.id, name: s.name, deposit_mxn: i === 0 ? 0 : s.price_cents >= 60000 ? 200 : null }))}
-            mp={{ habilitado: true, conexion: { mpUserId: '123456789', liveMode: true, connectedAt: hace(60 * 24 * 12) } }}
+            // Fase 1, igual que las cuentas reales hoy: sin cobro en línea, con instrucciones y «Ya pagó».
+            mp={{ habilitado: false, conexion: null }}
             timezone={tenant.timezone}
             puedeCambiar
           />

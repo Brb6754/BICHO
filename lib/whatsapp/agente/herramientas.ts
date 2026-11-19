@@ -252,7 +252,12 @@ export async function ejecutarHerramienta(ctx: Contexto, nombre: string, input: 
         anticipo_mxn: r.montoMxn,
         apartada_hasta: formatTime(r.venceEn.toISOString(), ctx.timezone),
         link_de_pago: link?.url ?? null,
-        si_no_hay_link: link ? null : 'El negocio le compartirá por aquí cómo pagar el anticipo.',
+        // Sin link: las instrucciones de pago del negocio (db/062), tal cual; sin ellas, la frase genérica.
+        si_no_hay_link: link
+          ? null
+          : r.instrucciones
+            ? `No hay link de pago. Dile cómo pagar con estas instrucciones del negocio, tal cual, sin cambiar números: ${r.instrucciones}`
+            : 'El negocio le compartirá por aquí cómo pagar el anticipo.',
       };
     }
 

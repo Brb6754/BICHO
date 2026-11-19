@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight, Check, ChevronRight } from 'lucide-react';
+import { ArrowRight, Check, ChevronRight, ExternalLink } from 'lucide-react';
 import { LLAVE_COMPARTIDO, ShareLink } from './ShareLink';
 
 // "TU AGENDA EN 5 MINUTOS" — los primeros pasos del inicio.
@@ -214,7 +214,19 @@ export function PrimerosPasos({
                             <ArrowRight className="h-4 w-4" aria-hidden="true" />
                           </Link>
                         ) : (
-                          <ShareLink url={url} slug={slug} negocio={negocio} />
+                          <>
+                            <ShareLink url={url} slug={slug} negocio={negocio} />
+                            {/* Antes de mandarlo, que vea lo que van a ver sus clientes: desconfía con razón. */}
+                            <a
+                              href={url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="mt-2 flex w-fit min-h-[2.75rem] items-center gap-1.5 rounded-full px-1 text-sm font-semibold text-ink underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                            >
+                              Ver cómo se ve mi página
+                              <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+                            </a>
+                          </>
                         )}
                       </div>
                     </>

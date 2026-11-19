@@ -9,6 +9,7 @@ import { sendSignupConfirmation, sendSignupNotice } from '@/lib/email/registro';
 import { tenantConfirmEmailUrl, tenantShareUrl } from '@/lib/urls';
 import { canLinkReferral, normalizeReferralCode } from '@/lib/referidos/rules';
 import { banderasDelPlan, planDe } from '@/lib/billing/planes';
+import { slugCandidates } from './sugerencia';
 
 // Alta sin Bruno: un dueño crea su cuenta, su negocio y su página solo.
 //
@@ -43,15 +44,24 @@ async function clientIp(): Promise<string> {
   return h.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
 }
 
-export async function checkSlug(slug: string): Promise<{ ok: true } | { ok: false; error: string }> {
+export async function checkSlug(
+  slug: string
+): Promise<{ ok: true } | { ok: false; error: string; sugerencia?: string }> {
   if (limited(`check:${await clientIp()}`, MAX_CHECKS)) {
     return { ok: false, error: 'Demasiados intentos, espera un momento.' };
   }
   const value = typeof slug === 'string' ? slug.trim() : '';
   const err = slugError(value);
   if (err) return { ok: false, error: err };
-  const { data } = await createAdminClient().from('tenants').select('id').eq('slug', value).maybeSingle();
-  return data ? { ok: false, error: 'Esa dirección ya la tiene otro negocio.' } : { ok: true };
+  const candidates = slugCandidates(value);
+  const { data } = await createAdminClient().from('tenants').select('slug').in('slug', [value, ...candidates]);
+  const taken = new Set((data ?? []).map((r) => r.slug as string));
+  if (!taken.has(value)) return { ok: true };
+  return {
+    ok: false,
+    error: 'Ese link ya lo tiene otro negocio.',
+    sugerencia: candidates.find((c) => !taken.has(c)),
+  };
 }
 
 export type RegistroInput = {
@@ -126,7 +136,7 @@ export async function registerBusiness(input: RegistroInput): Promise<RegistroRe
   // Antes de crear la cuenta, para no dejar usuarios huérfanos por un
   // slug ocupado. La carrera real la cierra el unique de tenants.slug.
   const { data: taken } = await admin.from('tenants').select('id').eq('slug', slug).maybeSingle();
-  if (taken) return { ok: false, error: 'Esa dirección ya la tiene otro negocio. Elige otra.' };
+  if (taken) return { ok: false, error: 'Ese link ya lo tiene otro negocio. Elige otro.' };
 
   // Referidos (db/052): del cliente solo se cree el código. Un código que
   // no existe, o del mismo dueño (mismo WhatsApp), se ignora sin tumbar el alta.
@@ -210,7 +220,7 @@ export async function registerBusiness(input: RegistroInput): Promise<RegistroRe
     return {
       ok: false,
       error: tenantError?.code === '23505'
-        ? 'Esa dirección se acaba de ocupar. Elige otra.'
+        ? 'Ese link se acaba de ocupar. Elige otro.'
         : 'No se pudo crear tu negocio. Intenta de nuevo.',
     };
   }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Check, Copy, Eye, EyeOff, Loader2, MailCheck, MessageCircle, Plus, Trash2 } from 'lucide-react';
 import { GIROS, giroById, type PresetService } from '@/lib/onboarding/presets';
 import { slugError, slugify } from '@/lib/onboarding/slug';
@@ -17,7 +17,7 @@ const FIELD =
 const LABEL = 'mb-1.5 block text-sm font-semibold text-[#140F2E]';
 const PRIMARY =
   'inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#5B34E8] px-6 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-[#4423C4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5B34E8] focus-visible:ring-offset-2 disabled:opacity-60';
-const SECONDARY = 'text-sm font-semibold text-[#6A6488] hover:text-[#140F2E]';
+const SECONDARY = 'inline-flex min-h-11 items-center px-4 text-sm font-semibold text-[#6A6488] hover:text-[#140F2E]';
 
 const DAYS = [
   { d: 1, l: 'Lu' },
@@ -59,7 +59,8 @@ export function RegistroFlow({ refCode, initialPlan }: { refCode?: string; initi
 
   // Disponibilidad del slug con debounce: el formato se valida local al
   // instante (derivado) y la base solo cuando el usuario deja de escribir.
-  const [remote, setRemote] = useState<{ slug: string; error: string | null } | null>(null);
+  const [remote, setRemote] = useState<{ slug: string; error: string | null; sugerencia?: string } | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
   const localError = slug ? slugError(slug) : null;
   const slugState: SlugState = !slug
     ? { status: 'idle' }
@@ -74,8 +75,13 @@ export function RegistroFlow({ refCode, initialPlan }: { refCode?: string; initi
   useEffect(() => {
     if (!slug || slugError(slug)) return;
     const t = setTimeout(async () => {
-      const r = await checkSlug(slug);
-      setRemote({ slug, error: r.ok ? null : r.error });
+      try {
+        const r = await checkSlug(slug);
+        setRemote(r.ok ? { slug, error: null } : { slug, error: r.error, sugerencia: r.sugerencia });
+      } catch {
+        // Sin señal no se traba el paso: al crear la cuenta se vuelve a revisar.
+        setRemote({ slug, error: null });
+      }
     }, 450);
     return () => clearTimeout(t);
   }, [slug]);
@@ -99,53 +105,79 @@ export function RegistroFlow({ refCode, initialPlan }: { refCode?: string; initi
     setServices((list) => list.map((s, j) => (j === i ? { ...s, ...patch } : s)));
   }
 
+  // El aviso sale abajo, junto al botón; el cursor va al campo que hay que
+  // arreglar para que en el teléfono no tenga que buscarlo.
+  function fail(message: string, fieldId?: string) {
+    setError(message);
+    if (fieldId) requestAnimationFrame(() => document.getElementById(fieldId)?.focus());
+  }
+
+  // Al cambiar de paso, arriba del formulario (no de la página: el título
+  // morado empujaba los campos a media pantalla).
+  function goToStep(n: number) {
+    setError(null);
+    setStep(n);
+    requestAnimationFrame(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  }
+
   function next() {
     setError(null);
     if (step === 0) {
-      if (name.trim().length < 2) return setError('Escribe el nombre de tu negocio.');
-      if (!giro) return setError('Elige a qué se dedica tu negocio.');
-      if (slugState.status !== 'ok') return setError(slugState.message ?? 'Revisa la dirección de tu página.');
+      if (name.trim().length < 2) return fail('Escribe el nombre de tu negocio.', 'reg-name');
+      if (!giro) return fail('Elige a qué se dedica tu negocio.', `reg-giro-${GIROS[0].id}`);
+      if (slugState.status === 'checking') return fail('Estamos revisando si tu link está libre. Espera un segundo.');
+      if (slugState.status !== 'ok') return fail(slugState.message ?? 'Revisa tu link.', 'reg-slug');
     }
     if (step === 1) {
-      if (!services.length) return setError('Agrega al menos un servicio.');
-      const bad = services.find((s) => !s.name.trim() || !(s.minutes >= 5) || !(s.priceMxn >= 0));
-      if (bad) return setError('Cada servicio necesita nombre, duración (mín. 5 min) y precio.');
+      if (!services.length) return fail('Agrega al menos un servicio.');
+      const bad = services.findIndex((s) => !s.name.trim() || !(s.minutes >= 5) || !(s.priceMxn >= 0));
+      if (bad >= 0) {
+        return fail('A este servicio le falta el nombre, los minutos (5 o más) o el precio.', `reg-serv-${bad}`);
+      }
     }
     if (step === 2) {
-      if (!days.length) return setError('Elige al menos un día.');
-      if (opens >= closes) return setError('La hora de cierre tiene que ser después de la de apertura.');
+      if (!days.length) return fail('Elige al menos un día que abras.', 'reg-day-1');
+      if (opens >= closes) return fail('La hora de cierre tiene que ser después de la de apertura.', 'reg-closes');
     }
-    setStep(step + 1);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    goToStep(step + 1);
   }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (!normalizeMxWhatsapp(whatsapp)) return setError('Tu WhatsApp debe tener 10 dígitos.');
-    if (password.length < 10) return setError('La contraseña debe tener al menos 10 caracteres.');
+    if (!normalizeMxWhatsapp(whatsapp)) return fail('Tu WhatsApp debe tener 10 dígitos, por ejemplo 618 123 4567.', 'reg-whatsapp');
+    if (password.length < 10) return fail('La contraseña debe tener al menos 10 caracteres.', 'reg-password');
     setSubmitting(true);
-    const r = await registerBusiness({
-      name,
-      giro,
-      slug,
-      services: services.map((s) => ({ name: s.name.trim(), minutes: Math.round(s.minutes), priceMxn: s.priceMxn })),
-      days,
-      opens,
-      closes,
-      email,
-      whatsapp,
-      password,
-      website,
-      ref: refCode,
-      plan,
-    });
+    let r: Awaited<ReturnType<typeof registerBusiness>>;
+    try {
+      r = await registerBusiness({
+        name,
+        giro,
+        slug,
+        services: services.map((s) => ({ name: s.name.trim(), minutes: Math.round(s.minutes), priceMxn: s.priceMxn })),
+        days,
+        opens,
+        closes,
+        email,
+        whatsapp,
+        password,
+        website,
+        ref: refCode,
+        plan,
+      });
+    } catch {
+      // Sin señal la llamada truena; antes el botón se quedaba girando para siempre.
+      setSubmitting(false);
+      return setError('No pudimos conectar. Revisa tu internet e intenta de nuevo; lo que escribiste sigue aquí.');
+    }
     setSubmitting(false);
     if (!r.ok) {
-      setError(r.error);
-      // Un slug que se ocupó mientras llenaba: regresarlo al paso 1.
-      if (/dirección/.test(r.error)) setStep(0);
-      return;
+      // Un link que se ocupó mientras llenaba: regresarla al paso 1.
+      if (/link/.test(r.error)) {
+        goToStep(0);
+        return fail(r.error, 'reg-slug');
+      }
+      return setError(r.error);
     }
     setPassword('');
     track('alta_completada', { plan });
@@ -177,10 +209,14 @@ export function RegistroFlow({ refCode, initialPlan }: { refCode?: string; initi
             disabled={resend === 'sending' || resend === 'sent'}
             onClick={async () => {
               setResend('sending');
-              const r = await resendConfirmation(doneSlug, email);
-              setResend(r.ok ? 'sent' : (r.error ?? 'No se pudo reenviar.'));
+              try {
+                const r = await resendConfirmation(doneSlug, email);
+                setResend(r.ok ? 'sent' : (r.error ?? 'No se pudo reenviar.'));
+              } catch {
+                setResend('No pudimos conectar. Revisa tu internet e intenta de nuevo.');
+              }
             }}
-            className="mt-3 text-sm font-semibold text-[#5B34E8] underline-offset-4 hover:underline disabled:no-underline disabled:opacity-70"
+            className="mt-1 min-h-11 text-sm font-semibold text-[#5B34E8] underline-offset-4 hover:underline disabled:no-underline disabled:opacity-70"
           >
             {resend === 'sending' ? 'Reenviando…' : resend === 'sent' ? 'Listo, te lo volvimos a mandar' : '¿No te llegó? Reenviar correo'}
           </button>
@@ -197,7 +233,7 @@ export function RegistroFlow({ refCode, initialPlan }: { refCode?: string; initi
             <dd className="break-all text-sm font-semibold text-[#5B34E8]">{url}</dd>
           </div>
           <div className="rounded-2xl bg-[#F4F1FF] px-4 py-3">
-            <dt className="text-xs font-semibold text-[#6A6488]">Tu panel (aquí ves tus citas)</dt>
+            <dt className="text-xs font-semibold text-[#6A6488]">Tu panel, donde ves tus citas (guárdalo en favoritos)</dt>
             <dd className="break-all text-sm font-semibold text-[#5B34E8]">{dashboardUrl}</dd>
           </div>
         </dl>
@@ -236,7 +272,7 @@ export function RegistroFlow({ refCode, initialPlan }: { refCode?: string; initi
   }
 
   return (
-    <form onSubmit={step === 3 ? submit : (e) => (e.preventDefault(), next())} className="relative rounded-[28px] bg-white p-5 ring-1 ring-[#140F2E]/[0.06] sm:p-8">
+    <form ref={formRef} onSubmit={step === 3 ? submit : (e) => (e.preventDefault(), next())} className="relative scroll-mt-4 rounded-[28px] bg-white p-5 ring-1 ring-[#140F2E]/[0.06] sm:p-8">
       <ol className="mb-6 flex gap-1.5" aria-label="Pasos">
         {STEPS.map((label, i) => (
           <li key={label} className="flex-1">
@@ -258,10 +294,11 @@ export function RegistroFlow({ refCode, initialPlan }: { refCode?: string; initi
               {GIROS.map((g) => (
                 <button
                   key={g.id}
+                  id={`reg-giro-${g.id}`}
                   type="button"
                   onClick={() => pickGiro(g.id)}
                   aria-pressed={giro === g.id}
-                  className={`rounded-full px-4 py-2 text-sm font-semibold ring-1 transition-colors ${
+                  className={`min-h-11 rounded-full px-4 py-2 text-sm font-semibold ring-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5B34E8] ${
                     giro === g.id ? 'bg-[#5B34E8] text-white ring-[#5B34E8]' : 'bg-white text-[#140F2E] ring-[#140F2E]/12 hover:ring-[#5B34E8]'
                   }`}
                 >
@@ -271,7 +308,8 @@ export function RegistroFlow({ refCode, initialPlan }: { refCode?: string; initi
             </div>
           </fieldset>
           <div>
-            <label className={LABEL} htmlFor="reg-slug">Dirección de tu página</label>
+            <label className={LABEL} htmlFor="reg-slug">Tu link</label>
+            <p id="reg-slug-help" className="-mt-1 mb-1.5 text-xs text-[#6A6488]">Es el que vas a mandar a tus clientes. Lo armamos con el nombre; cámbialo si quieres.</p>
             <div className="flex items-center overflow-hidden rounded-2xl border border-[#140F2E]/12 focus-within:border-[#5B34E8] focus-within:ring-4 focus-within:ring-[#5B34E8]/15">
               <input
                 id="reg-slug"
@@ -286,26 +324,42 @@ export function RegistroFlow({ refCode, initialPlan }: { refCode?: string; initi
                 autoCorrect="off"
                 spellCheck={false}
                 inputMode="url"
+                aria-describedby="reg-slug-help reg-slug-status"
+                aria-invalid={slugState.status === 'error'}
               />
               <span className="shrink-0 bg-[#F4F1FF] px-3 py-3 text-sm text-[#6A6488] sm:py-2.5">.{process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? 'bichomx.com'}</span>
             </div>
-            <p className={`mt-1.5 flex items-center gap-1.5 text-xs ${slugState.status === 'error' ? 'text-[#8E1B1B]' : 'text-[#6A6488]'}`} aria-live="polite">
-              {slugState.status === 'checking' && (<><Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" /> Revisando…</>)}
-              {slugState.status === 'ok' && (<><Check className="h-3 w-3 text-[#15803D]" aria-hidden="true" /> Disponible</>)}
+            <p id="reg-slug-status" className={`mt-1.5 flex items-center gap-1.5 text-xs ${slugState.status === 'error' ? 'text-[#8E1B1B]' : 'text-[#6A6488]'}`} aria-live="polite">
+              {slugState.status === 'checking' && (<><Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" /> Revisando si está libre…</>)}
+              {slugState.status === 'ok' && (<><Check className="h-3 w-3 text-[#15803D]" aria-hidden="true" /> Está libre, es tuyo</>)}
               {slugState.status === 'error' && slugState.message}
             </p>
+            {slugState.status === 'error' && remote?.slug === slug && remote.sugerencia && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSlugTouched(true);
+                  setSlug(remote.sugerencia!);
+                }}
+                className="mt-2 inline-flex min-h-11 items-center gap-1.5 rounded-full bg-[#F4F1FF] px-4 text-sm font-semibold text-[#5B34E8] hover:bg-[#ECE7FF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5B34E8]"
+              >
+                Usar «{remote.sugerencia}», que está libre
+              </button>
+            )}
           </div>
         </div>
       )}
 
       {step === 1 && (
         <div className="space-y-4">
-          <p className="text-sm text-[#6A6488]">Precargamos los servicios típicos. Cambia nombres, minutos y precios a los tuyos.</p>
+          <p className="text-sm text-[#6A6488]">
+            Te dejamos los servicios más comunes de tu giro. <span className="font-semibold text-[#140F2E]">Pon tus precios reales</span>: así los van a ver tus clientes. Quita los que no hagas; después puedes agregar más.
+          </p>
           {services.map((s, i) => (
             <div key={i} className="rounded-2xl bg-[#F8F7FC] p-3">
               <div className="flex gap-2">
-                <input aria-label="Servicio" className={FIELD} value={s.name} maxLength={80} onChange={(e) => updateService(i, { name: e.target.value })} />
-                <button type="button" aria-label={`Quitar ${s.name}`} onClick={() => setServices((l) => l.filter((_, j) => j !== i))} className="shrink-0 rounded-full p-3 text-[#6A6488] hover:bg-white hover:text-[#8E1B1B]">
+                <input id={`reg-serv-${i}`} aria-label={`Nombre del servicio ${i + 1}`} placeholder="Ej. Corte de cabello" className={FIELD} value={s.name} maxLength={80} onChange={(e) => updateService(i, { name: e.target.value })} />
+                <button type="button" aria-label={`Quitar ${s.name || 'este servicio'}`} onClick={() => setServices((l) => l.filter((_, j) => j !== i))} className="flex h-12 w-11 shrink-0 items-center justify-center rounded-full text-[#6A6488] hover:bg-white hover:text-[#8E1B1B]">
                   <Trash2 className="h-4 w-4" aria-hidden="true" />
                 </button>
               </div>
@@ -322,7 +376,15 @@ export function RegistroFlow({ refCode, initialPlan }: { refCode?: string; initi
             </div>
           ))}
           {services.length < 30 && (
-            <button type="button" onClick={() => setServices((l) => [...l, { name: '', minutes: 60, priceMxn: 0 }])} className="inline-flex items-center gap-2 text-sm font-semibold text-[#5B34E8]">
+            <button
+              type="button"
+              onClick={() => {
+                // Precio vacío, no 0: un 0 olvidado sale como "sin costo" en su página.
+                setServices((l) => [...l, { name: '', minutes: 60, priceMxn: NaN }]);
+                requestAnimationFrame(() => document.getElementById(`reg-serv-${services.length}`)?.focus());
+              }}
+              className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-[#5B34E8]"
+            >
               <Plus className="h-4 w-4" aria-hidden="true" /> Agregar servicio
             </button>
           )}
@@ -337,7 +399,7 @@ export function RegistroFlow({ refCode, initialPlan }: { refCode?: string; initi
               {DAYS.map(({ d, l }) => {
                 const on = days.includes(d);
                 return (
-                  <button key={d} type="button" aria-pressed={on} onClick={() => setDays((x) => (on ? x.filter((y) => y !== d) : [...x, d]))} className={`rounded-xl py-3 text-sm font-semibold ring-1 ${on ? 'bg-[#5B34E8] text-white ring-[#5B34E8]' : 'bg-white text-[#140F2E] ring-[#140F2E]/12'}`}>
+                  <button key={d} id={`reg-day-${d}`} type="button" aria-pressed={on} onClick={() => setDays((x) => (on ? x.filter((y) => y !== d) : [...x, d]))} className={`rounded-xl py-3 text-sm font-semibold ring-1 ${on ? 'bg-[#5B34E8] text-white ring-[#5B34E8]' : 'bg-white text-[#140F2E] ring-[#140F2E]/12'}`}>
                     {l}
                   </button>
                 );
@@ -370,6 +432,9 @@ export function RegistroFlow({ refCode, initialPlan }: { refCode?: string; initi
               ))}
             </select>
             <p className="mt-1.5 text-xs text-[#6A6488]">{PLANES[plan].resumen} Lo cambias cuando quieras desde tu panel.</p>
+            <p className="mt-2 rounded-xl bg-[#F4F1FF] px-3 py-2 text-xs leading-relaxed text-[#140F2E]">
+              Lo pruebas 15 días gratis y no te pedimos tarjeta: no se te cobra nada a menos que tú lo actives al terminar.
+            </p>
           </div>
           <div>
             <label className={LABEL} htmlFor="reg-email">Tu correo</label>
@@ -422,7 +487,7 @@ export function RegistroFlow({ refCode, initialPlan }: { refCode?: string; initi
 
       <div className="mt-7 flex flex-col-reverse items-center gap-4 sm:flex-row sm:justify-between">
         {step > 0 ? (
-          <button type="button" className={SECONDARY} onClick={() => (setError(null), setStep(step - 1))}>
+          <button type="button" className={SECONDARY} onClick={() => goToStep(step - 1)}>
             Atrás
           </button>
         ) : <span />}

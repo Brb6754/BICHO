@@ -5,11 +5,14 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { PageHeader, SectionHeading } from '@/components/tenant-dash/PageHeader';
 import { HelpTip } from '@/components/tenant-dash/ui/HelpTip';
 import { TRIAL_GRACE_DAYS, tenantAccess } from '@/lib/billing/trial';
+import { longDate } from '@/lib/dates/tenantTime';
 import { ADDON_BOOST, CUPO_FUNDADOR, PLANES, PLAN_IDS, PRECIO_FUNDADOR_MXN, planDe, precioCheckout, precioMensual, type Modulo, type PlanId } from '@/lib/billing/planes';
 import { fundadoresUsados } from '@/lib/billing/planServer';
 import { ActivatePlanButton } from './ActivatePlanButton';
 import { COLOR_MODULO } from '@/lib/branding/moduloColores';
 import { PlanPicker, type PlanVista } from './PlanPicker';
+import { ComoSiguePrueba } from './ComoSiguePrueba';
+import { DescargarDatos } from './DescargarDatos';
 
 export const dynamic = 'force-dynamic';
 
@@ -99,6 +102,13 @@ export default async function PlanPage({
     };
   });
 
+  // Las fechas de la prueba, en la zona del negocio: "termina el jueves 3 de
+  // diciembre" se entiende; "te quedan 12 días" obliga a contar.
+  const trialEndMs = tenant?.trial_ends_at ? Date.parse(tenant.trial_ends_at) : NaN;
+  const enPrueba = access.kind === 'trial' && !Number.isNaN(trialEndMs);
+  const finPrueba = enPrueba ? longDate(new Date(trialEndMs), tenant?.timezone) : '';
+  const finGracia = enPrueba ? longDate(new Date(trialEndMs + TRIAL_GRACE_DAYS * 86_400_000), tenant?.timezone) : '';
+
   const incluye = plan ? nombres(plan) : ['Todo lo que ya tienes prendido en tu panel'];
   const boostPermitido = plan === null || ADDON_BOOST.planes.includes(plan);
 
@@ -118,6 +128,8 @@ export default async function PlanPage({
       >
         {estado}
       </p>
+
+      {enPrueba && <ComoSiguePrueba finPrueba={finPrueba} finGracia={finGracia} />}
 
       {vuelta && !isPaying && (
         <p className="mt-3 rounded-2xl bg-ink/[0.04] px-4 py-3 text-sm leading-relaxed text-ink">
@@ -215,6 +227,8 @@ export default async function PlanPage({
           </article>
         </div>
       </section>
+
+      <DescargarDatos esDueno={esDueno} />
     </div>
   );
 }

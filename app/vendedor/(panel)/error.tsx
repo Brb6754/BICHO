@@ -13,9 +13,18 @@ export default function ResellerPanelError({ reset }: { error: Error; reset: () 
         Puede que ese negocio no sea tuyo o que la sesión haya caducado. Vuelve a intentarlo; si sigue igual,
         escríbenos.
       </p>
-      <Button type="button" onClick={reset}>
-        Reintentar
-      </Button>
+      <div className="flex flex-wrap justify-center gap-2">
+        <Button type="button" onClick={reset}>
+          Reintentar
+        </Button>
+        {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- carga completa a propósito: una navegación suave puede caer en el mismo render roto. */}
+        <a
+          href="/"
+          className="inline-flex min-h-11 items-center rounded-full border border-border px-5 text-sm font-medium text-ink hover:bg-ink/[0.04]"
+        >
+          Ir a mis negocios
+        </a>
+      </div>
     </div>
   );
 }

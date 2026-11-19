@@ -8,6 +8,7 @@ import { useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { BichoLogo } from '@/components/marketing/BichoLogo';
+import { Toaster } from '@/components/tenant-dash/ui/Toast';
 import { signOut } from '@/app/vendedor/actions';
 
 // Hrefs are PUBLIC paths (vendedores.dominio/negocios), never the
@@ -34,16 +35,16 @@ export function ResellerShell({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  // The drawer remembers WHICH page it was opened on, so navigating
+  // closes it without an effect that resets state after every render.
+  const [openOn, setOpenOn] = useState<string | null>(null);
+  const open = openOn !== null && openOn === pathname;
+  const setOpen = (value: boolean) => setOpenOn(value ? pathname : null);
   const [signingOut, startSignOut] = useTransition();
 
   useEffect(() => {
-    setOpen(false);
-  }, [pathname]);
-
-  useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpenOn(null);
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [open]);
@@ -57,14 +58,26 @@ export function ResellerShell({
           onClick={() => setOpen(true)}
           aria-label="Abrir menú"
           aria-expanded={open}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-ink transition-colors hover:bg-ink/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-ink transition-colors hover:bg-ink/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
         >
           <Menu className="h-5 w-5" />
         </button>
-        <span className="flex items-center rounded-lg bg-primary px-2.5 py-1.5">
-          <BichoLogo className="h-4" />
-        </span>
-        <p className="min-w-0 truncate text-sm font-semibold text-ink">Vendedor</p>
+        <Link href="/" aria-label="Ir al resumen" className="flex min-h-11 items-center rounded-lg">
+          <span className="flex items-center rounded-lg bg-primary px-2.5 py-1.5">
+            <BichoLogo className="h-4" />
+          </span>
+        </Link>
+        <p className="hidden min-w-0 truncate text-sm font-semibold text-ink min-[400px]:block">Vendedor</p>
+        {/* La acción de todos los días, a un toque desde cualquier pantalla. */}
+        {pathname !== '/negocios/nuevo' && (
+          <Link
+            href="/negocios/nuevo"
+            className="ml-auto inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full bg-primary px-4 text-[13px] font-semibold text-[rgb(var(--color-cta-fg))] transition active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+          >
+            <Plus className="h-4 w-4" aria-hidden="true" />
+            Nuevo negocio
+          </Link>
+        )}
       </div>
 
       <div
@@ -92,7 +105,7 @@ export function ResellerShell({
             type="button"
             onClick={() => setOpen(false)}
             aria-label="Cerrar menú"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted transition-colors hover:bg-ink/[0.06] hover:text-ink lg:hidden"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-muted transition-colors hover:bg-ink/[0.06] hover:text-ink lg:hidden"
           >
             <X className="h-4 w-4" />
           </button>
@@ -107,7 +120,7 @@ export function ResellerShell({
                 key={item.href}
                 href={item.href}
                 aria-current={isActive ? 'page' : undefined}
-                className={`relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
+                className={`relative flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 text-sm lg:min-h-0 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
                   isActive
                     ? 'bg-ink/[0.06] font-semibold text-ink'
                     : 'font-medium text-muted hover:bg-ink/[0.035] hover:text-ink'
@@ -150,7 +163,7 @@ export function ResellerShell({
                 router.refresh();
               })
             }
-            className="mt-1 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted transition-colors hover:bg-ink/[0.035] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:opacity-60"
+            className="mt-1 flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2 text-sm lg:min-h-0 font-medium text-muted transition-colors hover:bg-ink/[0.035] hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:opacity-60"
           >
             {signingOut ? (
               <Loader2 className="h-[18px] w-[18px] shrink-0 animate-spin" aria-hidden="true" />
@@ -165,6 +178,8 @@ export function ResellerShell({
       <main className="relative z-10 min-w-0 flex-1 px-5 pb-16 pt-20 sm:px-8 lg:px-10 lg:pt-10">
         <div className="mx-auto max-w-5xl">{children}</div>
       </main>
+      <Toaster />
+
     </div>
   );
 }

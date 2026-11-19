@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { MessageCircle } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { toast } from '@/components/tenant-dash/ui/Toast';
 
 // Meta's utility-template rate for Mexico, worst tier (no volume
 // discount, which is where a single small business sits). Used only to
@@ -38,6 +39,7 @@ export function WhatsappToggle({
     setError(null);
     try {
       await onToggle(!enabled);
+      toast(enabled ? 'WhatsApp apagado' : 'WhatsApp activado');
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo cambiar.');
@@ -94,7 +96,7 @@ export function WhatsappToggle({
         </div>
         <div className="mt-1.5 flex flex-wrap items-baseline justify-between gap-2">
           <span className="text-muted">
-            {audience === 'reseller' ? 'Te cuesta aprox.' : 'Costo aprox. en Meta'}
+            {audience === 'reseller' ? 'Costo aprox. de los mensajes' : 'Costo aprox. en Meta'}
           </span>
           <span className="font-semibold tabular-nums text-ink">{estimate}</span>
         </div>

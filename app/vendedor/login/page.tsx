@@ -32,7 +32,7 @@ export default async function ResellerLoginPage({
             Acceso de vendedores
           </h1>
           <p className="mt-1.5 text-small text-muted">
-            Da de alta tus negocios y sigue tus comisiones.
+            Da de alta tus negocios y ve cuánto te queda cada mes.
           </p>
         </div>
         <Card elevation="overlay" className="rounded-[28px]">

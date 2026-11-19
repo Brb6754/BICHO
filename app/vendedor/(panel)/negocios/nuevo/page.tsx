@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import { ChevronLeft } from 'lucide-react';
+import { BACK_LINK } from '@/components/reseller/styles';
 import type { Metadata } from 'next';
 import { requireReseller } from '@/lib/auth/access';
 import { createAdminClient } from '@/lib/supabase/admin';
@@ -20,13 +22,13 @@ export default async function NewBusinessPage() {
 
   return (
     <div>
-      <Link href="/" className="text-sm text-muted hover:underline">
-        ← Mis negocios
+      <Link href="/" className={BACK_LINK}>
+        <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+        Mis negocios
       </Link>
-      <h1 className="mt-2 text-2xl font-semibold tracking-tight text-ink">Dar de alta un negocio</h1>
-      <p className="mt-1 max-w-xl text-muted">
-        Queda registrado a tu nombre, con el precio que tú le pongas. Después de crearlo puedes dejarle lista
-        su página de reservas y crear el acceso del dueño desde la misma pantalla.
+      <h1 className="mt-1 text-2xl font-semibold tracking-tight text-ink">Dar de alta un negocio</h1>
+      <p className="mt-1 max-w-xl text-sm leading-relaxed text-muted">
+        Un minuto: nombre, giro y tu precio. Queda a tu nombre, y después le dejas lista su página y su acceso.
       </p>
 
       <div className="mt-6">

@@ -1,12 +1,12 @@
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import { ArrowUpRight } from 'lucide-react';
 import { requireReseller } from '@/lib/auth/access';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { Card } from '@/components/ui/Card';
 import { tenantBookingPageUrl } from '@/lib/urls';
-import { BILLABLE_STATUS, STATUS_LABELS, formatMxn, type Reseller } from '@/lib/resellers';
+import { BILLABLE_STATUS, type Reseller } from '@/lib/resellers';
+import { BusinessHeader, BusinessSection } from '@/components/reseller/BusinessHeader';
+import { CORREO_CONTACTO } from '@/lib/seo/sitio';
 import { RetailPriceCard } from '@/components/reseller/RetailPriceCard';
 import { WhatsappToggle } from '@/components/tenant-setup/WhatsappToggle';
 import { ProductToggles } from '@/components/tenant-setup/ProductToggles';
@@ -102,46 +102,34 @@ export default async function ResellerBusinessPage({ params }: { params: Promise
 
   return (
     <div>
-      <Link href="/" className="text-sm text-muted hover:underline">
-        ← Mis negocios
-      </Link>
+      <BusinessHeader
+        name={tenant.name}
+        status={tenant.status}
+        retailPrice={(tenant.retail_price_mxn as number | null) ?? null}
+        pageUrl={tenantBookingPageUrl(tenant.slug)}
+        slug={tenant.slug}
+      />
 
-      <header className="mt-2 flex flex-wrap items-end justify-between gap-x-6 gap-y-3 border-b border-border pb-6">
-        <div className="min-w-0">
-          <h1 className="text-[1.75rem] font-semibold leading-tight tracking-tight text-ink">{tenant.name}</h1>
-          <p className="mt-1 text-sm text-muted">
-            {tenant.slug} · {STATUS_LABELS[tenant.status] ?? tenant.status}
-            {tenant.retail_price_mxn ? ` · ${formatMxn(tenant.retail_price_mxn)} / mes` : ''}
-          </p>
-        </div>
-        <a
-          href={tenantBookingPageUrl(tenant.slug)}
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex items-center gap-1.5 rounded-full border border-border px-4 py-2 text-sm font-medium text-ink transition hover:bg-ink/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-        >
-          Ver su página de reservas
-          <ArrowUpRight className="h-3.5 w-3.5 text-muted" aria-hidden="true" />
-        </a>
-      </header>
-
-      <section className="mt-10">
-        <p className="mb-3 text-sm font-semibold text-ink">Tu precio para este negocio</p>
+      <BusinessSection id="precio" title="Lo que le cobras">
         <RetailPriceCard
           tenantId={tenant.id}
           currentPrice={(tenant.retail_price_mxn as number | null) ?? null}
           wholesalePrice={reseller?.wholesale_price_mxn ?? 0}
           billable={tenant.status === BILLABLE_STATUS}
         />
-      </section>
+      </BusinessSection>
+
+      <BusinessSection
+        id="acceso"
+        title="Acceso del dueño"
+        note="Crea su usuario con su correo. La contraseña la escribe él mismo en tu teléfono o el suyo; la puede cambiar después desde su panel."
+      >
+        <OwnerCreator currentOwnerEmail={ownerEmail} onCreate={createTenantOwner.bind(null, tenant.id)} />
+      </BusinessSection>
 
       {/* Qué productos le vendiste. Va ANTES de los extras: un extra
           modifica un producto, así que primero se decide cuál tiene. */}
-      <section className="mt-10">
-        <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-          <p className="text-sm font-semibold text-ink">Productos</p>
-          <p className="text-xs text-muted">Reservas, cotizaciones o las dos.</p>
-        </div>
+      <BusinessSection id="productos" title="Productos" note="Lo que le vendiste. Se prende y se apaga al momento.">
         <ProductToggles
           plan={planDe(tenant.plan)}
           reservas={productos.reservas}
@@ -159,13 +147,9 @@ export default async function ResellerBusinessPage({ params }: { params: Promise
             await setTenantProduct(tenant.id, producto, activo);
           }}
         />
-      </section>
+      </BusinessSection>
 
-      <section className="mt-10">
-        <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-          <p className="text-sm font-semibold text-ink">Extras</p>
-          <p className="text-xs text-muted">Se activan y se apagan por negocio.</p>
-        </div>
+      <BusinessSection id="extras" title="Extras" note="Se activan y se apagan por negocio.">
         {whatsapp.available ? (
           <WhatsappToggle
             enabled={whatsapp.enabled}
@@ -175,43 +159,37 @@ export default async function ResellerBusinessPage({ params }: { params: Promise
           />
         ) : (
           <Card className="max-w-xl">
-            <p className="text-sm font-medium text-ink">Falta correr la migración</p>
+            <p className="text-sm font-medium text-ink">WhatsApp todavía no está disponible</p>
             <p className="mt-1.5 text-sm leading-relaxed text-muted">
-              El extra de WhatsApp necesita{' '}
-              <code className="font-mono text-xs">db/021_whatsapp_addon.sql</code> en el SQL Editor
-              de Supabase.
+              El equipo de bicho lo está terminando de preparar. Mientras, las confirmaciones salen por correo.
             </p>
           </Card>
         )}
-      </section>
+      </BusinessSection>
 
-      <section className="mt-10">
-        <p className="mb-1 text-sm font-semibold text-ink">Acceso del dueño</p>
-        <p className="mb-3 max-w-xl text-xs leading-relaxed text-muted">
-          Crea su usuario con el correo del negocio. La contraseña la escribes junto a él en su teléfono o
-          computadora: puede cambiarla después desde su propio panel.
+      <BusinessSection
+        id="pagina"
+        title="Su página de reservas"
+        note={
+          tenant.page_blocks
+            ? 'Tiene su propia copia: lo que edites aquí solo cambia la página de este negocio.'
+            : 'Todavía usa el diseño de su giro. Al guardar aquí pasa a tener el suyo.'
+        }
+      >
+        {/* The editor is a three-panel canvas: usable on a phone, but
+            far easier with room. Say so instead of letting it surprise. */}
+        <p className="mb-3 rounded-xl bg-ink/[0.04] px-4 py-3 text-[13px] leading-relaxed text-muted lg:hidden">
+          Este editor se usa mejor en una computadora o tableta. Desde el teléfono puedes revisar y hacer cambios
+          chicos.
         </p>
-        <OwnerCreator currentOwnerEmail={ownerEmail} onCreate={createTenantOwner.bind(null, tenant.id)} />
-      </section>
-
-      <section className="mt-10">
-        <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-          <p className="text-sm font-semibold text-ink">Su página de reservas</p>
-          <p className="text-xs text-muted">
-            {tenant.page_blocks
-              ? 'Tiene su propia copia: lo que edites aquí solo afecta a este negocio.'
-              : 'Todavía muestra la plantilla de su giro. Al guardar aquí pasa a tener la suya.'}
-          </p>
-        </div>
         <TemplateBuilder
           accentColor={tenant.accent_color ?? undefined}
           initialBlocks={pageBlocks}
           onSave={updateTenantPage.bind(null, tenant.id)}
         />
-      </section>
+      </BusinessSection>
 
-      <section className="mt-10">
-        <p className="mb-3 text-sm font-semibold text-ink">Colores, logo y tipografía</p>
+      <BusinessSection id="marca" title="Colores, logo y letra">
         <Card>
           <BrandEditor
             initial={{
@@ -240,11 +218,17 @@ export default async function ResellerBusinessPage({ params }: { params: Promise
             onSave={updateTenantBranding.bind(null, tenant.id) as (b: TenantBranding) => Promise<void>}
           />
         </Card>
-      </section>
+      </BusinessSection>
 
       <p className="mt-10 rounded-2xl border border-border bg-surface px-5 py-4 text-sm leading-relaxed text-muted">
-        ¿Hay que suspender, reactivar o cambiar el plan de este negocio? Eso lo hace el equipo de bicho:
-        escríbenos y lo movemos.
+        ¿Hay que suspender, reactivar o cambiarle el plan a este negocio? Eso lo hace el equipo de bicho:{' '}
+        <a
+          href={`mailto:${CORREO_CONTACTO}?subject=${encodeURIComponent(`Negocio: ${tenant.name}`)}`}
+          className="font-medium text-ink underline underline-offset-4"
+        >
+          escríbenos
+        </a>{' '}
+        y lo movemos.
       </p>
     </div>
   );

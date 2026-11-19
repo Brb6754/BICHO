@@ -243,7 +243,7 @@ export default async function ResellerSubscriptionPage() {
                       href={charge.hosted_invoice_url as string}
                       target="_blank"
                       rel="noreferrer"
-                      className="rounded-md text-sm text-muted underline-offset-4 transition-colors hover:text-ink hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                      className="-my-2 inline-flex min-h-11 items-center rounded-md px-1 text-sm text-muted underline-offset-4 transition-colors hover:text-ink hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                     >
                       Ver recibo
                     </a>

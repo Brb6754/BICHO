@@ -6,6 +6,7 @@ import { Landmark, CalendarDays, FileText, HeartHandshake, Megaphone, ReceiptTex
 import { HandCoins } from 'lucide-react';
 import { Package } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
+import { toast } from '@/components/tenant-dash/ui/Toast';
 import { PLANES, moduloIncluido, planMinimoPara, type PlanId } from '@/lib/billing/planes';
 
 // Qué productos tiene contratado el negocio.
@@ -48,11 +49,12 @@ export function ProductToggles({
   const [guardando, setGuardando] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function cambiar(producto: Producto, activo: boolean) {
+  async function cambiar(producto: Producto, activo: boolean, label: string) {
     setGuardando(producto);
     setError(null);
     try {
       await onToggle(producto, activo);
+      toast(`${label}: ${activo ? 'activado' : 'apagado'}`);
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo cambiar.');
@@ -174,17 +176,20 @@ export function ProductToggles({
               aria-checked={activo}
               aria-label={`${activo ? 'Desactivar' : 'Activar'} ${label}`}
               disabled={guardando === id || bloqueado}
-              onClick={() => cambiar(id, !activo)}
-              className={`relative h-7 w-12 shrink-0 rounded-full transition-colors disabled:opacity-60 ${
-                activo ? 'bg-primary' : 'bg-ink/[0.18]'
-              }`}
+              onClick={() => cambiar(id, !activo, label)}
+              // El área que se toca mide 44 px; el riel dibujado sigue de 28.
+              className="-my-2 flex h-11 w-14 shrink-0 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:opacity-60"
             >
               <span
                 aria-hidden="true"
-                className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${
-                  activo ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
+                className={`relative h-7 w-12 rounded-full transition-colors ${activo ? 'bg-primary' : 'bg-ink/[0.18]'}`}
+              >
+                <span
+                  className={`absolute left-0 top-1 h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${
+                    activo ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </span>
             </button>
           </div>
           );

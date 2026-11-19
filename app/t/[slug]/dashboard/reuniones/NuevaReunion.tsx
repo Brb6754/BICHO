@@ -109,7 +109,7 @@ export function NuevaReunion({
 
   return (
     <>
-      <Button type="button" onClick={() => setAbierto(true)} className="min-h-11">
+      <Button type="button" onClick={() => setAbierto(true)} className="min-h-11 whitespace-nowrap">
         <Plus className="h-4 w-4" aria-hidden="true" />
         Agendar reunión
       </Button>

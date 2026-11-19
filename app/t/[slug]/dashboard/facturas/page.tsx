@@ -8,6 +8,7 @@ import { PageHeader } from '@/components/tenant-dash/PageHeader';
 import { HelpTip } from '@/components/tenant-dash/ui/HelpTip';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { FacturasLista } from './FacturasLista';
+import { PasosConectar } from './PasosConectar';
 import { longDate } from '@/lib/dates/tenantTime';
 
 export const dynamic = 'force-dynamic';
@@ -35,14 +36,15 @@ export default async function FacturasPage({ params }: { params: Promise<{ slug:
     .limit(50);
 
   if (error) {
+    // La causa real va al log del servidor; a la dueña nunca se le enseña un nombre de archivo.
+    console.error('facturas/page.tsx: falta db/034_facturapi.sql?', error.message);
     return (
       <div>
         <PageHeader title="Facturas" />
         <div className="mt-8 rounded-2xl bg-surface p-6 ring-1 ring-border">
-          <p className="text-[15px] font-medium text-ink">Falta correr una migración</p>
+          <p className="text-[15px] font-medium text-ink">Esta sección todavía no está lista en tu cuenta</p>
           <p className="mt-2 text-sm leading-relaxed text-muted">
-            Corre <code className="rounded bg-ink/[0.06] px-1.5 py-0.5">db/034_facturapi.sql</code> en
-            Supabase para activar la facturación.
+            No es nada que hayas hecho tú. Escríbenos y la dejamos lista; mientras, el resto de tu panel funciona igual.
           </p>
         </div>
       </div>
@@ -83,34 +85,7 @@ export default async function FacturasPage({ params }: { params: Promise<{ slug:
       {/* Antes que la lista: si el negocio no está conectado, no hay nada
           que listar y lo único útil es decirle, paso a paso, qué le falta. */}
       {!conectado ? (
-        <section className="mt-8 rounded-3xl bg-surface p-5 ring-1 ring-border sm:p-7" aria-labelledby="conectar-titulo">
-          <h2 id="conectar-titulo" className="text-[17px] font-semibold tracking-tight text-ink">
-            Para hacer facturas te faltan 3 cosas (se hace una sola vez)
-          </h2>
-          <ol className="mt-4 flex flex-col gap-4">
-            {[
-              ['Tu RFC', 'Viene en tu constancia de situación fiscal.'],
-              ['Tu sello digital (CSD)', 'Se pide gratis en el SAT con tu e.firma. El paso a paso está en Impuestos (RESICO).'],
-              ['Firmar la carta manifiesto', 'Un permiso en línea para que bicho mande tus facturas al SAT.'],
-            ].map(([titulo, texto], i) => (
-              <li key={titulo} className="flex gap-3">
-                <span
-                  aria-hidden="true"
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-ink/[0.07] text-[13px] font-semibold tabular-nums text-ink"
-                >
-                  {i + 1}
-                </span>
-                <div>
-                  <p className="text-[15px] font-medium text-ink">{titulo}</p>
-                  <p className="mt-0.5 text-sm leading-relaxed text-muted">{texto}</p>
-                </div>
-              </li>
-            ))}
-          </ol>
-          <p className="mt-5 rounded-2xl bg-paper px-4 py-3 text-sm leading-relaxed text-ink ring-1 ring-border">
-            Tú no configuras nada: cuando tengas tu sello digital, mándanoslo y nosotros conectamos tu negocio.
-          </p>
-        </section>
+        <PasosConectar />
       ) : !enlace?.live ? (
         <p className="mt-8 rounded-2xl bg-warning-soft p-4 text-sm leading-relaxed text-ink ring-1 ring-border">
           <strong className="font-semibold">Estás en modo de prueba.</strong> Las facturas que hagas aquí no valen ante el

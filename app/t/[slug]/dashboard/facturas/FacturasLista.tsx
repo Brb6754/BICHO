@@ -65,8 +65,8 @@ export function FacturasLista({ facturas }: { facturas: FacturaFila[] }) {
               <div className="flex items-start gap-3">
                 <Avatar nombre={f.cliente} />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-[17px] font-semibold text-ink">{f.cliente}</p>
-                  <p className="truncate text-[13px] text-muted">
+                  <p className="line-clamp-2 break-words text-[17px] font-semibold leading-snug text-ink">{f.cliente}</p>
+                  <p className="break-words text-[13px] text-muted">
                     {[f.folio ? `Folio ${f.folio}` : null, f.rfc, f.fecha].filter(Boolean).join(' · ')}
                   </p>
                 </div>

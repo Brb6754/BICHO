@@ -1,4 +1,4 @@
-import { Check, Gift, Hourglass } from 'lucide-react';
+import { Check, Gift, Hourglass, MessageCircle } from 'lucide-react';
 import { requireTenantStaff } from '@/lib/auth/tenantStaff';
 import { createClient } from '@/lib/supabase/server';
 import { PageHeader, SectionHeading } from '@/components/tenant-dash/PageHeader';
@@ -99,6 +99,17 @@ export default async function ReferidosPage({ params }: { params: Promise<{ slug
               title="Todavía nadie se registra con tu link"
               description="Cuando un negocio se registre, aparece aquí y ves si ya pagó."
               why="Piensa en tu estilista de confianza, tu dentista o la barbería de enfrente: cada uno que pague es un mes que no pagas tú."
+              action={
+                <a
+                  href={`https://wa.me/?text=${encodeURIComponent(message)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-[rgb(var(--color-cta-fg))] shadow-sm transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
+                >
+                  <MessageCircle className="h-4 w-4" aria-hidden="true" />
+                  Mandar mi invitación por WhatsApp
+                </a>
+              }
             />
           </div>
         ) : (

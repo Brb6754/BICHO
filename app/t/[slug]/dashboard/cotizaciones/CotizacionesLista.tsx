@@ -56,7 +56,7 @@ export function CotizacionesLista({ slug, cotizaciones }: { slug: string; cotiza
               <div className="flex items-start gap-3">
                 <Avatar nombre={q.cliente} />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-[17px] font-semibold text-ink">{q.cliente}</p>
+                  <p className="line-clamp-2 break-words text-[17px] font-semibold leading-snug text-ink">{q.cliente}</p>
                   <p className="flex flex-wrap items-center gap-x-2 text-[13px] text-muted">
                     <span className="tabular-nums">#{q.folio}</span>
                     {q.laAbrio && q.estado !== 'viewed' && q.estado !== 'accepted' && (
